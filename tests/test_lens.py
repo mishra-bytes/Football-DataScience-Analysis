@@ -1,8 +1,11 @@
+import dataclasses
+
 import pandas as pd
 
 from gambeta import kit, laws, lens
 
 CFG = kit.load()
+NO_FLOOR = dataclasses.replace(CFG, min_seasons=1)
 
 
 def _career(player_id: str, scores: list[float], start: int = 0) -> pd.DataFrame:
@@ -33,15 +36,42 @@ def test_peak5_requires_consecutive_seasons() -> None:
 
 
 def test_peak5_handles_a_career_shorter_than_the_window() -> None:
-    out = lens.peak5(_career("a", [4.0, 6.0]), CFG, window=5).set_index("player_id")
+    out = lens.peak5(_career("a", [4.0, 6.0]), NO_FLOOR, window=5).set_index("player_id")
     assert out.loc["a", "score"] == 5.0
     assert out.loc["a", "seasons_used"] == 2
 
 
 def test_peak5_handles_a_single_season_career() -> None:
-    out = lens.peak5(_career("a", [3.0]), CFG, window=5).set_index("player_id")
+    out = lens.peak5(_career("a", [3.0]), NO_FLOOR, window=5).set_index("player_id")
     assert out.loc["a", "score"] == 3.0
     assert out.loc["a", "seasons_used"] == 1
+
+
+def test_peak5_excludes_careers_below_the_season_floor() -> None:
+    """A one-season 'best five consecutive seasons' is a category error."""
+    out = lens.peak5(_career("a", [9.0]), CFG, window=5)
+    assert out.empty
+
+
+def test_peak5_floor_does_not_exclude_a_qualifying_career() -> None:
+    out = lens.peak5(_career("a", [1.0, 2.0, 3.0]), CFG, window=5)
+    assert len(out) == 1
+    assert out.iloc[0]["seasons_used"] == 3
+
+
+def test_peak5_floor_stops_a_one_season_wonder_outranking_a_sustained_peak() -> None:
+    """The real-data failure: one huge season beat five good ones."""
+    flash = _career("flash", [9.0])
+    sustained = _career("sustained", [3.0] * 5)
+    out = lens.peak5(pd.concat([flash, sustained]), CFG, window=5)
+    assert list(out["player_id"]) == ["sustained"]
+
+
+def test_peak5_never_emits_a_zero_width_interval() -> None:
+    """A degenerate interval reads as certainty on the least certain estimate."""
+    df = pd.concat([_career("a", [1.0]), _career("b", [1.0, 2.0, 3.0, 4.0])])
+    out = lens.peak5(df, CFG, window=5)
+    assert (out["hi"] > out["lo"]).all()
 
 
 def test_peak5_ranks_multiple_players_descending() -> None:

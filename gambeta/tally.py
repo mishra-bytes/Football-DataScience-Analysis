@@ -26,11 +26,12 @@ def collapse_transfers(df: pd.DataFrame) -> pd.DataFrame:
     grouped = df.groupby(keys, as_index=False, sort=False)
 
     totals = grouped.agg({**{c: "sum" for c in _SUM}, **{c: "first" for c in _KEEP}})
+    # Named aggregation on the frame (not a selected column) keeps this a
+    # DataFrame and needs no rename.
     teams = (
         df.sort_values("team")
-        .groupby(keys, as_index=False, sort=False)["team"]
-        .agg(lambda names: ", ".join(dict.fromkeys(names)))
-        .rename(columns={"team": "teams"})
+        .groupby(keys, as_index=False, sort=False)
+        .agg(teams=("team", lambda names: ", ".join(dict.fromkeys(names))))
     )
     return totals.merge(teams, on=keys, how="left")
 
@@ -68,11 +69,7 @@ def add_team_share(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
     """
     keys = ["player_id", "season"]
 
-    club_goals = (
-        raw.groupby(["season", "team"], as_index=False)["goals"]
-        .sum()
-        .rename(columns={"goals": "_club_goals"})
-    )
+    club_goals = raw.groupby(["season", "team"], as_index=False).agg(_club_goals=("goals", "sum"))
     per_club = raw[["player_id", "season", "team", "goals"]].merge(
         club_goals, on=["season", "team"], how="left"
     )

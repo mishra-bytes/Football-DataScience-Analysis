@@ -19,6 +19,16 @@ from gambeta.kit import SEASONS, Config
 
 _SEASON_ORDER = {season: i for i, season in enumerate(SEASONS)}
 _BOOTSTRAP_RESAMPLES = 2000
+_COLUMNS = [
+    "player_id",
+    "player",
+    "score",
+    "lo",
+    "hi",
+    "start_season",
+    "end_season",
+    "seasons_used",
+]
 
 
 def _best_window(scores: np.ndarray, positions: np.ndarray, window: int) -> tuple[float, int, int]:
@@ -50,20 +60,31 @@ def _best_window(scores: np.ndarray, positions: np.ndarray, window: int) -> tupl
 def peak5(df: pd.DataFrame, cfg: Config, window: int = 5) -> pd.DataFrame:
     """Rank players by their best ``window`` consecutive seasons.
 
+    Players whose longest consecutive run is shorter than ``cfg.min_seasons``
+    are **excluded**, not merely down-weighted. Two reasons, both load-bearing:
+
+    * A one-season "best five consecutive seasons" is a category error. On real
+      data this let a single outstanding campaign outrank five-season windows
+      from Rooney and Ronaldo, which is not what the lens claims to measure.
+    * Bootstrapping a single observation returns a zero-width interval. That is
+      arithmetically correct — one point has no resampling spread — but it
+      renders as *perfect confidence* on the shakiest estimate in the table.
+
     Parameters
     ----------
     df
         Player-seasons with ``player_id``, ``player``, ``season``, ``score``.
     cfg
-        Project config; supplies the random seed for bootstrapping.
+        Project config; supplies the random seed and the season floor.
     window
-        Maximum window length in seasons. Shorter careers use what they have.
+        Maximum window length in seasons. Shorter careers use what they have,
+        subject to the ``cfg.min_seasons`` floor.
 
     Returns
     -------
     pd.DataFrame
-        Conforms to :data:`gambeta.laws.RATING`: one row per player, sorted
-        best first, each with a 95% bootstrap interval.
+        Conforms to :data:`gambeta.laws.RATING`: one row per qualifying player,
+        sorted best first, each with a 95% bootstrap interval.
     """
     rows = []
     for player_id, group in df.groupby("player_id", sort=False):
@@ -72,6 +93,9 @@ def peak5(df: pd.DataFrame, cfg: Config, window: int = 5) -> pd.DataFrame:
         positions = np.array([_SEASON_ORDER.get(s, -1) for s in career["season"]])
 
         mean, start, end = _best_window(scores, positions, window)
+        if end - start + 1 < cfg.min_seasons:
+            continue
+
         _, lo, hi = bootstrap(scores[start : end + 1], n=_BOOTSTRAP_RESAMPLES, seed=cfg.seed)
 
         rows.append(
@@ -87,4 +111,7 @@ def peak5(df: pd.DataFrame, cfg: Config, window: int = 5) -> pd.DataFrame:
             }
         )
 
-    return pd.DataFrame(rows).sort_values("score", ascending=False).reset_index(drop=True)
+    # Explicit columns so an all-excluded result is still a valid, typed frame
+    # rather than a shapeless empty one that breaks the first sort downstream.
+    out = pd.DataFrame(rows, columns=_COLUMNS)
+    return out.sort_values("score", ascending=False).reset_index(drop=True)

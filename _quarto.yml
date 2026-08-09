@@ -1,11 +1,12 @@
 # Book config lives at the repo root, not in tome/, because Quarto cannot
-# reliably reference chapters above its project directory. Output still lands
-# in tome/_book, so the book keeps its own home.
+# reliably reference chapters above its project directory. Quarto additionally
+# requires the home page to be `index.qmd` at the project root, so the preface
+# lives here; every other book file stays in tome/. Output lands in tome/_book.
 project:
   type: book
   output-dir: tome/_book
   render:
-    - tome/index.qmd
+    - index.qmd
     - labs/01-who-dominated-the-premier-league.ipynb
     - labs/02-z-scores-across-eras.ipynb
     - tome/method-template.qmd
@@ -16,7 +17,7 @@ book:
   author: "Aditya Mishra"
   search: true
   chapters:
-    - tome/index.qmd
+    - index.qmd
     - part: "The investigation"
       chapters:
         - labs/01-who-dominated-the-premier-league.ipynb

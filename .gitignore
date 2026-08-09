@@ -45,3 +45,6 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+/.quarto/
+**/*.quarto_ipynb

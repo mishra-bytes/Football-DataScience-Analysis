@@ -19,6 +19,11 @@ class Config:
         Repository root. All other paths derive from it.
     min_minutes
         Minimum minutes in a season for a player-season to enter a rating.
+    min_seasons
+        Minimum seasons in a player's peak window for them to be ranked at all.
+        A one-season "best five consecutive seasons" is not a peak-five, and a
+        single observation yields a zero-width interval that reads as certainty
+        when it is the least certain estimate on the page.
     prior_minutes
         Strength of the empirical-Bayes shrinkage prior, in minutes.
     seed
@@ -33,6 +38,7 @@ class Config:
     league: str = "ENG-Premier League"
     seasons: tuple[str, ...] = SEASONS
     min_minutes: int = 900
+    min_seasons: int = 3
     prior_minutes: float = 900.0
     seed: int = 20260810
 
