@@ -10,6 +10,14 @@ from __future__ import annotations
 import pandera.pandas as pa
 from pandera.pandas import Check, Column, DataFrameSchema
 
+ValidationError = (pa.errors.SchemaError, pa.errors.SchemaErrors)
+"""Catch-all for schema violations.
+
+pandera raises ``SchemaError`` for a bad value but ``SchemaErrors`` for a bad
+column set, and the two are siblings with no useful common base. Callers should
+catch this tuple rather than having to know which one applies.
+"""
+
 _NON_NEG = Check.ge(0)
 _SEASON = Check.str_length(4, 4)
 
@@ -104,4 +112,12 @@ RATING = DataFrameSchema(
 )
 """Lens output: one row per player with a point estimate and interval."""
 
-__all__ = ["CROSSWALK", "ELO", "PLAYER_SEASON", "PLAYER_SEASON_RAW", "RATING", "pa"]
+__all__ = [
+    "CROSSWALK",
+    "ELO",
+    "PLAYER_SEASON",
+    "PLAYER_SEASON_RAW",
+    "RATING",
+    "ValidationError",
+    "pa",
+]

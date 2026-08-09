@@ -1,5 +1,4 @@
 import pandas as pd
-import pandera.pandas as pa
 import pytest
 
 from gambeta import laws
@@ -37,12 +36,12 @@ def test_raw_schema_accepts_valid_frame() -> None:
 def test_raw_schema_rejects_negative_minutes() -> None:
     bad = _raw_row()
     bad.loc[0, "minutes"] = -1
-    with pytest.raises(pa.errors.SchemaError):
+    with pytest.raises(laws.ValidationError):
         laws.PLAYER_SEASON_RAW.validate(bad)
 
 
 def test_raw_schema_rejects_missing_column() -> None:
-    with pytest.raises(pa.errors.SchemaError):
+    with pytest.raises(laws.ValidationError):
         laws.PLAYER_SEASON_RAW.validate(_raw_row().drop(columns=["goals"]))
 
 
@@ -62,7 +61,7 @@ def test_crosswalk_requires_unique_qid() -> None:
             "birth_year": pd.array([1987, 1987], dtype="Int64"),
         }
     )
-    with pytest.raises(pa.errors.SchemaError):
+    with pytest.raises(laws.ValidationError):
         laws.CROSSWALK.validate(dupe)
 
 
@@ -85,5 +84,5 @@ def test_player_season_rejects_duplicate_player_season() -> None:
         "yellow": 1,
         "red": 0,
     }
-    with pytest.raises(pa.errors.SchemaError):
+    with pytest.raises(laws.ValidationError):
         laws.PLAYER_SEASON.validate(pd.DataFrame([row, row]))
