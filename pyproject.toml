@@ -14,7 +14,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gpu = ["cupy-cuda12x>=13"]
+# [ctk] pulls the CUDA toolkit headers CuPy needs to JIT-compile kernels;
+# without them cupy.random raises at runtime even though allocation works.
+gpu = ["cupy-cuda12x[ctk]>=13"]
 bayes = ["pymc>=5.16", "nutpie>=0.13", "arviz>=0.18"]
 
 [project.scripts]
