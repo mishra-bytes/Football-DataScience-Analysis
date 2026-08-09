@@ -1,0 +1,41 @@
+# Book config lives at the repo root, not in tome/, because Quarto cannot
+# reliably reference chapters above its project directory. Quarto additionally
+# requires the home page to be `index.qmd` at the project root, so the preface
+# lives here; every other book file stays in tome/. Output lands in tome/_book.
+project:
+  type: book
+  output-dir: tome/_book
+  render:
+    - index.qmd
+    - labs/01-who-dominated-the-premier-league.ipynb
+    - labs/02-z-scores-across-eras.ipynb
+    - tome/method-template.qmd
+
+book:
+  title: "gambeta"
+  subtitle: "Football, statistics, and the argument that never ends"
+  author: "Aditya Mishra"
+  search: true
+  chapters:
+    - index.qmd
+    - part: "The investigation"
+      chapters:
+        - labs/01-who-dominated-the-premier-league.ipynb
+    - part: "Methods"
+      chapters:
+        - labs/02-z-scores-across-eras.ipynb
+        - tome/method-template.qmd
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    code-fold: show
+    code-tools: true
+    toc: true
+    fig-align: center
+
+execute:
+  freeze: auto
+  warning: false

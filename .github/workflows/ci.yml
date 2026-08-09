@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main, phase-1]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # No GPU and no network scraping on CI: tests run against checked-in
+      # fixtures and data/sample, so the gpu extra is deliberately omitted.
+      - name: Install
+        run: uv sync --all-groups
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format
+        run: uv run ruff format --check .
+
+      - name: Types
+        run: uv run mypy
+
+      - name: Tests
+        run: uv run pytest

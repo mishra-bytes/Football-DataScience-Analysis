@@ -1,0 +1,45 @@
+# How to read a method chapter {.unnumbered}
+
+Every method chapter in this book follows the same six-part structure. It is
+written down here once so the pattern is explicit, and so anyone adding a
+chapter later has a template to fill rather than a blank page.
+
+## The six parts
+
+**1. Question.** What are we actually trying to work out? Stated in football
+terms, not statistical ones. If the question cannot be phrased without jargon,
+it is not yet understood well enough to answer.
+
+**2. Intuition.** Why the method is a sensible response to that question,
+explained with no equations. A reader should be able to stop here and still
+correctly describe what the method does to someone else.
+
+**3. Math.** The actual definition. Notation is introduced, not assumed. Where a
+choice was made — a denominator, an estimator, a prior — the alternatives are
+named and the choice is justified.
+
+**4. Code.** The implementation, calling into `gambeta` rather than redefining
+the algorithm inline. Every worked example is small enough to verify by hand,
+because a reader who cannot check the arithmetic is taking the result on faith.
+
+**5. Assumptions.** What has to be true about the world for this method to give a
+meaningful answer. Listed as claims that could in principle be false, not as
+hedges.
+
+**6. How it breaks.** A constructed example where the method gives a confidently
+wrong answer, and an explanation of why. This is the section most tutorials
+omit, and it is the most valuable one: knowing when a tool fails is what
+separates using it from trusting it.
+
+## Why this structure
+
+The two audiences this book serves want different things from the same page. A
+beginner needs parts 1, 2 and 4 — the question, the feel, and something runnable.
+A practitioner needs parts 3, 5 and 6 — the definition, the conditions, and the
+failure modes.
+
+Writing them as one linear chapter with labelled sections lets both readers take
+what they need without either being condescended to or left behind. It also
+imposes a useful discipline on the author: you cannot write part 6 honestly
+without genuinely understanding the method's limits, so the structure catches
+hand-waving before a reader has to.
