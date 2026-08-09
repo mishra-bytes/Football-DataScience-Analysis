@@ -30,6 +30,10 @@ htmlcov/
 # Streamlit
 .streamlit/secrets.toml
 
+# seleniumbase / chromedriver artifacts from soccerdata scraping
+downloaded_files/
+latest_logs/
+
 # Environment
 .env
 .env.*
