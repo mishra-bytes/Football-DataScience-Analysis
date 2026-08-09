@@ -17,4 +17,6 @@ df = fb.read_player_season_stats(stat_type="standard")
 # Take rows from both ends so both seasons are represented.
 sample = df.groupby(level="season", group_keys=False).head(20)
 sample.to_pickle(out / "fbref_raw.pkl")
-print(f"wrote {len(sample)} rows, seasons: {sorted(sample.index.get_level_values('season').unique())}")
+print(
+    f"wrote {len(sample)} rows, seasons: {sorted(sample.index.get_level_values('season').unique())}"
+)

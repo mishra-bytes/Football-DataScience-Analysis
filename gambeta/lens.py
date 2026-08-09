@@ -21,9 +21,7 @@ _SEASON_ORDER = {season: i for i, season in enumerate(SEASONS)}
 _BOOTSTRAP_RESAMPLES = 2000
 
 
-def _best_window(
-    scores: np.ndarray, positions: np.ndarray, window: int
-) -> tuple[float, int, int]:
+def _best_window(scores: np.ndarray, positions: np.ndarray, window: int) -> tuple[float, int, int]:
     """Return ``(mean, start_index, end_index)`` of the best consecutive run.
 
     Selection is lexicographic: **longest window first, then highest mean.**

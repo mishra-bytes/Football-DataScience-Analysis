@@ -32,9 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="gambeta", description="Football player analysis pipeline"
     )
     parser.add_argument("stage", choices=["scrape", "clean", "derive", "all"])
-    parser.add_argument(
-        "--seasons", nargs="+", default=None, help="Season codes, e.g. 0001 0102"
-    )
+    parser.add_argument("--seasons", nargs="+", default=None, help="Season codes, e.g. 0001 0102")
     return parser
 
 

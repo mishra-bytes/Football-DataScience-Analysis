@@ -28,6 +28,7 @@ dev = [
     "pytest-cov>=5",
     "ruff>=0.6",
     "mypy>=1.11",
+    "pandas-stubs>=2.2",  # mypy --strict cannot type pandas without these
     "pre-commit>=3.8",
     "dvc>=3.55",
     "nbstripout>=0.7",
@@ -48,7 +49,11 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "NPY", "PD"]
-ignore = ["PD901"]  # `df` is a fine name in this codebase
+
+[tool.ruff.lint.per-file-ignores]
+# These embed notebook source as string literals; the line budget applies to
+# the generated notebook cells, not to this file.
+"scripts/make_notebooks.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

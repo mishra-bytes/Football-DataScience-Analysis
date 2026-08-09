@@ -58,7 +58,10 @@ def flatten(raw: pd.DataFrame) -> pd.DataFrame:
     """
     df = raw.reset_index()
     df.columns = pd.Index(
-        [_RENAME.get(c, c[0]) if isinstance(c, tuple) else _RENAME.get((c, ""), c) for c in df.columns]
+        [
+            _RENAME.get(c, c[0]) if isinstance(c, tuple) else _RENAME.get((c, ""), c)
+            for c in df.columns
+        ]
     )
     df = df.loc[:, ~df.columns.duplicated()]
 

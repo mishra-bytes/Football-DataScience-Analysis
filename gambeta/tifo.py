@@ -36,6 +36,8 @@ from matplotlib.figure import Figure
 MAX_SERIES = 8
 """Hard cap. A ninth series is never a generated hue — fold it or facet."""
 
+DOTS_SUBTITLE = "Bars are 95% bootstrap intervals. Where they overlap, the order is not resolved."
+
 LIGHT: dict[str, Any] = {
     "surface": "#fcfcfb",
     "primary": "#0b0b0b",
@@ -45,8 +47,14 @@ LIGHT: dict[str, Any] = {
     "axis": "#c3c2b7",
     "accent": "#2a78d6",
     "series": (
-        "#2a78d6", "#eb6834", "#1baf7a", "#eda100",
-        "#e87ba4", "#008300", "#4a3aa7", "#e34948",
+        "#2a78d6",
+        "#eb6834",
+        "#1baf7a",
+        "#eda100",
+        "#e87ba4",
+        "#008300",
+        "#4a3aa7",
+        "#e34948",
     ),
 }
 
@@ -59,8 +67,14 @@ DARK: dict[str, Any] = {
     "axis": "#383835",
     "accent": "#3987e5",
     "series": (
-        "#3987e5", "#d95926", "#199e70", "#c98500",
-        "#d55181", "#008300", "#9085e9", "#e66767",
+        "#3987e5",
+        "#d95926",
+        "#199e70",
+        "#c98500",
+        "#d55181",
+        "#008300",
+        "#9085e9",
+        "#e66767",
     ),
 }
 
@@ -114,7 +128,7 @@ def ranked_dots(
     df: pd.DataFrame,
     top: int = 20,
     title: str = "Peak five seasons, era-adjusted",
-    subtitle: str = "Bars are 95% bootstrap intervals. Where they overlap, the order is not resolved.",
+    subtitle: str = DOTS_SUBTITLE,
     dark: bool = False,
 ) -> Figure:
     """Horizontal dot plot of ranked scores with confidence intervals.
@@ -142,13 +156,23 @@ def ranked_dots(
     # hlines yields a LineCollection, which takes `capstyle` (Line2D's is
     # `solid_capstyle`). Rounded ends keep the interval reading as a range.
     ax.hlines(
-        positions, shown["lo"], shown["hi"],
-        color=c["muted"], linewidth=3, alpha=0.5, capstyle="round",
+        positions,
+        shown["lo"],
+        shown["hi"],
+        color=c["muted"],
+        linewidth=3,
+        alpha=0.5,
+        capstyle="round",
     )
     ax.plot(
-        shown["score"], positions, "o",
-        color=c["accent"], markersize=7, linestyle="none",
-        markeredgecolor=c["surface"], markeredgewidth=1.5,  # 2px surface ring
+        shown["score"],
+        positions,
+        "o",
+        color=c["accent"],
+        markersize=7,
+        linestyle="none",
+        markeredgecolor=c["surface"],
+        markeredgewidth=1.5,  # 2px surface ring
     )
 
     ax.set_yticks(list(positions))
@@ -195,10 +219,15 @@ def bump(
     for slot, player in enumerate(order):
         line = kept[kept["player"] == player].sort_values("season")
         ax.plot(
-            line["season"], line["rank"],
-            marker="o", markersize=7, linewidth=2,
-            color=c["series"][slot], label=str(player),
-            markeredgecolor=c["surface"], markeredgewidth=1.5,
+            line["season"],
+            line["rank"],
+            marker="o",
+            markersize=7,
+            linewidth=2,
+            color=c["series"][slot],
+            label=str(player),
+            markeredgecolor=c["surface"],
+            markeredgewidth=1.5,
         )
 
     ax.invert_yaxis()
