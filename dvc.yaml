@@ -1,0 +1,38 @@
+stages:
+  scrape:
+    cmd: uv run gambeta scrape
+    deps:
+      - gambeta/scouts
+    params:
+      - league
+    outs:
+      # FBref terms restrict bulk redistribution: raw scrapes are versioned
+      # locally but never pushed to a shared remote. See DATA_SOURCES.md.
+      - vault/raw:
+          push: false
+
+  clean:
+    cmd: uv run gambeta clean
+    deps:
+      - vault/raw
+      - gambeta/whois.py
+      - gambeta/laws.py
+      - gambeta/locker.py
+      - gambeta/tally.py
+    outs:
+      - vault/clean
+
+  derive:
+    cmd: uv run gambeta derive
+    deps:
+      - vault/clean
+      - gambeta/tally.py
+      - gambeta/level.py
+      - gambeta/lens.py
+      - gambeta/doubt.py
+    params:
+      - min_minutes
+      - prior_minutes
+      - seed
+    outs:
+      - vault/derive
