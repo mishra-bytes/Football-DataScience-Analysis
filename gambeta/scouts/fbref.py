@@ -230,7 +230,12 @@ class FBrefScout:
             reader = self._reader(league)
             read = reader.read_player_season_stats  # type: ignore[attr-defined]
 
-            standard = flatten(read(stat_type="standard"))
+            try:
+                standard = flatten(read(stat_type="standard"))
+            except Exception:  # noqa: BLE001, PERF203 - league not collected
+                # No data for this league. Skip it rather than abort: the
+                # pipeline is designed to run on whatever leagues exist.
+                continue
             sides = {}
             for name, rename in SIDE_TABLES.items():
                 try:
@@ -240,9 +245,15 @@ class FBrefScout:
                     # columns so the run continues on a reduced requirement set.
                     continue
             outfield_parts.append(join_side_tables(standard, sides))
-            keeper_parts.append(flatten_keeper(read(stat_type="keeper")))
+            try:
+                keeper_parts.append(flatten_keeper(read(stat_type="keeper")))
+            except Exception:  # noqa: BLE001 - optional per league
+                continue
+
+        if not outfield_parts:
+            raise RuntimeError(f"no data found for any of: {', '.join(self.leagues)}")
 
         return (
             pd.concat(outfield_parts, ignore_index=True),
-            pd.concat(keeper_parts, ignore_index=True),
+            pd.concat(keeper_parts, ignore_index=True) if keeper_parts else pd.DataFrame(),
         )

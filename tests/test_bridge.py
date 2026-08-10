@@ -4,6 +4,9 @@ import pandas as pd
 from gambeta import bridge, kit, laws
 
 CFG = kit.load()
+# The synthetic fixtures bridge England and France. France is not in the active
+# league set (see PENDING.md), so tests that exercise that pair name it here.
+ENG_FRA = ["ENG-Premier League", "FRA-Ligue 1"]
 
 
 def _seasons(rows: list[dict]) -> pd.DataFrame:
@@ -177,7 +180,7 @@ def _synthetic_moves(gap: float, n: int = 40) -> pd.DataFrame:
 def test_solve_offsets_recovers_a_known_gap() -> None:
     """Players lose 0.5 z moving to the reference league, so that league is 0.5 stronger."""
     moves = bridge.find_moves(_synthetic_moves(gap=0.5))
-    offsets = bridge.solve_offsets(moves, CFG)
+    offsets = bridge.solve_offsets(moves, CFG, leagues=ENG_FRA)
     fra = offsets[(offsets["league"] == "FRA-Ligue 1") & (offsets["season"] == "0102")]
     assert np.isclose(fra["offset"].item(), -0.5, atol=0.05)
 
@@ -208,7 +211,7 @@ def test_one_way_traffic_cannot_identify_an_offset() -> None:
             )
         ]
     )
-    offsets = bridge.solve_offsets(bridge.find_moves(one_way), CFG)
+    offsets = bridge.solve_offsets(bridge.find_moves(one_way), CFG, leagues=ENG_FRA)
     fra = offsets[(offsets["league"] == "FRA-Ligue 1") & (offsets["season"] == "0102")]
     # The true gap is -0.5, but half of it is absorbed by the adaptation intercept.
     assert fra["offset"].item() > -0.5
@@ -226,9 +229,36 @@ def test_offsets_cover_every_league_and_season() -> None:
     laws.LEAGUE_OFFSETS.validate(offsets)
 
 
+def test_offsets_solve_for_only_the_leagues_present() -> None:
+    """A partial dataset must work: Ligue 1 is not collected yet."""
+    subset = ["ENG-Premier League", "FRA-Ligue 1"]
+    offsets = bridge.solve_offsets(bridge.find_moves(_synthetic_moves(0.4)), CFG, leagues=subset)
+    assert set(offsets["league"]) == set(subset)
+    assert len(offsets) == len(subset) * len(CFG.seasons)
+    laws.LEAGUE_OFFSETS.validate(offsets)
+
+
+def test_offsets_pin_a_fallback_when_the_reference_league_is_absent() -> None:
+    """Offsets are identified only up to a constant, so any league can anchor."""
+    subset = ["ESP-La Liga", "FRA-Ligue 1"]
+    offsets = bridge.solve_offsets(bridge.find_moves(_synthetic_moves(0.4)), CFG, leagues=subset)
+    anchored = offsets.groupby("league")["offset"].apply(lambda s: (s == 0.0).all())
+    assert anchored.any(), "exactly one league must be pinned at zero"
+
+
+def test_offsets_survive_a_single_league_dataset() -> None:
+    offsets = bridge.solve_offsets(
+        bridge.find_moves(_synthetic_moves(0.4)), CFG, leagues=["ENG-Premier League"]
+    )
+    assert (offsets["offset"] == 0.0).all()
+    laws.LEAGUE_OFFSETS.validate(offsets)
+
+
 def test_move_counts_are_published() -> None:
     """An offset backed by three transfers deserves less trust than one backed by 300."""
-    offsets = bridge.solve_offsets(bridge.find_moves(_synthetic_moves(0.3, n=7)), CFG)
+    offsets = bridge.solve_offsets(
+        bridge.find_moves(_synthetic_moves(0.3, n=7)), CFG, leagues=ENG_FRA
+    )
     fra = offsets[(offsets["league"] == "FRA-Ligue 1") & (offsets["season"] == "0102")]
     # 7 players out plus 7 in, so 14 moves touch this league-block.
     assert fra["moves"].item() == 14

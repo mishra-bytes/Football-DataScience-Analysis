@@ -23,6 +23,8 @@ behind every estimate is published so a thin one can be discounted.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import numpy as np
 import pandas as pd
 
@@ -96,7 +98,9 @@ def find_moves(seasons: pd.DataFrame, score_col: str = "score") -> pd.DataFrame:
     return moves[columns].reset_index(drop=True)
 
 
-def solve_offsets(moves: pd.DataFrame, cfg: Config) -> pd.DataFrame:
+def solve_offsets(
+    moves: pd.DataFrame, cfg: Config, leagues: Sequence[str] | None = None
+) -> pd.DataFrame:
     """Recover league-era strength offsets by weighted least squares.
 
     The model fitted for each move is::
@@ -113,6 +117,18 @@ def solve_offsets(moves: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     The reference league's blocks are dropped from the design matrix, pinning them
     at zero — offsets are only ever identified up to a constant.
 
+    Parameters
+    ----------
+    moves
+        Output of :func:`find_moves`.
+    cfg
+        Supplies the season range and the preferred reference league.
+    leagues
+        Leagues to solve for. Defaults to ``cfg.leagues``. Callers should pass the
+        leagues actually present in the data, so a partial dataset — say four of
+        the Big 5 — produces offsets for what exists rather than empty rows for a
+        league nobody has scraped yet.
+
     Returns
     -------
     pd.DataFrame
@@ -121,10 +137,14 @@ def solve_offsets(moves: pd.DataFrame, cfg: Config) -> pd.DataFrame:
         worth more.
     """
     usable = moves[moves["weight"] > 0].dropna(subset=["delta"])
+    present = list(leagues) if leagues is not None else list(cfg.leagues)
+    # Pin the configured reference when it is present; otherwise the first league
+    # available, since offsets are only identified up to a constant anyway.
+    reference = cfg.leagues[0] if cfg.leagues[0] in present else (present[0] if present else "")
     params = [
         (league, block)
-        for league in cfg.leagues
-        if league != cfg.leagues[0]
+        for league in present
+        if league != reference
         for block in range(len(SEASONS) // BLOCK_SEASONS)
     ]
     index = {p: i for i, p in enumerate(params)}
@@ -173,19 +193,20 @@ def solve_offsets(moves: pd.DataFrame, cfg: Config) -> pd.DataFrame:
 
     estimates = {p: float(solution[2 + i]) for p, i in index.items()}
     for block in range(len(SEASONS) // BLOCK_SEASONS):
-        estimates[(cfg.leagues[0], block)] = 0.0
+        estimates[(reference, block)] = 0.0
 
     return pd.DataFrame(
         [
             {
                 "league": league,
                 "season": season,
-                "offset": estimates[(league, era_block(season))],
+                "offset": estimates.get((league, era_block(season)), 0.0),
                 "moves": int(counts.get((league, era_block(season)), 0)),
             }
-            for league in cfg.leagues
+            for league in present
             for season in cfg.seasons
-        ]
+        ],
+        columns=["league", "season", "offset", "moves"],
     )
 
 

@@ -45,9 +45,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def scrape(cfg: kit.Config, seasons: Sequence[str], leagues: Sequence[str]) -> None:
-    """Fetch every source into ``vault/raw/``. Reads the warmed cache when present."""
+    """Fetch every source into ``vault/raw/``.
+
+    Reads the warmed cache when present. A league with no cached data is skipped
+    with a warning rather than aborting the run, so the pipeline works on a
+    partial Big 5 and picks up a league the moment its cache exists.
+    """
     log.info("fetching %d leagues x %d seasons", len(leagues), len(seasons))
     outfield, keeper = FBrefScout(leagues, seasons, cfg.raw).fetch()
+    got = sorted(outfield["league"].dropna().unique())
+    missing = [lg for lg in leagues if lg not in got]
+    if missing:
+        log.warning("no data for %s - continuing without them", ", ".join(missing))
 
     locker.write(
         outfield,
@@ -105,7 +114,10 @@ def _rank_group(
     scored = _normalise(df, keys)
     scored["score"] = scored[keys].mean(axis=1)
 
-    offsets = bridge.solve_offsets(bridge.find_moves(scored), cfg)
+    # Solve for the leagues actually in the data, not the configured Big 5, so a
+    # partial dataset works and a league added later needs no code change.
+    present = sorted(scored["league"].dropna().unique())
+    offsets = bridge.solve_offsets(bridge.find_moves(scored), cfg, leagues=present)
     scored = bridge.apply_offsets(scored, offsets, keys)
 
     profile = gate.standardise(gate.career_profile(scored, reqs, cfg), reqs)
@@ -130,8 +142,8 @@ def rank(cfg: kit.Config) -> None:
     keeper_ranking, _ = _rank_group(kv, needs.KEEPER, cfg)
 
     cfg.derive.mkdir(parents=True, exist_ok=True)
-    ranking.to_parquet(cfg.derive / RANKING, index=False)
-    keeper_ranking.to_parquet(cfg.derive / KEEPER_RANKING, index=False)
+    locker.write(ranking, cfg.derive / RANKING, laws.RANKING, source="gate.outfield")
+    locker.write(keeper_ranking, cfg.derive / KEEPER_RANKING, laws.RANKING, source="gate.keeper")
     values.to_parquet(cfg.derive / SEASON_SCORES, index=False)
     locker.write(offsets, cfg.derive / OFFSETS, laws.LEAGUE_OFFSETS, source="bridge")
     gate.failure_summary(ranking, needs.OUTFIELD).to_csv(cfg.derive / FAILURES, index=False)

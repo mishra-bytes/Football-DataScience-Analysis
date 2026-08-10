@@ -8,20 +8,22 @@ from pathlib import Path
 SEASONS: tuple[str, ...] = tuple(f"{y:02d}{y + 1:02d}" for y in range(25))
 """Seasons 2000-01 ("0001") through 2024-25 ("2425")."""
 
-LEAGUES: tuple[str, ...] = (
+ACTIVE_LEAGUES: tuple[str, ...] = (
     "ENG-Premier League",
     "ESP-La Liga",
     "ITA-Serie A",
     "GER-Bundesliga",
-    "FRA-Ligue 1",
 )
-"""The Big 5. Fetched per league, never via the combined reader.
+"""Leagues with data collected. Ligue 1 is pending — add it here plus a scrape.
 
-The combined endpoint returns all five but leaves Bundesliga's league label null
-in every season, and merges Ligue 1 into the same null group before 2017. Since
-the label decides which population a player-season is normalised against, a
-mislabelled row does not just lose a league — it normalises Bayern players
-against the wrong peers and corrupts the transfer bridge too.
+Nothing else hard-codes a league count: the bridge solves for whichever leagues
+appear in the data. See PENDING.md.
+
+Always fetched **per league**, never via FBref's Big 5 combined reader: that
+endpoint leaves Bundesliga's league label null in every season and merges Ligue 1
+into the same null group before 2017. The label decides which population a
+player-season is normalised against, so a mislabelled row would normalise Bayern
+players against the wrong peers and corrupt the transfer bridge too.
 """
 
 REFERENCE_LEAGUE = "ENG-Premier League"
@@ -58,7 +60,7 @@ class Config:
     derive: Path
     sample: Path
     league: str = REFERENCE_LEAGUE
-    leagues: tuple[str, ...] = LEAGUES
+    leagues: tuple[str, ...] = ACTIVE_LEAGUES
     seasons: tuple[str, ...] = SEASONS
     min_minutes: int = 900
     min_seasons: int = 3
