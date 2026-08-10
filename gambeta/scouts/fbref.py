@@ -206,10 +206,31 @@ class FBrefScout:
 
     name = "fbref"
 
-    def __init__(self, leagues: Sequence[str], seasons: Sequence[str], data_dir: Path) -> None:
+    def __init__(
+        self,
+        leagues: Sequence[str],
+        seasons: Sequence[str],
+        data_dir: Path,
+        cache_only: bool = False,
+    ) -> None:
         self.leagues = list(leagues)
         self.seasons = list(seasons)
         self.data_dir = data_dir
+        self.cache_only = cache_only
+
+    def cached(self, league: str, stat: str) -> bool:
+        """Is **every** requested season of this (league, stat) already on disk?
+
+        Completeness matters, not mere presence. soccerdata fetches whatever is
+        missing, so a table cached for 8 of 25 seasons would silently trigger 17
+        page loads — turning an offline run into half an hour of browser
+        automation. A partially cached table counts as absent.
+        """
+        pattern = f"players_{league}_*_{stat}.html"
+        return len(list((self.data_dir / "FBref").glob(pattern))) >= len(self.seasons)
+
+    def _skip(self, league: str, stat: str) -> bool:
+        return self.cache_only and not self.cached(league, stat)
 
     def _reader(self, league: str) -> object:
         import soccerdata as sd
@@ -230,14 +251,19 @@ class FBrefScout:
             reader = self._reader(league)
             read = reader.read_player_season_stats  # type: ignore[attr-defined]
 
+            if self._skip(league, "standard"):
+                continue
             try:
                 standard = flatten(read(stat_type="standard"))
             except Exception:  # noqa: BLE001, PERF203 - league not collected
                 # No data for this league. Skip it rather than abort: the
                 # pipeline is designed to run on whatever leagues exist.
                 continue
+
             sides = {}
             for name, rename in SIDE_TABLES.items():
+                if self._skip(league, name):
+                    continue
                 try:
                     sides[name] = flatten_side(read(stat_type=name), rename)
                 except Exception:  # noqa: BLE001, PERF203 - optional table
@@ -245,6 +271,9 @@ class FBrefScout:
                     # columns so the run continues on a reduced requirement set.
                     continue
             outfield_parts.append(join_side_tables(standard, sides))
+
+            if self._skip(league, "keeper"):
+                continue
             try:
                 keeper_parts.append(flatten_keeper(read(stat_type="keeper")))
             except Exception:  # noqa: BLE001 - optional per league

@@ -41,10 +41,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("stage", choices=["scrape", "clean", "rank", "all"])
     parser.add_argument("--seasons", nargs="+", default=None, help="Season codes, e.g. 0001 0102")
     parser.add_argument("--leagues", nargs="+", default=None, help="League ids")
+    parser.add_argument(
+        "--cache-only",
+        action="store_true",
+        help="Never fetch: skip any stat table not already cached",
+    )
     return parser
 
 
-def scrape(cfg: kit.Config, seasons: Sequence[str], leagues: Sequence[str]) -> None:
+def scrape(
+    cfg: kit.Config, seasons: Sequence[str], leagues: Sequence[str], cache_only: bool = False
+) -> None:
     """Fetch every source into ``vault/raw/``.
 
     Reads the warmed cache when present. A league with no cached data is skipped
@@ -52,7 +59,7 @@ def scrape(cfg: kit.Config, seasons: Sequence[str], leagues: Sequence[str]) -> N
     partial Big 5 and picks up a league the moment its cache exists.
     """
     log.info("fetching %d leagues x %d seasons", len(leagues), len(seasons))
-    outfield, keeper = FBrefScout(leagues, seasons, cfg.raw).fetch()
+    outfield, keeper = FBrefScout(leagues, seasons, cfg.raw, cache_only=cache_only).fetch()
     got = sorted(outfield["league"].dropna().unique())
     missing = [lg for lg in leagues if lg not in got]
     if missing:
@@ -166,7 +173,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     leagues = args.leagues or list(cfg.leagues)
 
     if args.stage in ("scrape", "all"):
-        scrape(cfg, seasons, leagues)
+        scrape(cfg, seasons, leagues, cache_only=args.cache_only)
     if args.stage in ("clean", "all"):
         clean(cfg)
     if args.stage in ("rank", "all"):
