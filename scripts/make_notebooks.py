@@ -335,9 +335,57 @@ print(f"{second['player']} to {ranking.iloc[5]['player']}: "
     ),
     (
         "md",
-        """The gap between first and second is comparable to the gap spanning positions
-two through six. The top of this list is not a tight race followed by a
-drop-off — it is one player clear, then a cluster.
+        """## The same gap, measured in players
+
+A number like 0.54 means nothing on its own. The way to feel it is to ask: if
+you took the gap between first and second and laid it below someone else, **who
+would you land on?**""",
+    ),
+    (
+        "code",
+        '''q = ranking[ranking["qualified"]].reset_index(drop=True)
+lead = q.loc[0, "score"] - q.loc[1, "score"]
+
+
+def same_distance_below(rank: int) -> tuple[int, pd.Series]:
+    """Who sits as far below player `rank` as second sits below first?"""
+    target = q.loc[rank, "score"] - lead
+    i = (q["score"] - target).abs().idxmin()
+    return i, q.loc[i]
+
+
+print(f"{q.loc[0, 'player']} leads {q.loc[1, 'player']} by {lead:.2f} "
+      f"({lead / sigma:.1f} sigma).\\n")
+
+for rank in (1, 2):
+    i, who = same_distance_below(rank)
+    anchor = q.loc[rank]
+    print(f"The same distance below {anchor['player']} (#{rank + 1}) "
+          f"lands on {who['player']} (#{i + 1}).")''',
+    ),
+    (
+        "md",
+        """So the gap between first and second is not a photo finish. Laid below second
+place it reaches down **seven** positions; laid below third place it reaches
+**ten**.
+
+One more way to put it: compare the lead at the top against the entire spread
+of the chasing pack.""",
+    ),
+    (
+        "code",
+        """chasers = q.loc[1, "score"] - q.loc[7, "score"]
+print(f"first to second:  {lead:.2f}")
+print(f"second to eighth: {chasers:.2f}   (covering six players)")
+print()
+print("The lead of one player over the next is larger than the spread"
+      if lead > chasers else "The chasing pack is more spread out than the lead")
+print("across the whole of the chasing pack.")""",
+    ),
+    (
+        "md",
+        """The top of this list is not a tight race followed by a drop-off. It is one
+player clear, then a cluster.
 
 ## Where each requirement puts the best player
 
