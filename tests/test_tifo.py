@@ -101,6 +101,29 @@ def test_bump_never_exceeds_the_series_cap() -> None:
     assert len(tifo.bump(many, top=12).axes[0].lines) <= tifo.MAX_SERIES
 
 
+def test_bell_returns_a_figure() -> None:
+    import numpy as np
+
+    values = pd.Series(np.random.default_rng(0).normal(0, 1, 500))
+    assert isinstance(tifo.bell(values), Figure)
+
+
+def test_bell_annotates_highlighted_players_with_sigma() -> None:
+    import numpy as np
+
+    values = pd.Series(np.random.default_rng(0).normal(0, 1, 500))
+    fig = tifo.bell(values, highlight={"Someone": 4.0})
+    texts = [t.get_text() for t in fig.axes[0].texts]
+    assert any("Someone" in t and "σ" in t for t in texts)
+
+
+def test_bell_survives_non_finite_values() -> None:
+    import numpy as np
+
+    values = pd.Series([1.0, 2.0, np.nan, np.inf, 3.0])
+    assert isinstance(tifo.bell(values, bins=5), Figure)
+
+
 def test_apply_theme_is_idempotent() -> None:
     tifo.apply_theme()
     tifo.apply_theme()

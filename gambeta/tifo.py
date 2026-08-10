@@ -30,6 +30,7 @@ from __future__ import annotations
 from typing import Any
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 
@@ -182,6 +183,85 @@ def ranked_dots(
     ax.set_title(title, loc="left", fontsize=12, fontweight="bold", color=c["primary"], pad=26)
     ax.text(0, 1.015, subtitle, transform=ax.transAxes, fontsize=8, color=c["muted"])
     ax.grid(axis="y", visible=False)
+    fig.tight_layout()
+    return fig
+
+
+def bell(
+    values: pd.Series,
+    highlight: dict[str, float] | None = None,
+    title: str = "Where every player sits",
+    xlabel: str = "Composite score (standard deviations)",
+    bins: int = 60,
+    dark: bool = False,
+) -> Figure:
+    """Distribution of a score across every player, with named players marked.
+
+    Overlays the normal curve implied by the data's own mean and standard
+    deviation. Where the histogram sits above that curve in the right tail, the
+    distribution has more extreme performers than a normal would produce — which
+    is the interesting claim about football, not a defect of the chart.
+
+    Parameters
+    ----------
+    values
+        One score per player.
+    highlight
+        ``{player name: score}`` to mark with a labelled rule, annotated with how
+        many standard deviations above the mean they sit.
+    bins
+        Histogram bin count.
+    """
+    apply_theme(dark)
+    c = palette(dark)
+
+    data = values.to_numpy(dtype=float)
+    data = data[np.isfinite(data)]
+    mu, sigma = float(data.mean()), float(data.std(ddof=0))
+
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    ax.hist(data, bins=bins, color=c["accent"], alpha=0.55, edgecolor=c["surface"], linewidth=0.5)
+
+    grid = np.linspace(data.min(), data.max(), 400)
+    normal = np.exp(-0.5 * ((grid - mu) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+    counts, edges = np.histogram(data, bins=bins)
+    ax.plot(
+        grid,
+        normal * len(data) * (edges[1] - edges[0]),
+        color=c["muted"],
+        linewidth=2,
+        linestyle="--",
+        label="Normal curve with the same mean and spread",
+    )
+
+    for offset, (name, score) in enumerate(
+        sorted((highlight or {}).items(), key=lambda kv: -kv[1])
+    ):
+        z = (score - mu) / sigma
+        ax.axvline(score, color=c["primary"], linewidth=1.2, alpha=0.8)
+        ax.annotate(
+            f"{name}  {z:+.1f}σ",
+            xy=(score, counts.max() * (0.92 - 0.11 * offset)),
+            xytext=(-8, 0),
+            textcoords="offset points",
+            ha="right",
+            fontsize=9,
+            color=c["primary"],
+            fontweight="bold",
+        )
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Players")
+    ax.set_title(title, loc="left", fontsize=12, fontweight="bold", color=c["primary"], pad=26)
+    ax.text(
+        0,
+        1.015,
+        f"{len(data):,} players | mean {mu:.2f}, standard deviation {sigma:.2f}",
+        transform=ax.transAxes,
+        fontsize=8,
+        color=c["muted"],
+    )
+    ax.legend(loc="upper left", fontsize=8)
     fig.tight_layout()
     return fig
 
