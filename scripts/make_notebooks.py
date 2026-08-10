@@ -1,4 +1,4 @@
-"""Scaffold the two Phase 1 notebooks.
+"""Scaffold the project notebooks.
 
 Run once. The generated ``.ipynb`` files are the source of truth thereafter —
 edit those, not this script. Building them through nbformat avoids hand-writing
@@ -12,6 +12,23 @@ import nbformat as nbf
 LABS = Path(__file__).resolve().parent.parent / "labs"
 LABS.mkdir(exist_ok=True)
 
+SETUP = """import warnings
+
+import matplotlib
+import numpy as np
+import pandas as pd
+
+from gambeta import needs, tifo
+
+warnings.filterwarnings("ignore")
+matplotlib.rcParams["figure.figsize"] = (10, 5.5)
+
+SAMPLE = "../data/sample"
+ranking = pd.read_parquet(f"{SAMPLE}/ranking.parquet")
+seasons = pd.read_parquet(f"{SAMPLE}/player_season_scored.parquet")
+offsets = pd.read_parquet(f"{SAMPLE}/league_offsets.parquet")
+keepers = pd.read_parquet(f"{SAMPLE}/keeper_ranking.parquet")"""
+
 
 def build(path: Path, cells: list[tuple[str, str]]) -> None:
     nb = nbf.v4.new_notebook()
@@ -20,7 +37,11 @@ def build(path: Path, cells: list[tuple[str, str]]) -> None:
         for kind, body in cells
     ]
     nb.metadata = {
-        "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+        "kernelspec": {
+            "display_name": "gambeta (.venv 3.12)",
+            "language": "python",
+            "name": "gambeta",
+        },
         "language_info": {"name": "python", "version": "3.12"},
     }
     nbf.write(nb, path)
@@ -28,444 +49,634 @@ def build(path: Path, cells: list[tuple[str, str]]) -> None:
 
 
 # --------------------------------------------------------------------------
-# 01 — narrative
-# --------------------------------------------------------------------------
 NARRATIVE: list[tuple[str, str]] = [
     (
         "md",
-        """# Who dominated the Premier League, 2000-2025?
+        """# Who is the best footballer of the last 25 years?
 
-Ask ten fans who the best Premier League player of the last twenty-five years
-was and you will get ten answers, delivered with total confidence and almost no
-shared definition of the question.
+Most arguments about the greatest player are not disagreements about facts. They
+are disagreements about **what the question means**, conducted as though they
+were about facts. One person means peak. Another means longevity. A third means
+trophies. Nobody says which, so nobody can be wrong, and nobody moves.
 
-That is the real problem. "Best" is not one question, it is at least five:
-best at their peak, best over a career, best per minute, best when it mattered,
-best relative to the team around them. Those have *different answers*, and an
-argument that does not say which one it means cannot be settled by evidence.
+This project takes a different route. Instead of arguing about the answer, it
+writes down **what greatness requires** — eleven things a player must have — and
+then asks who has all of them.
 
-This notebook picks one definition and follows it all the way to a conclusion:
-
-> **A player's rating is their best five consecutive seasons of goals and
-> assists per 90 minutes, measured against the players they actually played
-> against, discounted when the sample is small.**
-
-That is a choice, not a discovery. By the end you will be able to see exactly
-which parts of the answer depend on it.""",
+A player who fails any single requirement is, by this definition, not the best.
+And which requirement they failed is published, so the definition can be argued
+with rather than simply asserted.""",
     ),
     (
         "code",
-        """import warnings
-
-import matplotlib
-import pandas as pd
-
-from gambeta import tifo
-
-warnings.filterwarnings("ignore")
-matplotlib.rcParams["figure.figsize"] = (8, 5)
-
-SAMPLE = "../data/sample"
-seasons = pd.read_parquet(f"{SAMPLE}/player_season_scored.parquet")
-ratings = pd.read_parquet(f"{SAMPLE}/peak5.parquet")
+        SETUP
+        + """
 
 first = tifo.season_label(seasons["season"].min())
 last = tifo.season_label(seasons["season"].max())
 
+print(f"{len(ranking):,} players ranked")
 print(f"{len(seasons):,} player-seasons")
-print(f"{seasons['season'].nunique()} seasons: {first} to {last}")
-print(f"{seasons['player_id'].nunique():,} distinct players")""",
+print(f"leagues: {', '.join(sorted(seasons['league'].unique()))}")
+print(f"seasons: {first} to {last}")""",
     ),
     (
         "md",
-        """## What is in the data, and what is not
+        """## The eleven requirements
 
-Before any analysis, an honest inventory. This is the single most skipped step
-in data science and the one that causes the most wrong conclusions.
-
-**Present:** goals, assists, minutes, appearances, cards, club, season — for
-every player in every Premier League season from 2000-01 to 2024-25.
-
-**Absent, and unavailable at any price:** expected goals, progressive passes,
-shot-creating actions, defensive actions, pressures. None of it was recorded
-before 2017-18. This is why the rating uses goals and assists: not because they
-are the best measure of a footballer, but because they are the only measure that
-exists across the whole period. A metric available for one era and not another
-cannot compare them.
-
-**A consequence worth stating loudly:** this rating measures attacking output.
-It will rank a good striker above a great centre-back, every time. That is a
-known bias, not a hidden one.""",
-    ),
-    ("code", """seasons.head()"""),
-    (
-        "md",
-        """## The naive answer, and why it is wrong
-
-Start with the obvious approach: rank by raw goals and assists per 90 minutes.
-
-Watch what happens.""",
+Each is measured across every season and every league, then pooled per player
+weighted by minutes. All are oriented so that **higher is better** — including
+discipline, which is negated at source so a clean player scores above a dirty
+one without any downstream code needing to know the direction.""",
     ),
     (
         "code",
-        """naive = (
-    seasons[seasons["minutes"] >= 900]
-    .nlargest(10, "ga_p90")[["player", "season", "minutes", "ga_p90"]]
-    .assign(season=lambda d: d["season"].map(tifo.season_label))
-)
-naive""",
+        """pd.DataFrame(
+    [{"#": i + 1, "requirement": r.label, "key": r.key, "grain": r.kind}
+     for i, r in enumerate(needs.OUTFIELD)]
+).set_index("#")""",
     ),
     (
         "md",
-        """Now look at *which seasons* those come from. Scoring rates are not stable
-across twenty-five years — the league changes. If goals are easier to come by in
-2024 than in 2004, a raw per-90 ranking is partly a list of who played recently.""",
+        """## Gate first, then rank
+
+"Must have" is read literally. A player has to clear the 40th percentile on
+**all eleven** requirements to qualify at all. Only then are qualifiers ranked.
+
+A weighted average alone would let a player be genuinely poor at something the
+list calls mandatory and still win on volume elsewhere. The gate is what stops
+that.""",
     ),
     (
         "code",
-        """by_season = (
-    seasons[seasons["minutes"] >= 900]
-    .groupby("season")["ga_p90"]
-    .agg(["mean", "std", "count"])
-    .rename(columns={"mean": "league mean G+A/90", "std": "spread", "count": "players"})
-)
-by_season.index = [tifo.season_label(s) for s in by_season.index]
-by_season.round(3)""",
+        """qualified = ranking[ranking["qualified"]]
+print(f"{len(qualified)} of {len(ranking):,} players clear all eleven requirements "
+      f"({100 * len(qualified) / len(ranking):.1f}%)")
+
+qualified.head(15)[["player", "score", "seasons", "leagues"]].round(2)""",
     ),
     (
         "code",
-        """ax = by_season["league mean G+A/90"].plot(
-    marker="o", color=tifo.LIGHT["accent"], linewidth=2, markersize=6
-)
-ax.set_title("League-average goals + assists per 90, by season",
-             loc="left", fontweight="bold", fontsize=12)
-ax.set_xlabel("Season")
-ax.set_ylabel("G+A per 90")
-ax.tick_params(axis="x", rotation=60)
-ax.figure.tight_layout()""",
+        """fig = tifo.ranked_dots(
+    qualified.assign(lo=qualified["score"], hi=qualified["score"]),
+    top=20,
+    title="Who has all eleven",
+    subtitle="Composite of eleven requirements, era- and league-adjusted.",
+)""",
     ),
     (
         "md",
-        """The baseline moves. Any ranking built on raw rates is therefore comparing
-players partly on *when they happened to play*, which is not a football
-achievement.
+        """## A career is not league-bound
 
-## The fix: measure against contemporaries
+Look at the `leagues` column. Ronaldo's career is England, Spain and Italy —
+nineteen seasons pooled into one player, not three separate league careers.
 
-The standard answer is to express each player's rate as a **standard score**
-within their own season — how far above or below their peers they were, in units
-of the spread among those peers. A player two standard deviations above the mean
-in 2004 and one two standard deviations above the mean in 2024 were equally
-dominant *relative to the football being played around them*.
-
-The method is derived properly in the [z-scores chapter](02-z-scores-across-eras.ipynb).
-Here we just use it and check that it did what we wanted.""",
+This is the single most important structural decision in the project. Ranking
+"the best player in a league" answers a different and much less interesting
+question, and it makes players who moved impossible to evaluate.""",
     ),
     (
         "code",
-        """check = (
-    seasons.groupby("season")["ga_p90_z"]
-    .agg(["mean", "std"])
-    .round(6)
-)
-print("Every season now centres on zero:")
-print(f"  largest absolute season mean: {check['mean'].abs().max():.2e}")
-print(f"  season spreads range from {check['std'].min():.3f} to {check['std'].max():.3f}")""",
+        """multi = qualified[qualified["leagues"].str.contains(",")]
+print(f"{len(multi)} of the {len(qualified)} qualifiers played in more than one league\\n")
+multi.head(10)[["player", "score", "seasons", "leagues"]].round(2)""",
     ),
     (
         "md",
-        """## The ranking
+        """## Who fails, and on what
 
-Applying the peak-five-consecutive-seasons definition to the normalized scores.
-
-The bars are 95% bootstrap confidence intervals — a measure of how much the
-answer would wobble if the same career had been played again with the same
-underlying ability. **Where two players' bars overlap substantially, the data
-does not separate them**, and saying one is better than the other is opinion
-wearing a number.""",
+This is the part most rankings hide. A great player missing the cut is more
+informative than one making it, because it tells you exactly where the
+definition bites.""",
     ),
     (
         "code",
-        """ratings.head(15).assign(
-    start=lambda d: d["start_season"].map(tifo.season_label),
-    end=lambda d: d["end_season"].map(tifo.season_label),
-)[["player", "score", "lo", "hi", "start", "end", "seasons_used"]].round(3)""",
+        """near = ranking[~ranking["qualified"]].copy()
+near["missed"] = near["failed"].fillna("").apply(lambda s: len(s.split(", ")) if s else 0)
+
+one = near[near["missed"] == 1].nlargest(12, "score")
+one[["player", "score", "seasons", "failed"]].round(2)""",
     ),
-    ("code", """fig = tifo.ranked_dots(ratings, top=20)"""),
+    ("code", """pd.read_csv(f"{SAMPLE}/failures.csv").head(11)"""),
     (
         "md",
-        """## Where the data refuses to decide
+        """## Goalkeepers, judged on their own job
 
-This is the part most rankings hide. Two players whose intervals overlap are not
-ranked by the evidence — they are ranked by rounding.
+Keepers score zero on goals and assists, so under an attacking rating they rank
+near the bottom — meaninglessly. They get a parallel list of eight requirements
+built from save percentage, clean sheets and goals conceded.
 
-Below, every pair in the top ten whose intervals overlap. For those pairs, the
-honest statement is "indistinguishable", not "7th and 8th".""",
+They are **not** claimed to be comparable with outfielders. Two leaderboards, no
+combined number, because the data cannot support one.""",
     ),
     (
         "code",
-        """top10 = ratings.head(10).reset_index(drop=True)
-overlaps = [
-    (top10.loc[i, "player"], top10.loc[j, "player"])
-    for i in range(len(top10))
-    for j in range(i + 1, len(top10))
-    if top10.loc[i, "lo"] <= top10.loc[j, "hi"] and top10.loc[j, "lo"] <= top10.loc[i, "hi"]
-]
-print(f"{len(overlaps)} indistinguishable pairs in the top ten:")
-for a, b in overlaps[:12]:
-    print(f"  {a}  <->  {b}")""",
+        """kq = keepers[keepers["qualified"]]
+print(f"{len(kq)} of {len(keepers)} keepers qualify\\n")
+kq.head(10)[["player", "score", "seasons", "leagues"]].round(2)""",
     ),
     (
         "md",
         """## What would change my mind
 
-A conclusion is only worth as much as the conditions under which the author
-would abandon it. Mine, specifically:
+A conclusion is worth what its author would abandon it for. Mine:
 
-1. **Add defensive contribution.** The rating is attacking output. A version that
-   valued ball recovery, duels and progressive defending would rank different
-   players, and I would expect defenders and holding midfielders to move up
-   sharply. The current answer is "best attacking contributor", stated as "best
-   player" only because the alternative data does not exist before 2017.
+1. **Defensive contribution.** FBref records no per-player defensive action
+   before 2017-18, so a centre-back is invisible to requirements 1–6. This is an
+   attacking-contribution rating and is named as such. Real defensive data would
+   change the list completely.
+2. **The gate height.** The 40th percentile is a judgement call. Raising it to 50
+   would disqualify players currently sitting just inside.
+3. **The weights.** Every requirement counts equally right now. Anyone who
+   thinks scoring matters more than availability can say so numerically, and the
+   ranking will move.
+4. **Missing football.** No Champions League, no internationals, no Ligue 1, and
+   nothing outside the Big 5. Careers at Sporting, Al-Nassr or Inter Miami are
+   invisible.
 
-2. **Weight longevity over peak.** Peak-five deliberately ignores what a player
-   did outside their best window. A career-total lens would favour players with
-   fifteen good seasons over those with five extraordinary ones, and that is a
-   defensible preference I simply did not choose here.
-
-3. **Include other competitions.** A Premier League–only rating cannot see the
-   Champions League or international football. Players whose defining
-   performances happened elsewhere are invisible to it.
-
-4. **Adjust for team strength.** Playing in a dominant side inflates goals and
-   assists. Strength-of-schedule data is ingested but not yet used by this lens;
-   folding it in would compress the advantage of players at the strongest clubs.
-
-If someone disagrees with the ranking, the productive question is not "is this
-wrong" but **"which of these four would you change, and why"**. That is an
-argument that can actually make progress.""",
+The productive question is not "is this wrong" but **"which of these four would
+you change, and to what"** — an argument that can actually make progress.""",
     ),
 ]
 
 # --------------------------------------------------------------------------
-# 02 — method
-# --------------------------------------------------------------------------
-METHOD: list[tuple[str, str]] = [
+BELL: list[tuple[str, str]] = [
     (
         "md",
-        """# Z-scores across eras, and what they hide
+        """# How far ahead is the best player?
 
-*A method chapter. Structure: Question → Intuition → Math → Code → Assumptions →
-How it breaks.*""",
+A ranking tells you the order. It does not tell you the *gap*. Second place
+might be a whisker behind or a chasm.
+
+This chapter measures the gap properly, by looking at where every player sits in
+the distribution and asking how many standard deviations separate the best from
+everyone else.""",
+    ),
+    (
+        "code",
+        SETUP
+        + """
+
+scores = ranking["score"].to_numpy(dtype=float)
+mu, sigma = scores.mean(), scores.std(ddof=0)
+print(f"players: {len(scores):,}")
+print(f"mean:    {mu:.3f}")
+print(f"sd:      {sigma:.3f}")""",
+    ),
+    (
+        "md",
+        """## The distribution
+
+Most players cluster near the middle. That is what a composite of eleven
+standardised requirements should do — by construction the average player scores
+about zero.
+
+The interesting part is the right tail.""",
+    ),
+    (
+        "code",
+        """top5 = ranking.head(5)
+fig = tifo.bell(
+    ranking["score"],
+    highlight=dict(zip(top5["player"], top5["score"], strict=True)),
+    title="Every player, and how far out the best sit",
+)""",
+    ),
+    (
+        "md",
+        """## Measuring the gap in sigma
+
+A standard deviation is a natural yardstick here: it says how unusual a score is
+*relative to the spread of the population itself*, so it travels across
+different metrics and different eras.""",
+    ),
+    (
+        "code",
+        """head = ranking.head(10).copy()
+head["sigma"] = (head["score"] - mu) / sigma
+head[["player", "score", "sigma", "seasons"]].round(2)""",
+    ),
+    (
+        "md",
+        """## The claim that should make you suspicious
+
+Under a normal distribution, extreme values are astronomically rare. Let us take
+that assumption seriously and see what it predicts.""",
+    ),
+    (
+        "code",
+        """from math import erfc, sqrt
+
+best = ranking.iloc[0]
+z = (best["score"] - mu) / sigma
+p = erfc(z / sqrt(2)) / 2
+
+print(f"{best['player']} sits {z:.2f} standard deviations above the mean.")
+print(f"Under a normal distribution, P(score >= that) = {p:.3e}")
+print(f"That is roughly 1 player in {1 / p:,.0f}.")
+print(f"\\nOur population is {len(scores):,} players.")""",
+    ),
+    (
+        "md",
+        """**One in two billion, from a pool of four thousand.**
+
+Taken at face value this says the best player should not exist. Something is
+wrong with the assumption, not with the footballer.
+
+## The assumption is wrong: the distribution is not normal
+
+A normal distribution is symmetric. Football talent is not.""",
+    ),
+    (
+        "code",
+        """print(f"skewness: {pd.Series(scores).skew():.2f}   (0 = symmetric)")
+print(f"kurtosis: {pd.Series(scores).kurtosis():.2f}   (0 = normal tails)")
+
+for k in (2, 3, 4, 5, 6):
+    expected = len(scores) * erfc(k / sqrt(2)) / 2
+    actual = int((scores > mu + k * sigma).sum())
+    print(f"  beyond {k} sigma: normal predicts {expected:8.2f}, we observe {actual:4d}")""",
+    ),
+    (
+        "md",
+        """The right tail is **much fatter than normal**. At three, four and five sigma
+there are many more players than a bell curve allows.
+
+This is not a defect in the data. It is a real property of elite performance,
+and it has a name — a heavy-tailed distribution. Ability that compounds
+(better players get better coaching, better teammates, more minutes, better
+opponents to learn from) does not produce a symmetric bell. It produces a long
+right tail where a handful of people are far beyond everyone else.
+
+**So the honest statement is not "Messi is a 6-sigma player" as if that were a
+probability.** It is: *under the wrong model he is impossible, and the fact that
+he exists is evidence the model is wrong.*
+
+## The gap between first and second
+
+Sigma is still useful for comparison, as long as it is used as a ruler rather
+than a probability.""",
+    ),
+    (
+        "code",
+        """gaps = ranking.head(6)[["player", "score"]].copy()
+gaps["sigma"] = (gaps["score"] - mu) / sigma
+gaps["gap_to_next"] = gaps["score"].diff(-1)
+gaps.round(2)""",
+    ),
+    (
+        "code",
+        """first, second = ranking.iloc[0], ranking.iloc[1]
+gap_sigma = (first["score"] - second["score"]) / sigma
+print(f"{first['player']} to {second['player']}: {gap_sigma:.2f} sigma")
+print(f"{second['player']} to {ranking.iloc[5]['player']}: "
+      f"{(second['score'] - ranking.iloc[5]['score']) / sigma:.2f} sigma "
+      f"(covering four players)")""",
+    ),
+    (
+        "md",
+        """The gap between first and second is comparable to the gap spanning positions
+two through six. The top of this list is not a tight race followed by a
+drop-off — it is one player clear, then a cluster.
+
+## Where each requirement puts the best player
+
+The composite hides which requirements the gap comes from. Breaking it out shows
+whether dominance is broad or narrow.""",
+    ),
+    (
+        "code",
+        """keys = [r.key for r in needs.OUTFIELD if r.key in ranking.columns]
+profile = ranking.set_index("player").loc[
+    [ranking.iloc[0]["player"], ranking.iloc[1]["player"]], keys
+].T
+profile.columns = [f"{c} (sigma)" for c in profile.columns]
+profile.round(2)""",
+    ),
+    (
+        "md",
+        """## What would change my mind
+
+- **A different composite.** These sigma figures are for the equal-weighted
+  composite. Reweight the requirements and the gap changes.
+- **The population defines the yardstick.** Sigma is measured against 4,424
+  players who cleared the minutes threshold in four leagues. Add Ligue 1, or
+  lower the threshold to include fringe players, and the standard deviation
+  moves — which moves everyone's sigma.
+- **Heavy tails cut both ways.** If the distribution is not normal, sigma is a
+  descriptive ruler and nothing more. Any sentence of the form "this is a
+  one-in-N-billion player" is misusing it, including one I could easily have
+  written above.""",
+    ),
+]
+
+# --------------------------------------------------------------------------
+METHOD_GATE: list[tuple[str, str]] = [
+    (
+        "md",
+        """# Method: requirements, gates, and a metric that rewarded mediocrity
+
+*Question → Intuition → Math → Code → Assumptions → How it breaks*""",
     ),
     (
         "md",
         """## 1. Question
 
-How do you compare a striker from 2003 with one from 2024, when the game they
-played was not the same game?
+Given a list of things greatness requires, how do you combine them into one
+ranking without letting a player be terrible at one of them and win anyway?
 
-Concretely: in some seasons goals are plentiful and in others they are scarce.
-A player who scored 0.8 goals per 90 in a low-scoring season may have been more
-dominant than one who scored 0.9 in a high-scoring one. Raw rates cannot see
-this. We need a number that means "how far ahead of your peers were you".""",
-    ),
-    (
-        "md",
-        """## 2. Intuition
+## 2. Intuition
 
-Stop measuring in goals and start measuring in **peers**.
+Two obvious options, and they behave very differently.
 
-If the typical player in your league scored 0.30 goals per 90 that season, and
-the spread among players was about 0.15, then scoring 0.60 puts you two spreads
-above typical. Do the same arithmetic in a different season with different
-numbers and "two spreads above typical" still means the same thing: you were
-unusually good by the standards of the football around you.
+**Average them.** Simple, robust, familiar. But it permits compensation: score
+enough goals and it no longer matters that you are never available.
 
-The unit travels across eras even though goals do not. That is the whole idea.""",
+**Gate on them.** Require a minimum on every requirement, then rank whoever
+clears the bar. This takes "must have" literally.
+
+The project gates, because the word "must" was in the definition.""",
     ),
     (
         "md",
         r"""## 3. Math
 
-For player $i$ in season $s$, with rate $x_{is}$:
+For player $i$ and requirement $k$, with standardised score $z_{ik}$ and floor
+$f_k$ set at percentile $p$ of the population:
 
-$$z_{is} = \frac{x_{is} - \mu_s}{\sigma_s}$$
+$$\text{qualified}_i = \bigwedge_k \left( z_{ik} \ge f_k \right)$$
 
-where $\mu_s$ and $\sigma_s$ are the mean and standard deviation of the rate
-across all players in season $s$.
+$$\text{score}_i = \frac{\sum_k w_k z_{ik}}{\sum_k w_k}$$
 
-**Choice: population, not sample standard deviation** ($\sigma$ with $N$ in the
-denominator, `ddof=0`). A season is not a sample drawn from some larger
-population of that season — it is every player who played it. The whole
-population is in hand, so the population formula is the correct one. With ~500
-players per season the numerical difference is negligible, but the reasoning
-matters more than the digits.
+The gate is a logical AND, so it is **unforgiving by design**: eleven
+requirements at the 40th percentile would admit only $0.6^{11} \approx 0.36\%$
+of players if the requirements were independent. They are correlated, so the
+real figure is higher — but the gate still does the bulk of the work, and the
+weights $w_k$ only order the survivors.""",
+    ),
+    (
+        "code",
+        SETUP
+        + """
 
-**The small-sample problem.** A player with 200 minutes who happened to score
-twice gets a spectacular rate and therefore a spectacular $z$. This is noise, not
-ability. We discount it by shrinking toward zero in proportion to playing time:
-
-$$\hat{z}_{is} = z_{is} \cdot \frac{m_{is}}{m_{is} + m_0}$$
-
-where $m_{is}$ is minutes played and $m_0$ is a prior strength, also in minutes.
-The weight $m/(m + m_0)$ runs from 0 (no minutes, no claim) to 1 (many minutes,
-take the number at face value), passing through exactly $1/2$ at $m = m_0$.
-
-We use $m_0 = 900$ — ten full matches. A player with ten matches is credited with
-half of what their raw score claims, which is about right for how much you should
-believe ten games.""",
+qualified = ranking[ranking["qualified"]]
+independent = 0.6 ** 11
+print(f"if requirements were independent: {100 * independent:.2f}% would qualify")
+print(f"actually qualified:                {100 * len(qualified) / len(ranking):.2f}%")
+print("\\nrequirements are strongly correlated - being good at one predicts the others")""",
     ),
     (
         "md",
         """## 4. Code
 
-Small enough to check by hand.""",
+Raising the floor tightens the gate. This is the single most consequential knob
+in the project and it is a judgement call, so it is exposed rather than
+buried.""",
     ),
     (
         "code",
-        """import numpy as np
-import pandas as pd
+        """from gambeta import gate, kit
+import dataclasses
 
-from gambeta import level
+cfg = kit.load()
+keys = [r.key for r in needs.OUTFIELD if r.key in ranking.columns]
+profile = ranking[["player_id", "player", "seasons", "leagues", *keys]].copy()
 
-toy = pd.DataFrame({
-    "league": ["L"] * 4,
-    "season": ["0001"] * 4,
-    "player_id": list("abcd"),
-    "ga_p90": [0.2, 0.4, 0.6, 0.8],
-    "minutes": [3000, 3000, 3000, 3000],
-})
-
-out = level.zscore(toy, ["ga_p90"])
-out[["player_id", "ga_p90", "ga_p90_z"]]""",
-    ),
-    (
-        "md",
-        """Check by hand: the mean of 0.2, 0.4, 0.6, 0.8 is 0.5. The population standard
-deviation is
-
-$$\\sigma = \\sqrt{\\tfrac{1}{4}\\left((0.3)^2 + (0.1)^2 + (0.1)^2 + (0.3)^2\\right)}
-= \\sqrt{0.05} \\approx 0.2236$$
-
-So player `d` scores $(0.8 - 0.5)/0.2236 \\approx 1.342$. Confirm:""",
-    ),
-    (
-        "code",
-        """expected = (0.8 - 0.5) / np.sqrt(0.05)
-actual = out.loc[out["player_id"] == "d", "ga_p90_z"].item()
-print(f"by hand: {expected:.6f}")
-print(f"gambeta: {actual:.6f}")
-assert np.isclose(expected, actual)""",
-    ),
-    (
-        "md",
-        """Now shrinkage. The same score, held by players with very different amounts of
-football behind it:""",
-    ),
-    (
-        "code",
-        """minutes = np.array([90.0, 450.0, 900.0, 1800.0, 3600.0])
-shrunk = level.shrink(np.full(5, 2.0), minutes, prior_minutes=900.0)
-
-pd.DataFrame({
-    "minutes": minutes.astype(int),
-    "raw z": 2.0,
-    "weight": (minutes / (minutes + 900.0)).round(3),
-    "shrunk z": shrunk.round(3),
-})""",
-    ),
-    (
-        "md",
-        """One match of brilliance retains a tenth of its claim. Twenty matches retain
-half. Forty matches retain four-fifths. Nothing is thrown away, and nothing
-small is believed.""",
+for pct in (20, 30, 40, 50, 60):
+    out = gate.qualify_and_rank(profile, needs.OUTFIELD, dataclasses.replace(cfg, gate_percentile=pct))
+    print(f"  floor at {pct}th percentile -> {int(out['qualified'].sum()):4d} qualify")""",
     ),
     (
         "md",
         """## 5. Assumptions
 
-Each of these could be false, and each would bite differently.
+1. **Every requirement is genuinely necessary.** The gate treats them as
+   mandatory, so including a bad requirement does more damage here than in an
+   average, where it would merely be diluted.
+2. **The floor is meaningful at the same percentile for all of them.** There is
+   no reason the 40th percentile of discipline is as demanding as the 40th
+   percentile of scoring.
+3. **Standardising across players makes them comparable.** Save percentage and
+   goals per 90 are only on one scale because we forced them onto one.
 
-1. **Within-season distributions are comparable in shape.** A z-score of 2.0 means
-   the same thing in 2004 and 2024 only if both seasons' rate distributions are
-   similarly shaped. If one season is heavily skewed and the other is not, the
-   same z corresponds to different percentiles.
+## 6. How it breaks
 
-2. **The competitive spread is stable.** Standardising divides by the spread, so a
-   season where players are unusually similar inflates everyone's z-scores. If the
-   league grew more unequal over time, this method partly measures inequality
-   rather than ability.
+It broke, on the first real run, in a way worth showing in full.
 
-3. **Minutes are a good proxy for sample size.** Shrinkage assumes 900 minutes of
-   a defender and 900 minutes of a striker carry the same evidential weight for
-   attacking output. They plainly do not.
-
-4. **The population is the right comparison set.** We standardise against all
-   players, including goalkeepers and centre-backs who are not trying to score.
-   That drags the mean down and inflates every attacker's z-score. Standardising
-   within position would be more defensible; it is not done here, and it is a
-   real weakness rather than a rounding detail.""",
-    ),
-    (
-        "md",
-        """## 6. How it breaks
-
-The failure worth understanding is that **a single outlier suppresses everyone,
-including the outlier.**
-
-The standard deviation is in the denominator. One extraordinary season inflates
-it, which shrinks every z-score in that season — so a historically great campaign
-can make itself, and everyone around it, look more ordinary.
-
-Watch it happen.""",
+`consistency` was defined as **−(standard deviation of a player's season
+scores)** — the intuition being that a metronome is better than a streaky
+player. Watch what that does.""",
     ),
     (
         "code",
-        """normal = pd.DataFrame({
-    "league": ["L"] * 5, "season": ["0001"] * 5,
-    "player_id": list("abcde"),
-    "ga_p90": [0.20, 0.30, 0.40, 0.50, 0.90],
-    "minutes": [3000] * 5,
-})
+        """elite = np.array([2.5, 4.0, 3.0, 4.0, 2.5, 3.5])   # a great player's seasons
+flat  = np.array([-0.1, 0.1, -0.1, 0.1, -0.1, 0.1])  # a journeyman's
 
-# Same league, except the best player has a genuinely historic season.
-outlier = normal.copy()
-outlier.loc[outlier["player_id"] == "e", "ga_p90"] = 2.50
-
-a = level.zscore(normal, ["ga_p90"]).set_index("player_id")["ga_p90_z"]
-b = level.zscore(outlier, ["ga_p90"]).set_index("player_id")["ga_p90_z"]
-
-pd.DataFrame({"z (normal season)": a.round(3), "z (with an outlier)": b.round(3)})""",
+print(f"elite      mean {elite.mean():+.2f}   sd {elite.std():.2f}   old score {-elite.std():+.2f}")
+print(f"journeyman mean {flat.mean():+.2f}   sd {flat.std():.2f}   old score {-flat.std():+.2f}")
+print("\\nThe journeyman scores far better on 'consistency'.")""",
     ),
     (
         "md",
-        """Player `d` scored exactly 0.50 goals per 90 in both worlds. Their football did
-not change at all. But their z-score *fell*, because someone else had a
-spectacular year and widened the yardstick.
+        """**Variance is anti-correlated with excellence.** An elite player swings between
+very good and outstanding, so their standard deviation is large. A journeyman
+sits flat at mediocre, so theirs is near zero.
 
-That is not a bug in the arithmetic — it is what standardisation means. But it
-has a real consequence for this project: **a season containing a historic
-individual campaign will systematically under-rate everyone in it, including the
-player who produced it.**
+Inside a gate, that is fatal. On the first run this single requirement
+disqualified Messi, Ronaldo, Kane, Haaland, Lewandowski, Suárez, Henry and Salah
+simultaneously — and the top qualifier was a player nobody would nominate.
 
-### What to do about it
+The fix was to change what the requirement measures, not its threshold.
+"Does he have bad years?" is a question about a **floor**, not a spread:
 
-Three options, in increasing order of effort:
+$$\\text{consistency}_i = \\text{percentile}_{20}\\left(s_{i1}, \\dots, s_{iT}\\right)$$
 
-- **Report it.** State that z-scores are relative and that outlier seasons
-  compress the field. Cheapest, and better than silence.
-- **Use a robust scale.** Replace the standard deviation with the median absolute
-  deviation, which a single extreme value barely moves.
-- **Model it properly.** A hierarchical model estimates season effects and player
-  ability jointly, so an outlier is explained as an unusual player rather than
-  absorbed into the season's yardstick. This is the Phase 3 direction.
+A great player's twentieth-percentile season is still good.""",
+    ),
+    (
+        "code",
+        """print(f"elite      20th pct {np.percentile(elite, 20):+.2f}")
+print(f"journeyman 20th pct {np.percentile(flat, 20):+.2f}")
+print("\\nNow the great player wins, which is the point.")""",
+    ),
+    (
+        "md",
+        """### The general lesson
 
-Phase 1 does the first. Knowing which one you are doing, and why, is the
-difference between using a method and trusting it.""",
+A metric can be perfectly correct as arithmetic and completely wrong as a
+measurement. Nothing about `-std()` is a bug; it computes exactly what it says.
+The error was believing that low variance means quality.
+
+**This is why the sanity check exists.** No test caught it — every unit test
+passed. It was caught by looking at the output and recognising that the answer
+was absurd. Domain knowledge is a debugging tool, and on this project it was the
+only one that would have worked.""",
+    ),
+]
+
+# --------------------------------------------------------------------------
+METHOD_BRIDGE: list[tuple[str, str]] = [
+    (
+        "md",
+        """# Method: measuring league strength from transfers
+
+*Question → Intuition → Math → Code → Assumptions → How it breaks*""",
+    ),
+    (
+        "md",
+        """## 1. Question
+
+A player's season is scored against the other players in **his** league. So a
+2.0 in Ligue 1 and a 2.0 in the Premier League are both "two standard deviations
+above your peers" — but the peers are not equally good.
+
+If we pool a career across leagues, as we must when players transfer, how do we
+avoid rewarding whoever played in the weakest division?
+
+## 2. Intuition
+
+**A player who changes league is the same footballer on both sides of the
+move.** So whatever happens to his score across that move is a measurement of
+the difference between the two leagues.
+
+One transfer is a noisy measurement. Thousands of transfers, forming a connected
+graph over 25 years, pin down the whole system — the same device that makes
+chess ratings comparable across separate rating pools.""",
+    ),
+    (
+        "md",
+        r"""## 3. Math
+
+For a move from league $a$ to league $b$:
+
+$$\Delta z = \alpha + \beta \cdot \text{age} + \lambda_a - \lambda_b + \varepsilon$$
+
+- $\lambda$ are the league strengths we want, identified only **up to a
+  constant**, so one league is pinned at zero
+- $\alpha$ is a global adaptation term: settling into a new league costs
+  something on average, and that cost is not league strength
+- $\beta$ controls for age, since players move at different career stages and
+  decline would otherwise be misread as league difficulty
+
+Fitted by weighted least squares, weighting each move by the smaller of the two
+seasons' minutes.""",
+    ),
+    (
+        "code",
+        SETUP
+        + """
+
+summary = offsets.groupby("league").agg(
+    offset=("offset", "mean"), moves=("moves", "sum")
+).sort_values("offset", ascending=False)
+summary.round(3)""",
+    ),
+    (
+        "md",
+        """The Premier League is pinned at zero as the reference. Everything else is
+measured against it, in the same units as the player scores.""",
+    ),
+    (
+        "code",
+        """offsets["era"] = offsets["season"].str[:2].astype(int) // 5
+era = offsets.pivot_table(index="league", columns="era", values="offset", aggfunc="mean")
+era.columns = ["2000-04", "2005-09", "2010-14", "2015-19", "2020-24"]
+era.round(2)""",
+    ),
+    (
+        "md",
+        """## 4. Code — and the corroboration that matters
+
+Look at the era table above. The gaps are small in 2000-04 and widen sharply
+from 2005 onward.
+
+That is the Premier League's financial ascent — and **nothing about money, TV
+deals or transfer fees is in this model.** It was recovered purely from players
+changing league and their scores changing with them. When an estimate reproduces
+a known historical pattern it did not have access to, that is real evidence the
+method works.""",
+    ),
+    (
+        "code",
+        """rank_by_moves = offsets.groupby("league")["moves"].sum().sort_values(ascending=False)
+print("transfers backing each estimate:")
+for lg, n in rank_by_moves.items():
+    print(f"  {lg:<22} {n:>6,}")
+print("\\nAn offset backed by 200 moves deserves less trust than one backed by 3,000,")
+print("which is why the count is published alongside the estimate.")""",
+    ),
+    (
+        "md",
+        """## 5. Assumptions
+
+1. **A transferring player is unchanged by the move**, apart from age and a
+   common adaptation effect. Injuries, motivation and tactical fit all violate
+   this individually; the hope is they average out.
+2. **Transfers are not selective in a way that correlates with the gap.** They
+   almost certainly are — players usually move *up* when they excel and *down*
+   when they decline, which is exactly the kind of selection that biases this.
+3. **League strength is constant within a five-season block.** A compromise:
+   per-season offsets would be badly identified from the handful of moves some
+   pairs see in one year.
+
+## 6. How it breaks
+
+The model has a failure mode that is invisible unless you look for it:
+**with transfers in only one direction between two leagues, the adaptation term
+and the league offset are perfectly collinear.**
+
+Both apply to every move. Only their *sign behaviour* separates them — the
+offset flips when the direction flips, adaptation does not. If everybody moves
+one way, no amount of data separates them, and the solver will split the
+difference arbitrarily.""",
+    ),
+    (
+        "code",
+        """from gambeta import bridge, kit
+
+cfg = kit.load()
+
+def moves_between(gap, n, both_ways):
+    rows = []
+    for i in range(n):
+        rows += [
+            {"player_id": f"o{i}", "league": "FRA-Ligue 1", "season": "0102",
+             "score": 1.0 + gap, "minutes": 3000, "age": 25.0},
+            {"player_id": f"o{i}", "league": "ENG-Premier League", "season": "0203",
+             "score": 1.0, "minutes": 3000, "age": 26.0},
+        ]
+        if both_ways:
+            rows += [
+                {"player_id": f"i{i}", "league": "ENG-Premier League", "season": "0102",
+                 "score": 0.5, "minutes": 3000, "age": 25.0},
+                {"player_id": f"i{i}", "league": "FRA-Ligue 1", "season": "0203",
+                 "score": 0.5 + gap, "minutes": 3000, "age": 26.0},
+            ]
+    return pd.DataFrame(rows)
+
+pair = ["ENG-Premier League", "FRA-Ligue 1"]
+for both in (True, False):
+    m = bridge.find_moves(moves_between(0.5, 40, both))
+    o = bridge.solve_offsets(m, cfg, leagues=pair)
+    est = o[(o["league"] == "FRA-Ligue 1") & (o["season"] == "0102")]["offset"].item()
+    label = "both directions" if both else "one direction only"
+    print(f"  {label:<20} true gap -0.50, estimated {est:+.2f}")""",
+    ),
+    (
+        "md",
+        """With traffic both ways the true gap is recovered. With one-way traffic, half of
+it is silently absorbed by the adaptation term and the league looks stronger
+than it is.
+
+Real transfer data flows both ways between all four leagues, which is what makes
+the estimates identifiable. But a league with mostly outbound moves — a selling
+league — would be systematically mis-measured, and that is a live risk rather
+than a hypothetical one.""",
     ),
 ]
 
 if __name__ == "__main__":
-    build(LABS / "01-who-dominated-the-premier-league.ipynb", NARRATIVE)
-    build(LABS / "02-z-scores-across-eras.ipynb", METHOD)
+    build(LABS / "01-who-is-the-best-footballer.ipynb", NARRATIVE)
+    build(LABS / "02-how-far-ahead-is-the-best.ipynb", BELL)
+    build(LABS / "03-method-requirements-and-gates.ipynb", METHOD_GATE)
+    build(LABS / "04-method-league-strength.ipynb", METHOD_BRIDGE)
