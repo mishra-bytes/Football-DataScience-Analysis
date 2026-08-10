@@ -4,8 +4,13 @@ from gambeta import cli
 
 
 def test_parser_accepts_each_stage() -> None:
-    for stage in ("scrape", "clean", "derive", "all"):
+    for stage in ("scrape", "clean", "rank", "all"):
         assert cli.build_parser().parse_args([stage]).stage == stage
+
+
+def test_parser_accepts_a_league_subset() -> None:
+    args = cli.build_parser().parse_args(["scrape", "--leagues", "ESP-La Liga"])
+    assert args.leagues == ["ESP-La Liga"]
 
 
 def test_parser_rejects_an_unknown_stage() -> None:

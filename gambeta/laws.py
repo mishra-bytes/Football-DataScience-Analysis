@@ -72,6 +72,73 @@ PLAYER_SEASON = DataFrameSchema(
 )
 """One row per (player_id, season). Mid-season transfers collapsed."""
 
+_SIDE_COLUMNS = {
+    "sot": Column(float, nullable=True),
+    "sot_p90": Column(float, nullable=True),
+    "g_per_sot": Column(float, nullable=True),
+    "min_pct": Column(float, nullable=True),
+    "complete": Column(float, nullable=True),
+    "subs": Column(float, nullable=True),
+    "second_yellow": Column(float, nullable=True),
+    "fouls": Column(float, nullable=True),
+}
+
+OUTFIELD_RAW = DataFrameSchema(
+    {**PLAYER_SEASON_RAW.columns, **_SIDE_COLUMNS},
+    strict=True,
+    coerce=True,
+)
+"""`standard` joined with the shooting, playing-time and misc tables.
+
+Side columns are nullable: a left join keeps a player whose row is missing from
+a secondary table rather than dropping them from the dataset entirely.
+"""
+
+KEEPER_RAW = DataFrameSchema(
+    {
+        "league": Column(str),
+        "season": Column(str, _SEASON),
+        "team": Column(str),
+        "player": Column(str),
+        "nation": Column(str, nullable=True),
+        "age": Column(float, nullable=True),
+        "born": Column(float, nullable=True),
+        "mp": Column(float, _NON_NEG, nullable=True),
+        "starts": Column(float, _NON_NEG, nullable=True),
+        "minutes": Column(float, _NON_NEG, nullable=True),
+        "ga": Column(float, _NON_NEG, nullable=True),
+        "ga90": Column(float, _NON_NEG, nullable=True),
+        "sota": Column(float, _NON_NEG, nullable=True),
+        "saves": Column(float, _NON_NEG, nullable=True),
+        "save_pct": Column(float, nullable=True),
+        "wins": Column(float, _NON_NEG, nullable=True),
+        "draws": Column(float, _NON_NEG, nullable=True),
+        "losses": Column(float, _NON_NEG, nullable=True),
+        "clean_sheets": Column(float, _NON_NEG, nullable=True),
+        "cs_pct": Column(float, nullable=True),
+    },
+    strict=True,
+    coerce=True,
+)
+"""Goalkeeper season table. Separate population, separate requirements."""
+
+LEAGUE_OFFSETS = DataFrameSchema(
+    {
+        "league": Column(str),
+        "season": Column(str, _SEASON),
+        "offset": Column(float),
+        "moves": Column(int, _NON_NEG),
+    },
+    strict=True,
+    coerce=True,
+    unique=["league", "season"],
+)
+"""League-strength offsets in z units, with the number of transfers behind each.
+
+``moves`` is published because an offset backed by three transfers deserves less
+trust than one backed by three hundred, and hiding that would be dishonest.
+"""
+
 CROSSWALK = DataFrameSchema(
     {
         "qid": Column(str, unique=True),
@@ -112,11 +179,36 @@ RATING = DataFrameSchema(
 )
 """Lens output: one row per player with a point estimate and interval."""
 
+RANKING = DataFrameSchema(
+    {
+        "player_id": Column(str, unique=True),
+        "player": Column(str),
+        "score": Column(float),
+        "qualified": Column(bool),
+        "failed": Column(str, nullable=True),
+        "worst_requirement": Column(str, nullable=True),
+        "seasons": Column(int, Check.gt(0)),
+        "leagues": Column(str),
+    },
+    strict=True,
+    coerce=True,
+)
+"""Gate-and-rank output.
+
+``failed`` lists every requirement a player missed, so the reason a great player
+is absent from the ranking is a published fact rather than something a reader has
+to reverse-engineer.
+"""
+
 __all__ = [
     "CROSSWALK",
     "ELO",
+    "KEEPER_RAW",
+    "LEAGUE_OFFSETS",
+    "OUTFIELD_RAW",
     "PLAYER_SEASON",
     "PLAYER_SEASON_RAW",
+    "RANKING",
     "RATING",
     "ValidationError",
     "pa",

@@ -37,6 +37,100 @@ _STRINGS = ["nation", "pos"]
 
 _ORDER = [*_INDEX, *_STRINGS, *_FLOATS, *_COUNTS]
 
+# One rename map per FBref season table. Only the columns this project needs and
+# that are populated across all 25 seasons are listed; see the spec's verified
+# availability table for what was excluded and why.
+_RENAME_SHOOTING: dict[tuple[str, str], str] = {
+    ("Standard", "SoT"): "sot",
+    ("Standard", "SoT/90"): "sot_p90",
+    ("Standard", "G/SoT"): "g_per_sot",
+}
+
+_RENAME_PLAYING_TIME: dict[tuple[str, str], str] = {
+    ("Playing Time", "Min%"): "min_pct",
+    ("Starts", "Compl"): "complete",
+    ("Subs", "Subs"): "subs",
+}
+
+_RENAME_MISC: dict[tuple[str, str], str] = {
+    ("Performance", "2CrdY"): "second_yellow",
+    ("Performance", "Fls"): "fouls",
+}
+
+_RENAME_KEEPER: dict[tuple[str, str], str] = {
+    ("nation", ""): "nation",
+    ("age", ""): "age",
+    ("born", ""): "born",
+    ("Playing Time", "MP"): "mp",
+    ("Playing Time", "Starts"): "starts",
+    ("Playing Time", "Min"): "minutes",
+    ("Performance", "GA"): "ga",
+    ("Performance", "GA90"): "ga90",
+    ("Performance", "SoTA"): "sota",
+    ("Performance", "Saves"): "saves",
+    ("Performance", "Save%"): "save_pct",
+    ("Performance", "W"): "wins",
+    ("Performance", "D"): "draws",
+    ("Performance", "L"): "losses",
+    ("Performance", "CS"): "clean_sheets",
+    ("Performance", "CS%"): "cs_pct",
+}
+
+SIDE_TABLES: dict[str, dict[tuple[str, str], str]] = {
+    "shooting": _RENAME_SHOOTING,
+    "playing_time": _RENAME_PLAYING_TIME,
+    "misc": _RENAME_MISC,
+}
+"""Tables joined onto `standard` by (league, season, team, player)."""
+
+
+def flatten_side(raw: pd.DataFrame, rename: dict[tuple[str, str], str]) -> pd.DataFrame:
+    """Flatten a secondary FBref table down to its join keys plus renamed columns.
+
+    Unlike :func:`flatten`, nothing is coerced to a fixed schema — these tables
+    contribute a handful of numeric columns each and are merged onto `standard`.
+
+    Parameters
+    ----------
+    raw
+        Output of ``read_player_season_stats`` for one of :data:`SIDE_TABLES`.
+    rename
+        Two-level column header to snake_case name.
+    """
+    df = raw.reset_index()
+    flat = {}
+    for col in df.columns:
+        key = col if isinstance(col, tuple) else (col, "")
+        if key in rename:
+            flat[rename[key]] = pd.to_numeric(df[col], errors="coerce").astype("float64")
+
+    out = df[_INDEX].astype(str).copy()
+    for name, values in flat.items():
+        out[name] = values.to_numpy()
+    return out.reset_index(drop=True)
+
+
+def flatten_keeper(raw: pd.DataFrame) -> pd.DataFrame:
+    """Flatten the goalkeeper table into a tidy frame.
+
+    Keepers are a separate population with their own requirements, so this is a
+    separate table rather than extra columns on the outfield one.
+    """
+    df = raw.reset_index()
+    out = df[_INDEX].astype(str).copy()
+
+    for col in df.columns:
+        key = col if isinstance(col, tuple) else (col, "")
+        name = _RENAME_KEEPER.get(key)
+        if name is None:
+            continue
+        if name == "nation":
+            out[name] = df[col].where(df[col].notna(), None)
+        else:
+            out[name] = pd.to_numeric(df[col], errors="coerce").astype("float64")
+
+    return out.reset_index(drop=True)
+
 
 def flatten(raw: pd.DataFrame) -> pd.DataFrame:
     """Flatten FBref's MultiIndex output into a tidy frame.
@@ -77,24 +171,63 @@ def flatten(raw: pd.DataFrame) -> pd.DataFrame:
     return df[_ORDER].reset_index(drop=True)
 
 
+def join_side_tables(standard: pd.DataFrame, sides: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Merge the secondary tables onto `standard` by (league, season, team, player).
+
+    Left joins throughout: a player missing from a side table keeps their standard
+    row with nulls, rather than vanishing from the dataset. Dropping them silently
+    is the failure mode this project cares most about avoiding.
+    """
+    out = standard
+    for frame in sides.values():
+        out = out.merge(frame, on=_INDEX, how="left")
+    return out
+
+
 class FBrefScout:
-    """Fetch Premier League player-season standard stats from FBref."""
+    """Fetch player-season stats from FBref for one or more leagues.
+
+    Fetches per league, never via the Big 5 combined reader: that endpoint leaves
+    Bundesliga's league label null in every season and merges Ligue 1 into the
+    same null group before 2017, which would normalise players against the wrong
+    peer population.
+    """
 
     name = "fbref"
 
-    def __init__(self, league: str, seasons: Sequence[str], data_dir: Path) -> None:
-        self.league = league
+    def __init__(self, leagues: Sequence[str], seasons: Sequence[str], data_dir: Path) -> None:
+        self.leagues = list(leagues)
         self.seasons = list(seasons)
         self.data_dir = data_dir
 
-    def fetch(self) -> pd.DataFrame:
-        """Scrape all configured seasons. Slow: roughly 50 seconds per season."""
+    def _reader(self, league: str) -> object:
         import soccerdata as sd
 
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        reader = sd.FBref(
-            leagues=self.league,
-            seasons=self.seasons,
-            data_dir=self.data_dir / "FBref",
+        return sd.FBref(leagues=league, seasons=self.seasons, data_dir=self.data_dir / "FBref")
+
+    def fetch(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Return ``(outfield, keeper)`` frames covering every configured league.
+
+        Slow on a cold cache — roughly 15 minutes per league per stat table. Reads
+        entirely from cache once :mod:`scripts.warm_cache` has run.
+        """
+        outfield_parts: list[pd.DataFrame] = []
+        keeper_parts: list[pd.DataFrame] = []
+
+        for league in self.leagues:
+            reader = self._reader(league)
+            read = reader.read_player_season_stats  # type: ignore[attr-defined]
+
+            standard = flatten(read(stat_type="standard"))
+            sides = {
+                name: flatten_side(read(stat_type=name), rename)
+                for name, rename in SIDE_TABLES.items()
+            }
+            outfield_parts.append(join_side_tables(standard, sides))
+            keeper_parts.append(flatten_keeper(read(stat_type="keeper")))
+
+        return (
+            pd.concat(outfield_parts, ignore_index=True),
+            pd.concat(keeper_parts, ignore_index=True),
         )
-        return flatten(reader.read_player_season_stats(stat_type="standard"))

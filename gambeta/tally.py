@@ -10,7 +10,24 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-_SUM = ["minutes", "mp", "goals", "assists", "npg", "yellow", "red"]
+_SUM = [
+    "minutes",
+    "mp",
+    "goals",
+    "assists",
+    "npg",
+    "yellow",
+    "red",
+    # Side-table counts. A transferred player's totals add up across clubs the
+    # same way their goals do; rates are recomputed afterwards, never summed.
+    "starts",
+    "sot",
+    "complete",
+    "subs",
+    "second_yellow",
+    "fouls",
+    "min_pct",
+]
 _KEEP = ["qid", "league", "player", "born", "nation", "pos"]
 _MINUTES_PER_MATCH = 90.0
 
@@ -25,7 +42,8 @@ def collapse_transfers(df: pd.DataFrame) -> pd.DataFrame:
     keys = ["player_id", "season"]
     grouped = df.groupby(keys, as_index=False, sort=False)
 
-    totals = grouped.agg({**{c: "sum" for c in _SUM}, **{c: "first" for c in _KEEP}})
+    present = [c for c in _SUM if c in df.columns]
+    totals = grouped.agg({**{c: "sum" for c in present}, **{c: "first" for c in _KEEP}})
     # Named aggregation on the frame (not a selected column) keeps this a
     # DataFrame and needs no rename.
     teams = (
