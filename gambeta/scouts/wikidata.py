@@ -10,6 +10,7 @@ project, given FBref exposes no player ID of its own.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pandas as pd
@@ -70,5 +71,9 @@ class WikidataScout:
             timeout=600,
         )
         response.raise_for_status()
-        bindings: list[dict[str, Any]] = response.json()["results"]["bindings"]
+        # strict=False, not response.json(): the ~20 MB payload contains raw
+        # control characters inside player labels, which the strict decoder
+        # rejects outright — one bad byte would discard 114,000 usable rows.
+        payload = json.loads(response.text, strict=False)
+        bindings: list[dict[str, Any]] = payload["results"]["bindings"]
         return parse_bindings(bindings)

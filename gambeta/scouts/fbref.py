@@ -84,6 +84,27 @@ SIDE_TABLES: dict[str, dict[tuple[str, str], str]] = {
 """Tables joined onto `standard` by (league, season, team, player)."""
 
 
+def _flat_columns(raw: pd.DataFrame, rename: dict[tuple[str, str], str]) -> pd.DataFrame:
+    """Reset the index and collapse FBref's two-level headers to flat names.
+
+    Selecting index columns straight off a two-level-column frame keeps them
+    two-level, which later fails a merge against a flat frame with
+    ``MergeError: Not allowed to merge between different levels``. Every reader
+    must therefore flatten headers *before* selecting anything.
+    """
+    df = raw.reset_index()
+    df.columns = pd.Index(
+        [
+            rename.get(
+                col if isinstance(col, tuple) else (col, ""),
+                col[0] if isinstance(col, tuple) else col,
+            )
+            for col in df.columns
+        ]
+    )
+    return df.loc[:, ~df.columns.duplicated()]
+
+
 def flatten_side(raw: pd.DataFrame, rename: dict[tuple[str, str], str]) -> pd.DataFrame:
     """Flatten a secondary FBref table down to its join keys plus renamed columns.
 
@@ -97,16 +118,11 @@ def flatten_side(raw: pd.DataFrame, rename: dict[tuple[str, str], str]) -> pd.Da
     rename
         Two-level column header to snake_case name.
     """
-    df = raw.reset_index()
-    flat = {}
-    for col in df.columns:
-        key = col if isinstance(col, tuple) else (col, "")
-        if key in rename:
-            flat[rename[key]] = pd.to_numeric(df[col], errors="coerce").astype("float64")
-
+    df = _flat_columns(raw, rename)
     out = df[_INDEX].astype(str).copy()
-    for name, values in flat.items():
-        out[name] = values.to_numpy()
+    for name in rename.values():
+        if name in df.columns:
+            out[name] = pd.to_numeric(df[name], errors="coerce").astype("float64")
     return out.reset_index(drop=True)
 
 
@@ -116,18 +132,16 @@ def flatten_keeper(raw: pd.DataFrame) -> pd.DataFrame:
     Keepers are a separate population with their own requirements, so this is a
     separate table rather than extra columns on the outfield one.
     """
-    df = raw.reset_index()
+    df = _flat_columns(raw, _RENAME_KEEPER)
     out = df[_INDEX].astype(str).copy()
 
-    for col in df.columns:
-        key = col if isinstance(col, tuple) else (col, "")
-        name = _RENAME_KEEPER.get(key)
-        if name is None:
+    for name in _RENAME_KEEPER.values():
+        if name not in df.columns:
             continue
         if name == "nation":
-            out[name] = df[col].where(df[col].notna(), None)
+            out[name] = df[name].where(df[name].notna(), None)
         else:
-            out[name] = pd.to_numeric(df[col], errors="coerce").astype("float64")
+            out[name] = pd.to_numeric(df[name], errors="coerce").astype("float64")
 
     return out.reset_index(drop=True)
 
@@ -191,7 +205,8 @@ def join_side_tables(standard: pd.DataFrame, sides: dict[str, pd.DataFrame]) -> 
         out = out.merge(frame, on=_INDEX, how="left")
     for column in SIDE_COLUMNS:
         if column not in out.columns:
-            out[column] = pd.Series(pd.NA, index=out.index, dtype="float64")
+            # NaN, not pd.NA: pandas 3 refuses the latter in a float64 Series.
+            out[column] = pd.Series(float("nan"), index=out.index, dtype="float64")
     return out
 
 

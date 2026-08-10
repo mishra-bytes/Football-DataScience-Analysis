@@ -73,10 +73,15 @@ def scrape(
         extra={"leagues": list(leagues), "seasons": list(seasons)},
     )
     locker.write(keeper, cfg.raw / RAW_KEEPER, laws.KEEPER_RAW, source="fbref-keeper")
-    locker.write(EloScout(seasons).fetch(), cfg.raw / RAW_ELO, laws.ELO, source="clubelo")
-    locker.write(
-        WikidataScout().fetch(), cfg.raw / RAW_CROSSWALK, laws.CROSSWALK, source="wikidata"
-    )
+
+    # ClubElo and Wikidata have no per-file cache of their own, so under
+    # --cache-only an existing output is reused rather than re-fetched.
+    if not (cache_only and (cfg.raw / RAW_ELO).exists()):
+        locker.write(EloScout(seasons).fetch(), cfg.raw / RAW_ELO, laws.ELO, source="clubelo")
+    if not (cache_only and (cfg.raw / RAW_CROSSWALK).exists()):
+        locker.write(
+            WikidataScout().fetch(), cfg.raw / RAW_CROSSWALK, laws.CROSSWALK, source="wikidata"
+        )
 
 
 def clean(cfg: kit.Config) -> None:
@@ -98,6 +103,20 @@ def clean(cfg: kit.Config) -> None:
     collapsed = tally.collapse_transfers(labelled)
     collapsed = tally.add_team_share(collapsed, labelled)
     collapsed["age"] = labelled.groupby(["player_id", "season"])["age"].first().to_numpy()
+
+    # Club strength has to be attached before the transfer collapse, while rows
+    # still name a club. A player who moved mid-season gets the minutes-weighted
+    # blend of both clubs, which is what "the team around him" actually was.
+    elo = locker.read(cfg.raw / RAW_ELO, laws.ELO)
+    per_club = labelled.merge(elo, on=["season", "team"], how="left")
+    per_club["_weighted"] = per_club["elo"] * per_club["minutes"]
+    blended = per_club.groupby(["player_id", "season"], as_index=False).agg(
+        _weighted=("_weighted", "sum"), _minutes=("minutes", "sum")
+    )
+    blended["elo"] = blended["_weighted"] / blended["_minutes"].replace(0, pd.NA)
+    collapsed = collapsed.merge(
+        blended[["player_id", "season", "elo"]], on=["player_id", "season"], how="left"
+    )
     collapsed.to_parquet(cfg.clean / CLEAN_OUTFIELD, index=False)
 
     keeper_labelled, _ = whois.resolve(keeper, crosswalk)

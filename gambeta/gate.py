@@ -57,7 +57,20 @@ def career_profile(
 
         per_season = career[keys].mean(axis=1).to_numpy(dtype=float)
         pooled["longevity"] = float(len(career))
-        pooled["consistency"] = -float(per_season.std(ddof=0)) if len(career) > 1 else 0.0
+        # The level of his worse seasons, not the size of his swings.
+        #
+        # This was -(standard deviation) and it was badly wrong. An elite player
+        # swings between +2.5 and +4.0, so his SD is large; a journeyman sits at
+        # -0.1 every year, so his SD is near zero. Variance is anti-correlated
+        # with excellence, and in a gate it disqualified Messi, Ronaldo, Kane,
+        # Haaland, Lewandowski, Suárez, Henry and Salah in one stroke while
+        # promoting the most featureless players in the dataset.
+        #
+        # A 20th percentile answers the question the requirement actually asks -
+        # "did he have bad years?" - and a great player's bad year is still good.
+        pooled["consistency"] = (
+            float(np.percentile(per_season, 20)) if len(career) > 1 else float(per_season[0])
+        )
 
         rows.append(
             {

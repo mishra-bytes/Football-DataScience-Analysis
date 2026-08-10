@@ -62,12 +62,30 @@ def test_profile_records_multiple_leagues() -> None:
 
 
 def test_consistency_rewards_the_steady_player() -> None:
+    """Same average, but one player has bad years and the other does not."""
     steady = _career("steady", 5.0, 6)
     swingy = _career("swingy", 5.0, 6)
     swingy[SEASON_KEYS] = np.tile([0.0, 10.0, 0.0, 10.0, 0.0, 10.0], (len(SEASON_KEYS), 1)).T
     profile = gate.career_profile(pd.concat([steady, swingy]), needs.OUTFIELD, CFG)
     profile = profile.set_index("player_id")
     assert profile.loc["steady", "consistency"] > profile.loc["swingy", "consistency"]
+
+
+def test_consistency_does_not_punish_being_excellent() -> None:
+    """The bug that disqualified Messi, Ronaldo, Kane, Haaland and Henry at once.
+
+    Measured as -(standard deviation), a great player's swing between very good
+    and outstanding scored *worse* than a journeyman's flat mediocrity. A floor
+    must rank the great player higher: his bad season is still good.
+    """
+    great = _career("great", 0.0, 6)
+    great[SEASON_KEYS] = np.tile([2.5, 4.0, 3.0, 4.0, 2.5, 3.5], (len(SEASON_KEYS), 1)).T
+    flat = _career("flat", 0.0, 6)
+    flat[SEASON_KEYS] = np.tile([-0.1, 0.1, -0.1, 0.1, -0.1, 0.1], (len(SEASON_KEYS), 1)).T
+
+    profile = gate.career_profile(pd.concat([great, flat]), needs.OUTFIELD, CFG)
+    profile = profile.set_index("player_id")
+    assert profile.loc["great", "consistency"] > profile.loc["flat", "consistency"]
 
 
 def test_standardise_centres_every_requirement() -> None:

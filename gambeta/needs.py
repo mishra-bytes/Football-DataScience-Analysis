@@ -42,7 +42,7 @@ OUTFIELD: tuple[Requirement, ...] = (
     Requirement("availability", "Is available", "season"),
     Requirement("reliability", "Is relied upon", "season"),
     Requirement("longevity", "Sustains it", "career"),
-    Requirement("consistency", "Does not fluctuate", "career"),
+    Requirement("consistency", "Has no bad seasons", "career"),
     Requirement("discipline", "Does not cost his team", "season"),
 )
 
@@ -54,7 +54,7 @@ KEEPER: tuple[Requirement, ...] = (
     Requirement("availability", "Is available", "season"),
     Requirement("reliability", "Is relied upon", "season"),
     Requirement("longevity", "Sustains it", "career"),
-    Requirement("consistency", "Does not fluctuate", "career"),
+    Requirement("consistency", "Has no bad seasons", "career"),
 )
 """No discipline requirement: FBref's keeper table carries no cards, so it would
 be a constant zero for every keeper — gating on it can eliminate nobody and
@@ -178,7 +178,10 @@ def add_above_team(
         ``False`` for keeper goals-against, where a negative residual is good;
         the sign is flipped so the requirement still reads higher-is-better.
     """
-    out = df.merge(elo, on=["season", "team"], how="left")
+    # A collapsed player-season has no single `team` — it carries a
+    # minutes-weighted `elo` attached during cleaning instead. Uncollapsed
+    # frames (keepers) still join on the club.
+    out = df.copy() if "elo" in df.columns else df.merge(elo, on=["season", "team"], how="left")
     out["elo"] = out["elo"].fillna(out["elo"].mean())
 
     residuals = np.zeros(len(out), dtype=float)
