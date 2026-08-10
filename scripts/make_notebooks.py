@@ -335,11 +335,11 @@ print(f"{second['player']} to {ranking.iloc[5]['player']}: "
     ),
     (
         "md",
-        """## The same gap, measured in players
+        """## The result, stated in players rather than decimals
 
-A number like 0.54 means nothing on its own. The way to feel it is to ask: if
-you took the gap between first and second and laid it below someone else, **who
-would you land on?**""",
+A lead of 0.54 means nothing on its own. The way to feel it is to take the gap
+between first and second, lay it below someone else, and see **who you land
+on**.""",
     ),
     (
         "code",
@@ -347,30 +347,40 @@ would you land on?**""",
 lead = q.loc[0, "score"] - q.loc[1, "score"]
 
 
-def same_distance_below(rank: int) -> tuple[int, pd.Series]:
-    """Who sits as far below player `rank` as second sits below first?"""
+def ordinal(n: int) -> str:
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def named(i: int) -> str:
+    return f"{q.loc[i, 'player']} ({ordinal(i + 1)})"
+
+
+def same_distance_below(rank: int) -> int:
+    """Index of the player sitting as far below `rank` as second sits below first."""
     target = q.loc[rank, "score"] - lead
-    i = (q["score"] - target).abs().idxmin()
-    return i, q.loc[i]
+    return int((q["score"] - target).abs().idxmin())
 
 
-print(f"{q.loc[0, 'player']} leads {q.loc[1, 'player']} by {lead:.2f} "
-      f"({lead / sigma:.1f} sigma).\\n")
+below_second = same_distance_below(1)
+below_third = same_distance_below(2)
 
-for rank in (1, 2):
-    i, who = same_distance_below(rank)
-    anchor = q.loc[rank]
-    print(f"The same distance below {anchor['player']} (#{rank + 1}) "
-          f"lands on {who['player']} (#{i + 1}).")''',
+print(
+    f"{named(1)} is as close to {named(0)}\\n"
+    f"  as {named(below_second)} is to {named(1)},\\n"
+    f"  or {named(below_third)} is to {named(2)}."
+)
+print(f"\\n(every one of those gaps is {lead:.2f}, or {lead / sigma:.1f} sigma)")''',
     ),
     (
         "md",
-        """So the gap between first and second is not a photo finish. Laid below second
-place it reaches down **seven** positions; laid below third place it reaches
-**ten**.
+        """Read that again, because it is the finding of this chapter. The distance from
+second place to first is not a photo finish — it is the same distance that
+separates second place from a player **seven** positions further down, and third
+place from one **ten** positions down.
 
-One more way to put it: compare the lead at the top against the entire spread
-of the chasing pack.""",
+One more way to put it: compare the lead at the top against the entire spread of
+the chasing pack.""",
     ),
     (
         "code",
