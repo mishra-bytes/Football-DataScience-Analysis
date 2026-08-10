@@ -12,6 +12,7 @@ def _outfield() -> pd.DataFrame:
             "team": ["Arsenal", "Chelsea", "Arsenal"],
             "player": ["A", "B", "C"],
             "minutes": [1800, 900, 0],
+            "mp": [20, 12, 0],
             "starts": [20, 10, 0],
             "goals": [10, 4, 0],
             "npg": [8, 4, 0],
@@ -42,6 +43,16 @@ def test_scoring_uses_non_penalty_goals() -> None:
 def test_finishing_is_goals_per_shot_on_target() -> None:
     out = needs.outfield_values(_outfield()).set_index("player")
     assert out.loc["A", "finishing"] == 10 / 40
+
+
+def test_reliability_does_not_punish_being_substituted() -> None:
+    """A striker hooked at 70 minutes every week was still relied upon."""
+    df = _outfield()
+    df.loc[df["player"] == "A", ["mp", "starts", "complete"]] = [30, 30, 0]  # always subbed off
+    df.loc[df["player"] == "B", ["mp", "starts", "complete"]] = [30, 5, 5]  # mostly a substitute
+    out = needs.outfield_values(df).set_index("player")
+    assert out.loc["A", "reliability"] == 1.0
+    assert out.loc["A", "reliability"] > out.loc["B", "reliability"]
 
 
 def test_zero_minutes_never_divides_by_zero() -> None:

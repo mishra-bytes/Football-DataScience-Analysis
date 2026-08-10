@@ -40,7 +40,7 @@ OUTFIELD: tuple[Requirement, ...] = (
     Requirement("team_share", "Carries his team", "season"),
     Requirement("above_team", "Beats his team's level", "season"),
     Requirement("availability", "Is available", "season"),
-    Requirement("reliability", "Is relied upon", "season"),
+    Requirement("reliability", "Is picked to start", "season"),
     Requirement("longevity", "Sustains it", "career"),
     Requirement("consistency", "Has no bad seasons", "career"),
     Requirement("discipline", "Does not cost his team", "season"),
@@ -52,7 +52,7 @@ KEEPER: tuple[Requirement, ...] = (
     Requirement("clean_sheets", "Keeps clean sheets", "season"),
     Requirement("above_team", "Beats his team's level", "season"),
     Requirement("availability", "Is available", "season"),
-    Requirement("reliability", "Is relied upon", "season"),
+    Requirement("reliability", "Is picked to start", "season"),
     Requirement("longevity", "Sustains it", "career"),
     Requirement("consistency", "Has no bad seasons", "career"),
 )
@@ -101,6 +101,14 @@ def _ratio(numerator: pd.Series, denominator: pd.Series) -> np.ndarray:
 def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     """Add one column per season-level outfield requirement.
 
+    ``reliability`` is **starts per appearance**, not completed matches per start.
+    The latter asks "did he play the full ninety", which a manager decides on
+    tactics rather than trust, and it systematically punished forwards: on real
+    data, Benzema, Aguero, Higuain, Villa, Owen and Trezeguet all missed
+    qualification on that single requirement, because strikers get substituted.
+    Being taken off no longer counts against a player; only being a substitute
+    does.
+
     Parameters
     ----------
     df
@@ -123,7 +131,7 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     out["threat"] = _rate(_column(out, "sot"), minutes)
     out["team_share"] = out["team_goal_share"].fillna(0.0)
     out["availability"] = _column(out, "min_pct") / 100.0
-    out["reliability"] = _ratio(_column(out, "complete"), out["starts"])
+    out["reliability"] = _ratio(out["starts"], out["mp"])
 
     # Negated so higher is better, like every other requirement.
     #
@@ -153,7 +161,7 @@ def keeper_values(df: pd.DataFrame) -> pd.DataFrame:
     out["concedes_little"] = -out["ga90"].fillna(0.0)
     out["clean_sheets"] = out["cs_pct"].fillna(0.0)
     out["availability"] = _ratio(out["minutes"].fillna(0), out.get("team_minutes", out["minutes"]))
-    out["reliability"] = _ratio(out["mp"].fillna(0), out["starts"])
+    out["reliability"] = _ratio(out["starts"].fillna(0), out["mp"])
     return out
 
 
