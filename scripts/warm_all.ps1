@@ -5,30 +5,33 @@
 # concurrent leagues took this machine from 15 GB free to 0.8 GB and slowed each
 # fetch from ~30 s to ~250 s. One league at a time is both safer and faster.
 #
-# Chrome is killed between leagues because undetected-chromedriver reliably
-# leaves orphans behind on Windows.
+# Chrome is NOT killed between leagues here: when two lanes run concurrently, a
+# global Stop-Process would take down the other lane's live browser session.
+# undetected-chromedriver leaves orphans on Windows, so the caller must clean up
+# once every lane has finished.
 
+# Leagues arrive as one semicolon-delimited string, not an array. League names
+# contain spaces, and PowerShell's Start-Process -ArgumentList re-splits array
+# elements on whitespace, which silently turns "ENG-Premier League" into two
+# bogus arguments.
 param(
-    [string]$LogDir = $PSScriptRoot
+    [string]$LogDir = $PSScriptRoot,
+    [string]$LeagueList = 'ENG-Premier League;ESP-La Liga;ITA-Serie A;GER-Bundesliga;FRA-Ligue 1',
+    [string]$Tag = "seq"
 )
 
 $ErrorActionPreference = "Continue"
 $repo = Split-Path -Parent $PSScriptRoot
 $py = Join-Path $repo ".venv\Scripts\python.exe"
-$leagues = @('ENG-Premier League', 'ESP-La Liga', 'ITA-Serie A', 'GER-Bundesliga', 'FRA-Ligue 1')
+$leagues = $LeagueList -split ';' | Where-Object { $_.Trim() -ne '' }
 
 foreach ($league in $leagues) {
     $tag = ($league -split '-')[0]
     Write-Output "=== START $league $(Get-Date -Format 'HH:mm:ss') ==="
     & $py (Join-Path $repo "scripts\warm_cache.py") $league 2>&1 |
-        Tee-Object -FilePath (Join-Path $LogDir "seq_$tag.log")
+        Tee-Object -FilePath (Join-Path $LogDir "$Tag`_$tag.log")
 
-    Get-Process chrome, uc_driver, chromedriver -ErrorAction SilentlyContinue |
-        Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 5
     Write-Output "=== END $league $(Get-Date -Format 'HH:mm:ss') ==="
 }
 
-Get-Process chrome, uc_driver, chromedriver -ErrorAction SilentlyContinue |
-    Stop-Process -Force -ErrorAction SilentlyContinue
-Write-Output "=== ALL LEAGUES DONE $(Get-Date -Format 'HH:mm:ss') ==="
+Write-Output "=== LANE $Tag DONE $(Get-Date -Format 'HH:mm:ss') ==="
