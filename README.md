@@ -1,44 +1,82 @@
 # gambeta
 
-Era-normalized football player analysis — and a worked textbook on the statistics
-behind it.
+Who is the best footballer of the last 25 years — and how would you actually
+find out?
 
-Two things at once: **who the best Premier League players of the last twenty-five
-years were**, and **how you would actually find out**. The second is the reason
-the first is worth reading.
+The second question is why the first is worth reading. This is both a ranking
+and a worked textbook on the statistics behind it.
 
-> **Phase 1 of five.** Premier League only, 2000-01 to 2024-25, one rating lens.
-> See [Roadmap](#roadmap).
+## The answer
 
-## The current answer
+A player must clear a floor on **all eleven requirements** to qualify at all.
+239 of 4,424 players do. Ranked among them:
 
-Ranked by best five consecutive seasons of goals and assists per 90, measured
-against contemporaries in the same season:
+| # | Player | Score | σ above mean | Seasons | Leagues |
+|---|---|---|---|---|---|
+| 1 | **Lionel Messi** | 3.44 | **+6.1** | 16 | Spain |
+| 2 | **Cristiano Ronaldo** | 2.90 | +5.2 | 19 | England, Spain, Italy |
+| 3 | Erling Haaland | 2.63 | +4.7 | 6 | England, Germany |
+| 4 | Harry Kane | 2.58 | +4.6 | 11 | England, Germany |
+| 5 | Thierry Henry | 2.55 | +4.5 | 10 | England, Spain |
 
-| # | Player | Score | 95% interval | Peak window |
-|---|---|---|---|---|
-| 1 | Erling Haaland | 2.67 | 1.80 – 3.94 | 2022-23 to 2024-25 |
-| 2 | Thierry Henry | 2.59 | 2.24 – 2.94 | 2002-03 to 2006-07 |
-| 3 | Sergio Agüero | 2.43 | 1.83 – 3.08 | 2013-14 to 2017-18 |
-| 4 | Mohamed Salah | 2.17 | 1.69 – 2.74 | 2020-21 to 2024-25 |
-| 5 | Harry Kane | 2.03 | 1.17 – 2.89 | 2016-17 to 2020-21 |
+**Goalkeepers** are ranked separately on their own eight requirements — Neuer,
+Ederson, Čech, van der Sar, Alisson — because save percentage and goals per 90
+are not comparable quantities and pretending otherwise would be dishonest.
 
-**And the finding that matters more than the order:** 44 of the 45 possible pairs
-in the top ten have overlapping intervals. This lens **cannot separate the top
-ten**. Anyone who tells you confidently that one of these is third and another
-seventh is reporting an opinion, not a measurement.
+## What "best" means here
+
+Eleven requirements, each measurable across all 25 seasons and every league:
+
+| | Requirement | Measured by |
+|---|---|---|
+| 1 | Scores goals | non-penalty goals / 90 |
+| 2 | Creates goals | assists / 90 |
+| 3 | Finishes clinically | goals per shot on target |
+| 4 | Generates threat | shots on target / 90 |
+| 5 | Carries his team | share of club goals |
+| 6 | Beats his team's level | output vs what ClubElo predicts for that club |
+| 7 | Is available | share of team minutes |
+| 8 | Is picked to start | starts / appearances |
+| 9 | Sustains it | qualifying seasons |
+| 10 | Has no bad seasons | 20th percentile of his season scores |
+| 11 | Does not cost his team | negative cards and fouls |
+
+**Gate, then rank.** "Must have" is read literally: a floor on every
+requirement decides who qualifies, and only then are qualifiers ranked. A
+weighted average alone would let a player be genuinely poor at something the
+list calls mandatory and still win on volume elsewhere.
+
+**The player is the unit, not the league.** Each player-season is normalised
+inside its own league and season, then *all* of a player's seasons are pooled —
+whichever leagues they happened to be in. Ronaldo's 19 seasons across three
+countries are one career.
+
+**League strength comes from transfers.** A player who changes league is the
+same footballer on both sides of the move, so the change in his score measures
+the gap between those leagues. Solved across thousands of moves:
+
+| League | Strength (England = 0) | Backed by |
+|---|---|---|
+| England | 0.000 | 3,365 moves |
+| Spain | −0.143 | 3,005 |
+| Italy | −0.212 | 2,640 |
+| Germany | −0.219 | 1,880 |
+
+The gaps are small in 2000-04 and widen from 2005 — the Premier League's
+financial ascent, recovered purely from players moving. Nothing about money is
+in the model.
 
 ## Quickstart
 
 ```bash
 uv sync --all-groups          # add --extra gpu if you have an NVIDIA card
-uv run pytest                 # 116 tests, no network required
+uv run pytest                 # 175 tests, no network required
 uv run streamlit run dugout/app.py
 quarto render                 # builds the book into tome/_book
 ```
 
-Everything runs against `data/sample/` — a small committed set of derived
-aggregates — so you can reproduce every figure without scraping a single page.
+Everything runs against `data/sample/` — 2 MB of derived aggregates — so every
+figure reproduces without scraping a page.
 
 ### Running the notebooks
 
@@ -48,84 +86,57 @@ Register the project environment as a Jupyter kernel once:
 uv run python -m ipykernel install --user --name gambeta --display-name "gambeta (.venv 3.12)"
 ```
 
-Then pick **gambeta (.venv 3.12)** as the notebook kernel.
+Without it, editors resolve the notebooks' kernel to your *global* interpreter,
+which has no `gambeta` installed, and every import fails.
 
-This step is not optional cosmetics. Without it, editors resolve the notebooks'
-generic `python3` kernel to your *global* interpreter, which has no `gambeta`
-installed, and every import fails. `uv run` happens to work anyway because
-Jupyter falls back to the running interpreter — which is why the failure only
-shows up in an editor. `.vscode/settings.json` is committed for the same
-reason.
-
-## Rebuilding the data from source
+### Rebuilding the data
 
 ```bash
-uv run gambeta all            # scrape -> clean -> derive, roughly 25 minutes
+uv run gambeta all                 # scrape -> clean -> rank
+uv run gambeta all --cache-only    # never fetch; use only what is cached
 ```
 
-Requires Chrome (soccerdata drives it to get past Cloudflare). Read
-[DATA_SOURCES.md](DATA_SOURCES.md) first — FBref restricts bulk redistribution,
-which is why only derived aggregates are published here.
+Requires Chrome. Read [DATA_SOURCES.md](DATA_SOURCES.md) first — FBref restricts
+bulk redistribution, which is why only derived aggregates are published here.
 
-Or run the stages individually:
+## The notebooks
 
-```bash
-uv run gambeta scrape --seasons 0001 0102
-uv run gambeta clean
-uv run gambeta derive
-```
-
-DVC stages the same DAG, so `uv run dvc repro` re-runs only what changed —
-editing the normalization re-derives without re-scraping 25 seasons.
-
-## How it works
-
-| Module | Responsibility |
+| | |
 |---|---|
-| `gambeta/kit.py` | Configuration: paths, seasons, thresholds, seed |
-| `gambeta/scouts/` | One adapter per source — FBref, ClubElo, Wikidata |
-| `gambeta/whois.py` | Player identity across 25 years of name variants |
-| `gambeta/laws.py` | pandera schemas — the contract between layers |
-| `gambeta/locker.py` | Parquet store with provenance manifests |
-| `gambeta/tally.py` | Per-90 rates, transfer collapsing, share of club output |
-| `gambeta/level.py` | Era normalization: z-scores and minutes shrinkage |
-| `gambeta/lens.py` | The peak-5 rating |
-| `gambeta/doubt.py` | Bootstrap confidence intervals (GPU when it pays) |
-| `gambeta/tifo.py` | Charts, validated for colour-vision deficiency |
+| `01-who-is-the-best-footballer` | The investigation, end to end |
+| `02-how-far-ahead-is-the-best` | The distribution, and why "6 sigma" is a ruler and not a probability |
+| `03-method-requirements-and-gates` | Gating vs averaging, and a metric that rewarded mediocrity |
+| `04-method-league-strength` | Estimating league strength from transfers, and when it fails |
 
-Three rules hold the design together:
-
-1. **The Parquet store is the seam.** Nothing downstream of ingestion touches the
-   network, so a broken scraper breaks ingestion, not analysis.
-2. **Notebooks import from the package; they never implement.** That is what keeps
-   `gambeta` a library rather than extracted notebook cells.
-3. **Unmatched players are reported, never dropped.** Silently discarding an
-   unmatched row does not error — it quietly deletes a career.
+Method chapters follow one structure: **Question → Intuition → Math → Code →
+Assumptions → How it breaks.** The last section is the one most tutorials skip.
 
 ## Honest limitations
 
-- **Attacking output only.** Defenders and holding midfielders are systematically
-  undervalued. This is a known bias, stated rather than buried.
-- **No advanced statistics before 2017-18.** Expected goals and progressive
-  actions were never recorded for 2003-04, by anyone. The rating therefore uses
-  what exists across the whole period.
-- **Premier League only.** No Champions League, no internationals, no other
-  league. A player whose best work happened elsewhere is invisible here.
-- **Identity is probabilistic.** 96.8% of player-seasons resolve to a Wikidata
-  entity; the remainder are listed in `vault/clean/unresolved.csv`.
+- **Attacking contribution only.** FBref records no per-player defensive action
+  before 2017-18, so a centre-back is invisible to six of the eleven
+  requirements. The rating is named for what it measures.
+- **Four leagues, not five.** Ligue 1 was never collected — see
+  [PENDING.md](PENDING.md).
+- **No Champions League, no internationals.** A career here means a Big-5
+  domestic league career.
+- **Identity is probabilistic.** 85% of player-seasons resolve to a Wikidata
+  entity; the rest are listed, never dropped.
 
-Every measured gate result is recorded in [DEVIATIONS.md](DEVIATIONS.md),
-including the ones that surprised me.
+Two bugs worth reading about, both caught by looking at output rather than by
+tests: `consistency` was measured as variance, which rewarded mediocrity and
+disqualified eight of the best players at once; and `reliability` was completed
+matches per start, which measured *being a forward*. Both are written up in
+`DEVIATIONS.md` and notebook 03.
 
 ## Roadmap
 
-| Phase | Adds |
+| Phase | Status |
 |---|---|
-| **1** | Premier League 2000-2025, one lens — **done** |
-| 2 | All Big 5 leagues plus internationals, both metric tiers |
-| 3 | Bayesian era model, four more lenses, composite index, Monte Carlo replay |
-| 4 | Full visualization system, dashboard with live weight sliders |
-| 5 | The complete book |
+| 1 — Premier League, peak-5 lens | done |
+| 2 — Four leagues, eleven requirements, league bridge, keepers | **done** |
+| 3 — Bayesian era model, Monte Carlo replay, weight sliders | next |
+| 4 — Ligue 1, Champions League, internationals | see PENDING.md |
 
 ## Licence
 

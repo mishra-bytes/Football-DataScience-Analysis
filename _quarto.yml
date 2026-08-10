@@ -1,14 +1,15 @@
 # Book config lives at the repo root, not in tome/, because Quarto cannot
-# reliably reference chapters above its project directory. Quarto additionally
-# requires the home page to be `index.qmd` at the project root, so the preface
-# lives here; every other book file stays in tome/. Output lands in tome/_book.
+# reliably reference chapters above its project directory, and it requires the
+# home page to be `index.qmd` at the project root. Output lands in tome/_book.
 project:
   type: book
   output-dir: tome/_book
   render:
     - index.qmd
-    - labs/01-who-dominated-the-premier-league.ipynb
-    - labs/02-z-scores-across-eras.ipynb
+    - labs/01-who-is-the-best-footballer.ipynb
+    - labs/02-how-far-ahead-is-the-best.ipynb
+    - labs/03-method-requirements-and-gates.ipynb
+    - labs/04-method-league-strength.ipynb
     - tome/method-template.qmd
 
 book:
@@ -20,10 +21,12 @@ book:
     - index.qmd
     - part: "The investigation"
       chapters:
-        - labs/01-who-dominated-the-premier-league.ipynb
+        - labs/01-who-is-the-best-footballer.ipynb
+        - labs/02-how-far-ahead-is-the-best.ipynb
     - part: "Methods"
       chapters:
-        - labs/02-z-scores-across-eras.ipynb
+        - labs/03-method-requirements-and-gates.ipynb
+        - labs/04-method-league-strength.ipynb
         - tome/method-template.qmd
 
 format:
