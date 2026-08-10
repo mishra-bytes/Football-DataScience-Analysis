@@ -190,7 +190,9 @@ RANKING = DataFrameSchema(
         "seasons": Column(int, Check.gt(0)),
         "leagues": Column(str),
     },
-    strict=True,
+    # Not strict: the frame also carries one column per requirement, and the two
+    # populations have different requirement lists.
+    strict=False,
     coerce=True,
 )
 """Gate-and-rank output.

@@ -30,34 +30,36 @@ class Requirement:
     key: str
     label: str
     kind: Literal["season", "career"]
-    note: str = ""
 
 
 OUTFIELD: tuple[Requirement, ...] = (
-    Requirement("scoring", "Scores goals", "season", "Non-penalty goals per 90"),
-    Requirement("creation", "Creates goals", "season", "Assists per 90"),
-    Requirement("finishing", "Finishes clinically", "season", "Goals per shot on target"),
-    Requirement("threat", "Generates threat", "season", "Shots on target per 90"),
-    Requirement("team_share", "Carries his team", "season", "Share of club goals"),
-    Requirement("above_team", "Beats his team's level", "season", "Output vs ClubElo prediction"),
-    Requirement("availability", "Is available", "season", "Share of team minutes"),
-    Requirement("reliability", "Is relied upon", "season", "Complete matches per start"),
-    Requirement("longevity", "Sustains it", "career", "Qualifying seasons"),
-    Requirement("consistency", "Does not fluctuate", "career", "Negative SD of season scores"),
-    Requirement("discipline", "Does not cost his team", "season", "Negative cards and fouls"),
+    Requirement("scoring", "Scores goals", "season"),
+    Requirement("creation", "Creates goals", "season"),
+    Requirement("finishing", "Finishes clinically", "season"),
+    Requirement("threat", "Generates threat", "season"),
+    Requirement("team_share", "Carries his team", "season"),
+    Requirement("above_team", "Beats his team's level", "season"),
+    Requirement("availability", "Is available", "season"),
+    Requirement("reliability", "Is relied upon", "season"),
+    Requirement("longevity", "Sustains it", "career"),
+    Requirement("consistency", "Does not fluctuate", "career"),
+    Requirement("discipline", "Does not cost his team", "season"),
 )
 
 KEEPER: tuple[Requirement, ...] = (
-    Requirement("shot_stopping", "Stops shots", "season", "Save percentage"),
-    Requirement("concedes_little", "Concedes little", "season", "Negative goals against per 90"),
-    Requirement("clean_sheets", "Keeps clean sheets", "season", "Clean sheet percentage"),
-    Requirement("above_team", "Beats his team's level", "season", "GA/90 vs ClubElo prediction"),
-    Requirement("availability", "Is available", "season", "Share of team minutes"),
-    Requirement("reliability", "Is relied upon", "season", "Complete matches per start"),
-    Requirement("longevity", "Sustains it", "career", "Qualifying seasons"),
-    Requirement("consistency", "Does not fluctuate", "career", "Negative SD of season scores"),
-    Requirement("discipline", "Does not cost his team", "season", "Negative cards per 90"),
+    Requirement("shot_stopping", "Stops shots", "season"),
+    Requirement("concedes_little", "Concedes little", "season"),
+    Requirement("clean_sheets", "Keeps clean sheets", "season"),
+    Requirement("above_team", "Beats his team's level", "season"),
+    Requirement("availability", "Is available", "season"),
+    Requirement("reliability", "Is relied upon", "season"),
+    Requirement("longevity", "Sustains it", "career"),
+    Requirement("consistency", "Does not fluctuate", "career"),
 )
+"""No discipline requirement: FBref's keeper table carries no cards, so it would
+be a constant zero for every keeper — gating on it can eliminate nobody and
+averaging it in changes no ordering. A requirement that cannot discriminate is
+not a requirement."""
 
 
 def season_keys(reqs: tuple[Requirement, ...]) -> list[str]:
@@ -152,7 +154,6 @@ def keeper_values(df: pd.DataFrame) -> pd.DataFrame:
     out["clean_sheets"] = out["cs_pct"].fillna(0.0)
     out["availability"] = _ratio(out["minutes"].fillna(0), out.get("team_minutes", out["minutes"]))
     out["reliability"] = _ratio(out["mp"].fillna(0), out["starts"])
-    out["discipline"] = 0.0  # keeper table carries no cards; neutral by construction
     return out
 
 

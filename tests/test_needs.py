@@ -67,8 +67,10 @@ def test_outfield_list_has_eleven_requirements() -> None:
     assert len(needs.OUTFIELD) == 11
 
 
-def test_keeper_list_has_nine_requirements() -> None:
-    assert len(needs.KEEPER) == 9
+def test_keeper_list_has_eight_requirements() -> None:
+    """No discipline requirement: the keeper table carries no cards."""
+    assert len(needs.KEEPER) == 8
+    assert "discipline" not in {r.key for r in needs.KEEPER}
 
 
 def _keeper() -> pd.DataFrame:

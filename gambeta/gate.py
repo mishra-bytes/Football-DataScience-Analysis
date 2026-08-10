@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from gambeta.kit import Config
-from gambeta.needs import Requirement, career_keys, season_keys
+from gambeta.needs import Requirement, season_keys
 
 
 def career_profile(
@@ -168,12 +168,3 @@ def failure_summary(ranking: pd.DataFrame, reqs: tuple[Requirement, ...]) -> pd.
             for key, n in sorted(counts.items(), key=lambda kv: -kv[1])
         ]
     )
-
-
-__all__ = [
-    "career_keys",
-    "career_profile",
-    "failure_summary",
-    "qualify_and_rank",
-    "standardise",
-]
