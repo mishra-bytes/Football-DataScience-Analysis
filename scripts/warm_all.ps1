@@ -17,7 +17,10 @@
 param(
     [string]$LogDir = $PSScriptRoot,
     [string]$LeagueList = 'ENG-Premier League;ESP-La Liga;ITA-Serie A;GER-Bundesliga;FRA-Ligue 1',
-    [string]$Tag = "seq"
+    [string]$Tag = "seq",
+    # Comma-separated stat tables. `misc` is omitted by default: it only refines
+    # the discipline requirement and can be backfilled later without a re-run.
+    [string]$Stats = "standard,shooting,playing_time,keeper"
 )
 
 $ErrorActionPreference = "Continue"
@@ -28,7 +31,7 @@ $leagues = $LeagueList -split ';' | Where-Object { $_.Trim() -ne '' }
 foreach ($league in $leagues) {
     $tag = ($league -split '-')[0]
     Write-Output "=== START $league $(Get-Date -Format 'HH:mm:ss') ==="
-    & $py (Join-Path $repo "scripts\warm_cache.py") $league 2>&1 |
+    & $py (Join-Path $repo "scripts\warm_cache.py") $league $Stats 2>&1 |
         Tee-Object -FilePath (Join-Path $LogDir "$Tag`_$tag.log")
 
     Write-Output "=== END $league $(Get-Date -Format 'HH:mm:ss') ==="

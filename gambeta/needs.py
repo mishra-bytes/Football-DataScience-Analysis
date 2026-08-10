@@ -77,6 +77,18 @@ def _rate(numerator: pd.Series, minutes: pd.Series) -> np.ndarray:
     return np.nan_to_num(numerator.to_numpy(dtype=float) / safe)
 
 
+def _column(df: pd.DataFrame, name: str, default: float = 0.0) -> pd.Series:
+    """Return a column, or a constant series when the source table was skipped.
+
+    Side tables are optional by design — a run can omit one to save scraping time
+    and backfill it later. Treating an absent column as its default keeps the
+    pipeline running on a reduced requirement rather than failing outright.
+    """
+    if name not in df.columns:
+        return pd.Series(default, index=df.index, dtype="float64")
+    return df[name].fillna(default).astype("float64")
+
+
 def _ratio(numerator: pd.Series, denominator: pd.Series) -> np.ndarray:
     """Safe ratio; a zero or missing denominator yields zero."""
     den = denominator.to_numpy(dtype=float)
@@ -105,17 +117,22 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
 
     out["scoring"] = _rate(out["npg"], minutes)
     out["creation"] = _rate(out["assists"], minutes)
-    out["finishing"] = _ratio(out["goals"], out["sot"].fillna(0))
-    out["threat"] = _rate(out["sot"].fillna(0), minutes)
+    out["finishing"] = _ratio(out["goals"], _column(out, "sot"))
+    out["threat"] = _rate(_column(out, "sot"), minutes)
     out["team_share"] = out["team_goal_share"].fillna(0.0)
-    out["availability"] = out["min_pct"].fillna(0.0) / 100.0
-    out["reliability"] = _ratio(out["complete"].fillna(0), out["starts"])
+    out["availability"] = _column(out, "min_pct") / 100.0
+    out["reliability"] = _ratio(_column(out, "complete"), out["starts"])
 
     # Negated so higher is better, like every other requirement.
+    #
+    # Second yellows and fouls come from FBref's `misc` table, which is optional:
+    # the run can skip it to save five scrapes and add it later. Without it
+    # discipline is coarser — red and yellow cards only — but still meaningful,
+    # so a missing table degrades the requirement rather than breaking the run.
     cost = (
         out["red"].to_numpy(dtype=float)
-        + out["second_yellow"].fillna(0).to_numpy(dtype=float)
-        + _rate(out["fouls"].fillna(0), minutes)
+        + _column(out, "second_yellow").to_numpy(dtype=float)
+        + _rate(_column(out, "fouls"), minutes)
     )
     out["discipline"] = -cost
     return out

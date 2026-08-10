@@ -59,11 +59,11 @@ def reap_browsers() -> int:
     return killed
 
 
-def main(league: str) -> int:
+def main(league: str, stats: list[str] | None = None) -> int:
     started = time.perf_counter()
     failed: list[str] = []
 
-    for stat in STAT_TYPES:
+    for stat in stats or STAT_TYPES:
         # A fresh reader per table, with the previous one's browsers reaped, so
         # peak memory is one session rather than one per table for the league.
         try:
@@ -100,4 +100,7 @@ def main(league: str) -> int:
 
 
 if __name__ == "__main__":  # Windows uses spawn; guard the entry point.
-    raise SystemExit(main(sys.argv[1]))
+    # Optional second argument: comma-separated stat tables, e.g. "misc" to
+    # backfill only that one later.
+    requested = sys.argv[2].split(",") if len(sys.argv) > 2 else None
+    raise SystemExit(main(sys.argv[1], requested))

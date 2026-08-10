@@ -171,16 +171,27 @@ def flatten(raw: pd.DataFrame) -> pd.DataFrame:
     return df[_ORDER].reset_index(drop=True)
 
 
+SIDE_COLUMNS = tuple(name for rename in SIDE_TABLES.values() for name in rename.values())
+"""Every column the side tables contribute, whether or not they were fetched."""
+
+
 def join_side_tables(standard: pd.DataFrame, sides: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge the secondary tables onto `standard` by (league, season, team, player).
 
     Left joins throughout: a player missing from a side table keeps their standard
     row with nulls, rather than vanishing from the dataset. Dropping them silently
     is the failure mode this project cares most about avoiding.
+
+    Columns from side tables that were not fetched are filled with nulls, so a run
+    that deliberately skips one — to save scraping time and backfill it later —
+    still produces a schema-valid frame.
     """
     out = standard
     for frame in sides.values():
         out = out.merge(frame, on=_INDEX, how="left")
+    for column in SIDE_COLUMNS:
+        if column not in out.columns:
+            out[column] = pd.Series(pd.NA, index=out.index, dtype="float64")
     return out
 
 
@@ -220,10 +231,14 @@ class FBrefScout:
             read = reader.read_player_season_stats  # type: ignore[attr-defined]
 
             standard = flatten(read(stat_type="standard"))
-            sides = {
-                name: flatten_side(read(stat_type=name), rename)
-                for name, rename in SIDE_TABLES.items()
-            }
+            sides = {}
+            for name, rename in SIDE_TABLES.items():
+                try:
+                    sides[name] = flatten_side(read(stat_type=name), rename)
+                except Exception:  # noqa: BLE001, PERF203 - optional table
+                    # Not fetched yet, or unavailable. join_side_tables nulls the
+                    # columns so the run continues on a reduced requirement set.
+                    continue
             outfield_parts.append(join_side_tables(standard, sides))
             keeper_parts.append(flatten_keeper(read(stat_type="keeper")))
 
