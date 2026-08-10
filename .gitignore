@@ -45,6 +45,9 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+# Shared so a fresh clone picks the project venv instead of a global
+# interpreter, which is the difference between notebooks running and not.
+!.vscode/settings.json
 
 /.quarto/
 **/*.quarto_ipynb

@@ -40,6 +40,23 @@ quarto render                 # builds the book into tome/_book
 Everything runs against `data/sample/` — a small committed set of derived
 aggregates — so you can reproduce every figure without scraping a single page.
 
+### Running the notebooks
+
+Register the project environment as a Jupyter kernel once:
+
+```bash
+uv run python -m ipykernel install --user --name gambeta --display-name "gambeta (.venv 3.12)"
+```
+
+Then pick **gambeta (.venv 3.12)** as the notebook kernel.
+
+This step is not optional cosmetics. Without it, editors resolve the notebooks'
+generic `python3` kernel to your *global* interpreter, which has no `gambeta`
+installed, and every import fails. `uv run` happens to work anyway because
+Jupyter falls back to the running interpreter — which is why the failure only
+shows up in an editor. `.vscode/settings.json` is committed for the same
+reason.
+
 ## Rebuilding the data from source
 
 ```bash
