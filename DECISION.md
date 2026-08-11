@@ -171,8 +171,23 @@ is *where it disagrees and why*.
 - **No GPU code without a benchmark.** Spec §7.
 - **`data/sample/` holds derived aggregates only**, ≤5 MB, enforced by
   pre-commit. Raw scrapes are never redistributed.
-- **Notebooks are committed stripped** (nbstripout) and executed locally before
-  rendering.
+- **Notebooks are committed with their outputs**, executed against
+  `data/sample/` before every commit.
+
+  Reversed on 2026-08-11. They were committed stripped, via an nbstripout
+  pre-commit hook, on the reasoning that outputs make diffs unreadable and bloat
+  the repository. Both are true and neither turned out to matter: the whole set
+  costs 623 KB and six images, and the diffs that matter are in the prose and the
+  library rather than in a table of numbers.
+
+  What decided it is that the notebooks are the blog. A stripped notebook renders
+  on GitHub as code with no answers, so the reader has to install Chrome, sync a
+  lockfile and run a pipeline before seeing a single number. The rendered book was
+  supposed to cover that, and it does, but only for whoever builds it.
+
+  Rejected: committing outputs for the narrative chapters only. The split would
+  need explaining every time somebody added a chapter, and a rule nobody can
+  state from memory is a rule that decays.
 - **Every stochastic routine uses `Config.seed`.**
 
 ## The bug class this project keeps finding

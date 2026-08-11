@@ -6,10 +6,9 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/kynan/nbstripout
-    rev: 0.8.1
-    hooks:
-      - id: nbstripout
+  # nbstripout deliberately absent. The notebooks are the blog, so they are
+  # committed with their outputs and render on GitHub without being run. See
+  # DECISION.md. Measured cost: 623 KB across thirteen chapters, six images.
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
