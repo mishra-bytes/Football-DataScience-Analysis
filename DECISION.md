@@ -100,7 +100,7 @@ faster.
 
 ### Gate, then rank
 
-"Must have eleven things" is read literally: a floor on every requirement decides
+"Must have ten things" is read literally: a floor on every requirement decides
 who qualifies, and only then are qualifiers ranked.
 
 Rejected: a weighted average. It lets a player be genuinely poor at something the
@@ -138,6 +138,25 @@ that ID anyway.
 
 A player who cannot be matched is reported in `unresolved.csv`, never dropped.
 Dropping raises no error and quietly deletes a career.
+
+### A requirement has to measure something the others do not
+
+`above_team` was the residual of a player's output after regressing on his club's
+ClubElo rating. Measured against the other requirements it correlated 0.996 with
+`scoring`, because club strength explains 0.8% of who scores inside a
+league-season, and the residual of something barely explained is the thing back
+again.
+
+Dropped from the outfield list on 2026-08-12, taking it from eleven requirements
+to ten. Every composite had been counting one quality twice.
+
+Rejected: rebuilding it against a different target. Team goals, teammate output
+and every other requirement were measured, and the best of them was `creation` at
+1.1%. Attacking output is individual, and no club-level baseline predicts it.
+
+**Kept for keepers**, where the same construction explains 45% of goals conceded.
+A keeper's goals-against is mostly his defence; the residual is the part that is
+his.
 
 ### Two leaderboards, not one
 

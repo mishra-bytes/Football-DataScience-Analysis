@@ -294,7 +294,7 @@ per season, not more seasons.
   reds-and-yellows where the table was missing.
 
 The gate itself is unchanged: 321 of 5,508 qualify at the 40th percentile, 5.8%,
-against 0.36% if the eleven requirements were independent.
+against 0.60% if the ten requirements were independent.
 
 ---
 

@@ -30,7 +30,7 @@ def _outfield() -> pd.DataFrame:
 
 def test_every_season_requirement_gets_a_column() -> None:
     out = needs.outfield_values(_outfield())
-    expected = set(needs.season_keys(needs.OUTFIELD)) - {"above_team"}
+    expected = set(needs.season_keys(needs.OUTFIELD))
     assert expected <= set(out.columns)
 
 
@@ -74,8 +74,15 @@ def test_career_and_season_keys_partition_the_list() -> None:
     assert not set(needs.season_keys(needs.OUTFIELD)) & set(needs.career_keys(needs.OUTFIELD))
 
 
-def test_outfield_list_has_eleven_requirements() -> None:
-    assert len(needs.OUTFIELD) == 11
+def test_outfield_list_has_ten_requirements() -> None:
+    """Eleven until above_team was found to be a copy of scoring."""
+    assert len(needs.OUTFIELD) == 10
+
+
+def test_outfield_does_not_gate_on_above_team() -> None:
+    """Club strength explains 0.8% of individual scoring; the residual was scoring."""
+    assert "above_team" not in {r.key for r in needs.OUTFIELD}
+    assert "above_team" in {r.key for r in needs.KEEPER}
 
 
 def test_keeper_list_has_eight_requirements() -> None:

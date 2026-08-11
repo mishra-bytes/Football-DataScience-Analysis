@@ -7,7 +7,7 @@ twenty-five years were**, and **how you would actually find out**.
 
 No suspense. Everything on this page is computed live from the same committed
 data every chapter uses, so it cannot drift out of step with the book. A player
-must clear a floor on **all eleven requirements** to appear at all.
+must clear a floor on **all ten requirements** to appear at all.
 
 ```{python}
 #| echo: false
@@ -42,7 +42,7 @@ from IPython.display import Markdown
 
 qualified = int(ranking["qualified"].sum())
 Markdown(
-    f"**{qualified} of {len(ranking):,} players** clear every one of the eleven "
+    f"**{qualified} of {len(ranking):,} players** clear every one of the ten "
     f"requirements, which is {100 * qualified / len(ranking):.1f}% of the ranked "
     f"population. The other {len(ranking) - qualified:,} are still listed, with "
     f"the requirement they missed published beside them, so the definition can be "

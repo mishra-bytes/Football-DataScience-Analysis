@@ -38,13 +38,24 @@ OUTFIELD: tuple[Requirement, ...] = (
     Requirement("finishing", "Finishes clinically", "season"),
     Requirement("threat", "Generates threat", "season"),
     Requirement("team_share", "Carries his team", "season"),
-    Requirement("above_team", "Beats his team's level", "season"),
     Requirement("availability", "Is available", "season"),
     Requirement("reliability", "Is picked to start", "season"),
     Requirement("longevity", "Sustains it", "career"),
     Requirement("consistency", "Has no bad seasons", "career"),
     Requirement("discipline", "Does not cost his team", "season"),
 )
+"""Ten requirements, and it was eleven until 2026-08-12.
+
+``above_team`` was the residual of scoring after regressing on the club's
+ClubElo rating, meant to separate a player from the side around him. Measured,
+club strength explains 0.8% of who scores inside a league-season, so the
+residual correlated 0.996 with ``scoring`` and the composite counted one quality
+twice. No target rescued it: the best of the other nine was ``creation`` at 1.1%.
+
+It survives on the keeper list, where it earns its place. Club strength explains
+45% of goals conceded, so a keeper's residual is genuinely his own contribution
+rather than his defence's.
+"""
 
 KEEPER: tuple[Requirement, ...] = (
     Requirement("shot_stopping", "Stops shots", "season"),
@@ -65,9 +76,9 @@ not a requirement."""
 ARGUMENTS: dict[str, dict[str, float]] = {
     "Equal weight": {},
     "The volume argument": {"scoring": 3.0, "creation": 3.0, "threat": 2.0, "team_share": 2.0},
-    "The efficiency argument": {"finishing": 3.0, "scoring": 2.0, "above_team": 2.0},
+    "The efficiency argument": {"finishing": 3.0, "scoring": 2.0},
     "The longevity argument": {"longevity": 4.0, "availability": 2.0, "consistency": 2.0},
-    "The team-carrier argument": {"team_share": 4.0, "above_team": 3.0},
+    "The team-carrier argument": {"team_share": 4.0, "creation": 2.0},
     "The professional argument": {"discipline": 3.0, "availability": 3.0, "reliability": 2.0},
 }
 """Named weight vectors: the arguments people actually have about greatness.

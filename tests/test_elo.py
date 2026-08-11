@@ -1,7 +1,7 @@
 import pandas as pd
 
 from gambeta import laws
-from gambeta.scouts.elo import season_dates, tidy_elo
+from gambeta.scouts.elo import countries_of, season_dates, tidy_elo
 
 
 def test_season_dates_maps_to_january_of_the_second_year() -> None:
@@ -27,15 +27,25 @@ def _snapshot() -> pd.DataFrame:
     )
 
 
-def test_tidy_elo_keeps_only_english_top_flight() -> None:
-    out = tidy_elo(_snapshot(), season="0405")
-    assert set(out["team"]) == {"Arsenal", "Liverpool"}
+def test_countries_come_from_the_configured_leagues() -> None:
+    assert countries_of(["ENG-Premier League", "ESP-La Liga"]) == {"ENG", "ESP"}
+
+
+def test_tidy_elo_keeps_the_top_flight_of_every_configured_country() -> None:
+    """Filtering to England alone silently emptied four leagues of five."""
+    out = tidy_elo(_snapshot(), season="0405", countries={"ENG", "ESP"})
+    assert set(out["team"]) == {"Arsenal", "Liverpool", "Barcelona"}
+
+
+def test_tidy_elo_drops_lower_divisions() -> None:
+    out = tidy_elo(_snapshot(), season="0405", countries={"ENG"})
+    assert "Watford" not in set(out["team"])
 
 
 def test_tidy_elo_stamps_the_season() -> None:
-    out = tidy_elo(_snapshot(), season="0405")
+    out = tidy_elo(_snapshot(), season="0405", countries={"ENG"})
     assert out["season"].unique().tolist() == ["0405"]
 
 
 def test_tidy_elo_output_matches_the_schema() -> None:
-    laws.ELO.validate(tidy_elo(_snapshot(), season="0405"))
+    laws.ELO.validate(tidy_elo(_snapshot(), season="0405", countries={"ENG", "ESP"}))

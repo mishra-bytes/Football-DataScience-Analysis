@@ -13,7 +13,7 @@ from collections.abc import Sequence
 import pandas as pd
 
 from gambeta import bridge, gate, kit, laws, level, locker, needs, tally, verdict, whois
-from gambeta.scouts.elo import EloScout
+from gambeta.scouts.elo import EloScout, align_teams
 from gambeta.scouts.fbref import FBrefScout
 from gambeta.scouts.wikidata import AwardsScout, WikidataScout
 
@@ -80,7 +80,9 @@ def scrape(
     # ClubElo and Wikidata have no per-file cache of their own, so under
     # --cache-only an existing output is reused rather than re-fetched.
     if not (cache_only and (cfg.raw / RAW_ELO).exists()):
-        locker.write(EloScout(seasons).fetch(), cfg.raw / RAW_ELO, laws.ELO, source="clubelo")
+        locker.write(
+            EloScout(seasons, leagues).fetch(), cfg.raw / RAW_ELO, laws.ELO, source="clubelo"
+        )
     if not (cache_only and (cfg.raw / RAW_CROSSWALK).exists()):
         locker.write(
             WikidataScout(cache_dir=cfg.raw / "wikidata").fetch(),
@@ -117,7 +119,7 @@ def clean(cfg: kit.Config) -> None:
     # Club strength has to be attached before the transfer collapse, while rows
     # still name a club. A player who moved mid-season gets the minutes-weighted
     # blend of both clubs, which is what "the team around him" actually was.
-    elo = locker.read(cfg.raw / RAW_ELO, laws.ELO)
+    elo = align_teams(locker.read(cfg.raw / RAW_ELO, laws.ELO), labelled["team"])
     per_club = labelled.merge(elo, on=["season", "team"], how="left")
     per_club["_weighted"] = per_club["elo"] * per_club["minutes"]
     blended = per_club.groupby(["player_id", "season"], as_index=False).agg(
@@ -173,11 +175,13 @@ def _rank_group(
 
 def rank(cfg: kit.Config) -> None:
     """Apply the requirement list, gate, and rank both populations."""
-    elo = locker.read(cfg.raw / RAW_ELO, laws.ELO)
     outfield = pd.read_parquet(cfg.clean / CLEAN_OUTFIELD)
     keeper = pd.read_parquet(cfg.clean / CLEAN_KEEPER)
+    elo = align_teams(locker.read(cfg.raw / RAW_ELO, laws.ELO), keeper["team"])
 
-    values = needs.add_above_team(needs.outfield_values(outfield), elo, "scoring")
+    # No above_team for outfielders: club strength does not predict individual
+    # attacking output, so the residual was a copy of `scoring`. See needs.OUTFIELD.
+    values = needs.outfield_values(outfield)
     values = values[values["minutes"] >= cfg.min_minutes]
     ranking, offsets, scored = _rank_group(values, needs.OUTFIELD, cfg)
 
