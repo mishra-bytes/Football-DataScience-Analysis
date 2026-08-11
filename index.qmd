@@ -40,10 +40,10 @@ trustworthy.
   strength of the opposition. Richer 2017-onward data appears only as context,
   never as part of the ranking, because a metric that exists for one era and not
   another cannot fairly compare them.
-- **This phase covers the Premier League only**, 2000-01 to 2024-25. No
-  Champions League, no internationals, no other domestic leagues. A player who
-  did their best work in Spain does not appear, and that is a limitation of
-  scope, not a judgement.
+- **This covers the Big 5 domestic leagues**, 2000-01 to 2024-25 — England,
+  Spain, Italy, Germany and France. No Champions League, no internationals, no
+  league outside those five. A player who did their best work in Portugal or
+  Brazil does not appear, and that is a limitation of scope, not a judgement.
 - **Attacking output is not all of football.** The current rating rewards goals
   and assists. It therefore systematically undervalues defenders and holding
   midfielders. This is stated plainly rather than buried, because a reader who

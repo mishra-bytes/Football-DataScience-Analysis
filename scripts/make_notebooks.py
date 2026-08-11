@@ -190,9 +190,8 @@ A conclusion is worth what its author would abandon it for. Mine:
 3. **The weights.** Every requirement counts equally right now. Anyone who
    thinks scoring matters more than availability can say so numerically, and the
    ranking will move.
-4. **Missing football.** No Champions League, no internationals, no Ligue 1, and
-   nothing outside the Big 5. Careers at Sporting, Al-Nassr or Inter Miami are
-   invisible.
+4. **Missing football.** No Champions League, no internationals, and nothing
+   outside the Big 5. Careers at Sporting, Al-Nassr or Inter Miami are invisible.
 
 The productive question is not "is this wrong" but **"which of these four would
 you change, and to what"** — an argument that can actually make progress.""",
@@ -278,7 +277,7 @@ print(f"\\nOur population is {len(scores):,} players.")""",
     ),
     (
         "md",
-        """**One in two billion, from a pool of four thousand.**
+        """**One in six hundred million, from a pool of five and a half thousand.**
 
 Taken at face value this says the best player should not exist. Something is
 wrong with the assumption, not with the footballer.
@@ -308,7 +307,7 @@ and it has a name — a heavy-tailed distribution. Ability that compounds
 opponents to learn from) does not produce a symmetric bell. It produces a long
 right tail where a handful of people are far beyond everyone else.
 
-**So the honest statement is not "Messi is a 6-sigma player" as if that were a
+**So the honest statement is not "Messi is a 5.9-sigma player" as if that were a
 probability.** It is: *under the wrong model he is impossible, and the fact that
 he exists is evidence the model is wrong.*
 
@@ -337,7 +336,7 @@ print(f"{second['player']} to {ranking.iloc[5]['player']}: "
         "md",
         """## The result, stated in players rather than decimals
 
-A lead of 0.54 means nothing on its own. The way to feel it is to take the gap
+A lead of 0.39 means nothing on its own. The way to feel it is to take the gap
 between first and second, lay it below someone else, and see **who you land
 on**.""",
     ),
@@ -376,8 +375,8 @@ print(f"\\n(every one of those gaps is {lead:.2f}, or {lead / sigma:.1f} sigma)"
         "md",
         """Read that again, because it is the finding of this chapter. The distance from
 second place to first is not a photo finish — it is the same distance that
-separates second place from a player **seven** positions further down, and third
-place from one **ten** positions down.
+separates second place from a player **six** positions further down, and third
+place from one **six** positions down.
 
 One more way to put it: compare the lead at the top against the entire spread of
 the chasing pack.""",
@@ -417,9 +416,9 @@ profile.round(2)""",
 
 - **A different composite.** These sigma figures are for the equal-weighted
   composite. Reweight the requirements and the gap changes.
-- **The population defines the yardstick.** Sigma is measured against 4,424
-  players who cleared the minutes threshold in four leagues. Add Ligue 1, or
-  lower the threshold to include fringe players, and the standard deviation
+- **The population defines the yardstick.** Sigma is measured against 5,508
+  players who cleared the minutes threshold in the Big 5. Lower that threshold to
+  include fringe players, or add a competition, and the standard deviation
   moves — which moves everyone's sigma.
 - **Heavy tails cut both ways.** If the distribution is not normal, sigma is a
   descriptive ruler and nothing more. Any sentence of the form "this is a
@@ -726,10 +725,11 @@ for both in (True, False):
 it is silently absorbed by the adaptation term and the league looks stronger
 than it is.
 
-Real transfer data flows both ways between all four leagues, which is what makes
+Real transfer data flows both ways between all five leagues, which is what makes
 the estimates identifiable. But a league with mostly outbound moves — a selling
 league — would be systematically mis-measured, and that is a live risk rather
-than a hypothetical one.""",
+than a hypothetical one. Ligue 1 is the closest thing here to that case: it
+sells more than it buys, and it lands lowest of the five.""",
     ),
 ]
 
