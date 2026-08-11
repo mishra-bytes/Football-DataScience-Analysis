@@ -5,6 +5,7 @@
 *.parquet binary
 *.ipynb text eol=lf
 
-*.ipynb filter=nbstripout
-*.zpln filter=nbstripout
+# No nbstripout clean filter. It strips outputs on `git add`, before any hook
+# runs, so removing the pre-commit hook alone silently achieves nothing. The
+# notebooks are committed with their outputs. See DECISION.md.
 *.ipynb diff=ipynb
