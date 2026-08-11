@@ -36,10 +36,14 @@ rebuilt, and three long-pending analysis features shipped.
 - Per-birth-year Wikidata cache under `vault/raw/wikidata/`, keyed by a
   fingerprint of the query text. A full pipeline run went from ~35 minutes to
   **5**, and a repair now costs one request per changed year instead of 41.
-- **Four statistics chapters**, each following the six-part method template:
+- **Five new chapters**, each following the six-part method template:
   normalisation and shrinkage (05), the bootstrap (06), testing without a
-  distribution (07), selection bias and Simpson's paradox (08). Book is now ten
-  pages.
+  distribution (07), selection bias and Simpson's paradox (08), and does it
+  agree with the voters (09). Book is now eleven pages.
+- **The preface states the answer**, computed live from `data/sample` rather
+  than transcribed: top ten, qualifier count, goalkeepers, league offsets — and
+  immediately after them, the fact that only 3 of 28 pairs in the top eight are
+  separable. Previously a reader had to open chapter 1 to find any result.
 
 ### Changed
 
