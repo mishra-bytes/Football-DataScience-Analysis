@@ -190,6 +190,29 @@ is *where it disagrees and why*.
   state from memory is a rule that decays.
 - **Every stochastic routine uses `Config.seed`.**
 
+### Short seasons are weighted, not shrunk
+
+A career is pooled with each season weighted by its minutes, and seasons below
+`min_minutes` are excluded outright. The season's own score is never pulled
+toward the mean.
+
+Reversed on 2026-08-12, in the sense that the opposite was documented and
+taught for months without ever being true. `level.shrink` implemented
+empirical-Bayes shrinkage at a 900-minute prior, `Config.prior_minutes` carried
+it, `params.yaml` declared it to DVC, and the era chapter taught it. Nothing in
+the pipeline ever called it. Sweeping the prior from zero to ten thousand
+minutes produced identical rankings, which is how it surfaced.
+
+Rejected: wiring the shrinkage in to match the documentation. Minutes-weighted
+pooling is already a correction in the same direction, and applying both would
+discount a short season twice, once in its value and again in its weight.
+
+The cost of the choice is stated rather than hidden. Weighting stops a short
+season dominating a career; it does not stop one being wrong. And `consistency`
+takes an unweighted twentieth percentile, so a 900-minute season gets a full
+vote when a career's floor is decided. Closing that needs the hierarchical model
+in `PENDING.md`, not a better constant.
+
 ## The bug class this project keeps finding
 
 Six defects so far. `consistency` measured as variance. `reliability` measured

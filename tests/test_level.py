@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from gambeta import kit, level
+from gambeta import level
 
 
 def _two_eras() -> pd.DataFrame:
@@ -45,32 +45,3 @@ def test_zscore_handles_a_zero_variance_season() -> None:
         }
     )
     assert (level.zscore(flat, ["ga_p90"])["ga_p90_z"] == 0.0).all()
-
-
-def test_shrink_pulls_low_minute_players_harder() -> None:
-    out = level.shrink(np.array([3.0, 3.0]), np.array([90.0, 9000.0]), prior_minutes=900.0)
-    assert abs(out[0]) < abs(out[1])
-    assert out[1] > 2.7, "a 9000-minute season should barely move"
-
-
-def test_shrink_is_monotonic_in_minutes() -> None:
-    out = level.shrink(
-        np.full(5, 2.0), np.array([100.0, 500.0, 1000.0, 2000.0, 5000.0]), prior_minutes=900.0
-    )
-    assert np.all(np.diff(out) > 0)
-
-
-def test_shrink_halves_the_score_at_the_prior_strength() -> None:
-    """At minutes == prior_minutes the weight is exactly 1/2."""
-    out = level.shrink(np.array([2.0]), np.array([900.0]), prior_minutes=900.0)
-    assert np.isclose(out[0], 1.0)
-
-
-def test_shrink_zeroes_a_player_with_no_minutes() -> None:
-    assert level.shrink(np.array([5.0]), np.array([0.0]), prior_minutes=900.0)[0] == 0.0
-
-
-def test_score_adds_a_single_score_column() -> None:
-    out = level.score(_two_eras(), kit.load())
-    assert "score" in out.columns
-    assert out["score"].notna().all()

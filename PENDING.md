@@ -112,7 +112,8 @@ that is a stronger claim than the headline ranking makes.
 
 ### 3.3 `bayes.py`, the hierarchical era model *(spec §6.2)*
 
-Shrinkage is currently a fixed prior of 900 minutes. A hierarchical model would
+There is no shrinkage in the pipeline at all: careers are pooled weighted by
+minutes and short seasons are excluded by a hard floor. A hierarchical model would
 **estimate the shrinkage strength from the data** and give proper uncertainty on
 every player-season, instead of the current point estimates.
 

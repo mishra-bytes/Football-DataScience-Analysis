@@ -49,8 +49,6 @@ class Config:
         A one-season "best five consecutive seasons" is not a peak-five, and a
         single observation yields a zero-width interval that reads as certainty
         when it is the least certain estimate on the page.
-    prior_minutes
-        Strength of the empirical-Bayes shrinkage prior, in minutes.
     seed
         Global random seed for every stochastic routine.
     """
@@ -65,7 +63,6 @@ class Config:
     seasons: tuple[str, ...] = SEASONS
     min_minutes: int = 900
     min_seasons: int = 3
-    prior_minutes: float = 900.0
     gate_percentile: float = 40.0
     seed: int = 20260810
 

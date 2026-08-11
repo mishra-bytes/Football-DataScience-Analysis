@@ -32,7 +32,6 @@ stages:
       - gambeta/doubt.py
     params:
       - min_minutes
-      - prior_minutes
       - seed
     outs:
       - vault/derive

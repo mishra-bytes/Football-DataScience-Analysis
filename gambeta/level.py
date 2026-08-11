@@ -5,18 +5,17 @@ A goal in 2000-01 is not a goal in 2024-25. Every rate metric is z-scored
 contemporaries they actually faced. Cross-era comparison then happens on the
 z-scale, which is the only defensible way to do it with the data available.
 
-Low-minute seasons are shrunk toward the mean, because three good games is not
-evidence of a good season.
+A short season is not shrunk here. It is carried at full strength and then
+weighted by its minutes when the career is pooled, in
+:func:`gambeta.gate.career_profile`. The two are not the same correction and the
+difference is worked through in the era chapter.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 
-import numpy as np
 import pandas as pd
-
-from gambeta.kit import Config
 
 
 def zscore(
@@ -45,45 +44,4 @@ def zscore(
         mean = grouped.transform("mean")
         std = grouped.transform("std", ddof=0)
         out[f"{col}_z"] = ((out[col] - mean) / std.where(std != 0)).fillna(0.0)
-    return out
-
-
-def shrink(values: np.ndarray, minutes: np.ndarray, prior_minutes: float) -> np.ndarray:
-    """Shrink standard scores toward zero in inverse proportion to minutes played.
-
-    Empirical-Bayes shrinkage with a fixed prior strength. Each season is
-    weighted ``m / (m + m0)``, so a player-season is trusted in proportion to how
-    much football it actually contains. At ``m == m0`` the score is halved; a
-    player with no minutes scores zero rather than infinity.
-
-    Parameters
-    ----------
-    values
-        Standard scores to shrink.
-    minutes
-        Minutes played, same shape as ``values``.
-    prior_minutes
-        Prior strength in minutes. Larger values shrink harder.
-
-    Returns
-    -------
-    np.ndarray
-        Shrunk scores.
-    """
-    weight = minutes / (minutes + prior_minutes)
-    return np.asarray(values * weight, dtype=float)
-
-
-def score(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
-    """Add a single era-normalized, minutes-shrunk ``score`` per player-season.
-
-    Phase 1 scores on goals-plus-assists per 90. Later phases fold in the other
-    metrics; the column contract stays the same so the lenses do not change.
-    """
-    out = zscore(df, ["ga_p90"])
-    out["score"] = shrink(
-        out["ga_p90_z"].to_numpy(dtype=float),
-        out["minutes"].to_numpy(dtype=float),
-        cfg.prior_minutes,
-    )
     return out
