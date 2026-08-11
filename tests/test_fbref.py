@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from gambeta import laws
 from gambeta.scouts.fbref import flatten
@@ -66,9 +67,31 @@ def _two_level(rows: int = 3) -> pd.DataFrame:
         names=["league", "season", "team", "player"],
     )
     columns = pd.MultiIndex.from_tuples(
-        [("Standard", "SoT"), ("Standard", "SoT/90"), ("Standard", "G/SoT"), ("Standard", "Sh")]
+        # Every FBref season table publishes Born, and the join needs it: name
+        # plus club does not identify a player.
+        [
+            ("born", ""),
+            ("Standard", "SoT"),
+            ("Standard", "SoT/90"),
+            ("Standard", "G/SoT"),
+            ("Standard", "Sh"),
+        ]
     )
-    return pd.DataFrame([[10.0, 0.5, 0.2, 30.0]] * rows, index=index, columns=columns)
+    return pd.DataFrame([[1980.0, 10.0, 0.5, 0.2, 30.0]] * rows, index=index, columns=columns)
+
+
+def _namesakes(born: tuple[float, float], **stats: list[float]) -> pd.DataFrame:
+    """Two players sharing a name at one club — the Míchel case, flat."""
+    return pd.DataFrame(
+        {
+            "league": ["ESP-La Liga"] * 2,
+            "season": ["0203"] * 2,
+            "team": ["Rayo Vallecano"] * 2,
+            "player": ["Michel"] * 2,
+            "born": list(born),
+            **stats,
+        }
+    )
 
 
 def test_flatten_side_returns_single_level_columns() -> None:
@@ -96,6 +119,47 @@ def test_side_table_merges_onto_standard() -> None:
     merged = join_side_tables(standard, {"shooting": side})
     assert len(merged) == len(standard)
     assert merged.columns.nlevels == 1
+
+
+def test_join_does_not_multiply_rows_for_players_sharing_a_name() -> None:
+    """Two Míchels at Rayo Vallecano in 2002-03. Birth year is what separates them.
+
+    Without it the merge returned the cross product and fabricated a player with
+    19,288 minutes in a 38-match season.
+    """
+    from gambeta.scouts.fbref import join_side_tables
+
+    standard = _namesakes((1975.0, 1977.0), minutes=[2411.0, 122.0])
+    side = _namesakes((1975.0, 1977.0), sot=[10.0, 2.0])
+
+    merged = join_side_tables(standard, {"shooting": side})
+
+    assert len(merged) == 2
+    assert merged.loc[merged["born"] == 1975.0, "sot"].item() == 10.0
+
+
+def test_join_refuses_a_key_it_cannot_separate() -> None:
+    """Same name, same club, same birth year: stop rather than guess."""
+    from gambeta.scouts.fbref import join_side_tables
+
+    standard = _namesakes((1975.0, 1975.0), minutes=[2411.0, 122.0])
+    side = _namesakes((1975.0, 1975.0), sot=[10.0, 2.0])
+
+    with pytest.raises(pd.errors.MergeError):
+        join_side_tables(standard, {"shooting": side})
+
+
+def test_join_keeps_side_data_for_players_with_no_birth_year() -> None:
+    """A merge never matches NaN to NaN, which would silently strip side columns."""
+    from gambeta.scouts.fbref import join_side_tables
+
+    standard = _namesakes((float("nan"), 1977.0), minutes=[2411.0, 122.0])
+    side = _namesakes((float("nan"), 1977.0), sot=[10.0, 2.0])
+
+    merged = join_side_tables(standard, {"shooting": side})
+
+    assert len(merged) == 2
+    assert merged["sot"].notna().all()
 
 
 def test_join_fills_columns_for_tables_that_were_skipped() -> None:

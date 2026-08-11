@@ -2,7 +2,7 @@
 
 soccerdata 1.9.1 drives seleniumbase to get past Cloudflare, so a Chrome
 installation is required for live fetches. All reshaping lives in `flatten`,
-which is pure — that is where the bugs would otherwise hide, untested.
+which is pure. That is where the bugs would otherwise hide, untested.
 """
 
 from __future__ import annotations
@@ -31,6 +31,15 @@ _RENAME: dict[tuple[str, str], str] = {
 }
 
 _INDEX = ["league", "season", "team", "player"]
+
+_NO_BORN = -1.0
+"""Stand-in for an unknown birth year while joining.
+
+A merge never matches NaN against NaN, so leaving it missing would silently
+strip every side-table column from those rows, the exact failure this project
+refuses to ship. 36 of 67,825 rows are affected.
+"""
+
 _COUNTS = ["mp", "starts", "minutes", "goals", "assists", "npg", "pk", "pkatt", "yellow", "red"]
 _FLOATS = ["age", "born"]
 _STRINGS = ["nation", "pos"]
@@ -108,7 +117,7 @@ def _flat_columns(raw: pd.DataFrame, rename: dict[tuple[str, str], str]) -> pd.D
 def flatten_side(raw: pd.DataFrame, rename: dict[tuple[str, str], str]) -> pd.DataFrame:
     """Flatten a secondary FBref table down to its join keys plus renamed columns.
 
-    Unlike :func:`flatten`, nothing is coerced to a fixed schema — these tables
+    Unlike :func:`flatten`, nothing is coerced to a fixed schema, because these tables
     contribute a handful of numeric columns each and are merged onto `standard`.
 
     Parameters
@@ -120,6 +129,10 @@ def flatten_side(raw: pd.DataFrame, rename: dict[tuple[str, str], str]) -> pd.Da
     """
     df = _flat_columns(raw, rename)
     out = df[_INDEX].astype(str).copy()
+    # Carried for the join, not for the data: `(league, season, team, player)`
+    # is not unique and birth year is what separates two players of the same
+    # name at the same club. Every FBref season table publishes it.
+    out["born"] = pd.to_numeric(df["born"], errors="coerce").astype("float64")
     for name in rename.values():
         if name in df.columns:
             out[name] = pd.to_numeric(df[name], errors="coerce").astype("float64")
@@ -189,6 +202,49 @@ SIDE_COLUMNS = tuple(name for rename in SIDE_TABLES.values() for name in rename.
 """Every column the side tables contribute, whether or not they were fetched."""
 
 
+def _agrees(values: pd.Series) -> bool:
+    """True when every non-null value in the column is the same one."""
+    known = values.dropna()
+    return bool(known.empty or (known == known.iloc[0]).all())
+
+
+def _fuse_split_records(df: pd.DataFrame, key: list[str], *, strict: bool) -> pd.DataFrame:
+    """Reduce rows repeating a key to one, taking the largest value per column.
+
+    FBref splits one player's record across two rows, in two different shapes.
+
+    In `standard` it happens once in 67,705 rows: Emanuele Torrasi appears at
+    Milan in 2017-18 as rows 507 and 508, agreeing on nation, position, age,
+    birth year, one appearance and six minutes.
+
+    In the side tables it is commoner and asymmetric. Sinan Kurt's 2014-15
+    playing time is one row holding his single substitute appearance and another
+    holding his unused-substitute count, each null where the other carries data.
+
+    ``strict`` decides what a disagreement means. **`standard` defines who
+    exists**, so two rows there that differ are two different people, and they
+    are left in place for the caller's one-to-one check to stop on rather than
+    silently merged. A side table cannot introduce anybody, because every row of it has
+    to land on a `standard` row already known to be unique, so there the split
+    record is simply reassembled.
+    """
+    repeated = df.duplicated(key, keep=False)
+    if not repeated.any():
+        return df
+
+    stats = [c for c in df.columns if c not in key]
+    dupes = df[repeated]
+    if strict:
+        dupes = dupes.groupby(key, sort=False).filter(
+            lambda group: all(_agrees(group[c]) for c in stats)
+        )
+        if dupes.empty:
+            return df
+
+    fused = dupes.groupby(key, as_index=False, sort=False)[stats].max()
+    return pd.concat([df.drop(index=dupes.index), fused], ignore_index=True)[df.columns]
+
+
 def join_side_tables(standard: pd.DataFrame, sides: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge the secondary tables onto `standard` by (league, season, team, player).
 
@@ -197,12 +253,24 @@ def join_side_tables(standard: pd.DataFrame, sides: dict[str, pd.DataFrame]) -> 
     is the failure mode this project cares most about avoiding.
 
     Columns from side tables that were not fetched are filled with nulls, so a run
-    that deliberately skips one — to save scraping time and backfill it later —
+    that deliberately skips one (to save scraping time and backfill it later)
     still produces a schema-valid frame.
+
+    The join key includes birth year, and ``validate="one_to_one"`` enforces that
+    it is unique. Without both, two players sharing a name at one club return the
+    cross product rather than a lookup: two players called Míchel at Rayo
+    Vallecano in 2002-03 became sixteen rows across three joins, one of them
+    carrying 19,288 minutes in a 38-match season. Nothing raised, no schema
+    rejected it, and every downstream per-90 divided by it.
     """
-    out = standard
+    key = [*_INDEX, "_born_key"]
+    keyed_standard = standard.assign(_born_key=standard["born"].fillna(_NO_BORN))
+    out = _fuse_split_records(keyed_standard, key, strict=True)
     for frame in sides.values():
-        out = out.merge(frame, on=_INDEX, how="left")
+        keyed = frame.assign(_born_key=frame["born"].fillna(_NO_BORN)).drop(columns="born")
+        side = _fuse_split_records(keyed, key, strict=False)
+        out = out.merge(side, on=key, how="left", validate="one_to_one")
+    out = out.drop(columns="_born_key")
     for column in SIDE_COLUMNS:
         if column not in out.columns:
             # NaN, not pd.NA: pandas 3 refuses the latter in a float64 Series.
@@ -238,7 +306,7 @@ class FBrefScout:
 
         Completeness matters, not mere presence. soccerdata fetches whatever is
         missing, so a table cached for 8 of 25 seasons would silently trigger 17
-        page loads — turning an offline run into half an hour of browser
+        page loads, turning an offline run into half an hour of browser
         automation. A partially cached table counts as absent.
         """
         pattern = f"players_{league}_*_{stat}.html"
@@ -256,7 +324,7 @@ class FBrefScout:
     def fetch(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Return ``(outfield, keeper)`` frames covering every configured league.
 
-        Slow on a cold cache — roughly 15 minutes per league per stat table. Reads
+        Slow on a cold cache, roughly 15 minutes per league per stat table. Reads
         entirely from cache once :mod:`scripts.warm_cache` has run.
         """
         outfield_parts: list[pd.DataFrame] = []

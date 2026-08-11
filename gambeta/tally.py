@@ -1,11 +1,13 @@
 """Derived metrics: transfer collapsing, per-90 rates, and share of club output.
 
-Everything here is vectorized. ``groupby.apply`` is deliberately avoided — its
+Everything here is vectorized. ``groupby.apply`` is deliberately avoided, because its
 semantics shifted in pandas 3.0 and it is slower than the merge-based
 equivalents below.
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -26,10 +28,24 @@ _SUM = [
     "subs",
     "second_yellow",
     "fouls",
-    "min_pct",
 ]
+"""Counting stats. ``min_pct`` is deliberately absent: it is a share of one
+club's minutes, and shares do not add. Summing it gave a transferred player up
+to 296% of his team's minutes."""
 _KEEP = ["qid", "league", "player", "born", "nation", "pos"]
 _MINUTES_PER_MATCH = 90.0
+
+
+def _sum_or_missing(values: pd.Series) -> float:
+    """Sum a group, but a group that is entirely missing stays missing.
+
+    pandas sums NaN to 0. That turns "FBref never recorded fouls in 2002" into
+    "he committed none", a cleaner disciplinary record than any player alive,
+    handed to the requirement that eliminates the most players.
+    """
+    # ponytail: a lambda-style agg gives up pandas' fast path. Fine at 68k rows
+    # once per run; revisit if the population grows an order of magnitude.
+    return float(values.sum(min_count=1))
 
 
 def collapse_transfers(df: pd.DataFrame) -> pd.DataFrame:
@@ -38,12 +54,28 @@ def collapse_transfers(df: pd.DataFrame) -> pd.DataFrame:
     A player who changes clubs mid-season appears once per club in FBref's
     output. Counting stats are summed and the clubs are joined into a ``teams``
     string, so a transfer season is not silently counted twice.
+
+    ``min_pct`` is recomputed rather than summed. It is a share of one club's
+    minutes, so adding two of them is meaningless. It produced availability
+    figures up to 296%. Each club's implied total is recovered from the share it
+    came with, and the real share is taken against the sum of those.
     """
     keys = ["player_id", "season"]
+    if "min_pct" in df.columns:
+        share = df["min_pct"].where(df["min_pct"] > 0)
+        df = df.assign(_team_min=df["minutes"] / share * 100.0)
+
     grouped = df.groupby(keys, as_index=False, sort=False)
 
     present = [c for c in _SUM if c in df.columns]
-    totals = grouped.agg({**{c: "sum" for c in present}, **{c: "first" for c in _KEEP}})
+    aggs: dict[str, Any] = {c: _sum_or_missing for c in present}
+    if "_team_min" in df.columns:
+        aggs["_team_min"] = _sum_or_missing
+    totals = grouped.agg({**aggs, **{c: "first" for c in _KEEP}})
+
+    if "_team_min" in totals.columns:
+        team_min = totals.pop("_team_min")
+        totals["min_pct"] = 100.0 * totals["minutes"] / team_min.where(team_min > 0)
     # Named aggregation on the frame (not a selected column) keeps this a
     # DataFrame and needs no rename.
     teams = (
@@ -82,7 +114,7 @@ def add_age(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
 
     Nothing raised, because both sides were the same length. Age is a control in
     the league-strength regression, so the damage surfaced as offsets that
-    quietly moved whenever row order did — which is exactly the kind of bug that
+    quietly moved whenever row order did, which is exactly the kind of bug that
     hides until something unrelated perturbs the ordering.
 
     Parameters

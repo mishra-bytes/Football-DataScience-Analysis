@@ -3,7 +3,7 @@
 The definition is a list of things the best footballer must have. This module
 owns that list: one column per requirement, computed per player-season, with
 **higher always better** so nothing downstream needs per-requirement direction
-logic — the class of bug that silently inverts one metric and poisons a ranking.
+logic, which is the class of bug that silently inverts one metric and poisons a ranking.
 
 Two requirements (longevity, consistency) are career-level by nature and are
 derived in :mod:`gambeta.gate` from the per-season series this module produces.
@@ -57,7 +57,7 @@ KEEPER: tuple[Requirement, ...] = (
     Requirement("consistency", "Has no bad seasons", "career"),
 )
 """No discipline requirement: FBref's keeper table carries no cards, so it would
-be a constant zero for every keeper — gating on it can eliminate nobody and
+be a constant zero for every keeper. Gating on it can eliminate nobody and
 averaging it in changes no ordering. A requirement that cannot discriminate is
 not a requirement."""
 
@@ -70,10 +70,10 @@ ARGUMENTS: dict[str, dict[str, float]] = {
     "The team-carrier argument": {"team_share": 4.0, "above_team": 3.0},
     "The professional argument": {"discipline": 3.0, "availability": 3.0, "reliability": 2.0},
 }
-"""Named weight vectors — the arguments people actually have about greatness.
+"""Named weight vectors: the arguments people actually have about greatness.
 
 Sparse by design: a requirement left out counts 1.0, so each vector states only
-what its argument emphasises. Weights order the qualifiers and nothing else —
+what its argument emphasises. Weights order the qualifiers and nothing else:
 the gate is a floor per requirement and no weighting moves it, which is what
 makes it safe to hand these to a reader with sliders.
 
@@ -101,13 +101,39 @@ def _rate(numerator: pd.Series, minutes: pd.Series) -> np.ndarray:
 def _column(df: pd.DataFrame, name: str, default: float = 0.0) -> pd.Series:
     """Return a column, or a constant series when the source table was skipped.
 
-    Side tables are optional by design — a run can omit one to save scraping time
+    Side tables are optional by design: a run can omit one to save scraping time
     and backfill it later. Treating an absent column as its default keeps the
     pipeline running on a reduced requirement rather than failing outright.
     """
     if name not in df.columns:
         return pd.Series(default, index=df.index, dtype="float64")
     return df[name].fillna(default).astype("float64")
+
+
+FOUL_COVERAGE = 0.8
+"""Share of a league-season that must carry a fouls figure for the term to count.
+
+FBref recorded no fouls for most of 2000-04: 43.5% of those player-seasons have
+none, against 4.4% after 2020. The table is fetched and the source simply has no
+data, so no amount of scraping fixes it.
+
+Filling the gap with zero says the player fouled nobody, which flatters an entire
+era in the requirement that eliminates the most players. Filling it with the
+group mean shrinks that season's spread instead, inflating the z-score of
+everyone who *does* carry a figure. Below this floor the term is dropped, so
+discipline degrades to cards only, the same degradation the requirement already
+accepts when the `misc` table is absent outright.
+"""
+
+
+def _foul_rate(df: pd.DataFrame, minutes: pd.Series) -> np.ndarray:
+    """Fouls per 90, dropped in league-seasons the source barely recorded."""
+    if "fouls" not in df.columns:
+        return np.zeros(len(df), dtype=float)
+    recorded = df["fouls"].notna()
+    covered = recorded.groupby([df["league"], df["season"]]).transform("mean")
+    usable = (recorded & (covered >= FOUL_COVERAGE)).to_numpy()
+    return np.where(usable, _rate(df["fouls"].fillna(0.0), minutes), 0.0)
 
 
 def _ratio(numerator: pd.Series, denominator: pd.Series) -> np.ndarray:
@@ -156,12 +182,12 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     #
     # Second yellows and fouls come from FBref's `misc` table, which is optional:
     # the run can skip it to save five scrapes and add it later. Without it
-    # discipline is coarser — red and yellow cards only — but still meaningful,
+    # discipline is coarser, red and yellow cards only, but still meaningful,
     # so a missing table degrades the requirement rather than breaking the run.
     cost = (
         out["red"].to_numpy(dtype=float)
         + _column(out, "second_yellow").to_numpy(dtype=float)
-        + _rate(_column(out, "fouls"), minutes)
+        + _foul_rate(out, minutes)
     )
     out["discipline"] = -cost
     return out
@@ -191,7 +217,7 @@ def add_above_team(
 
     Fits ``output ~ elo`` within each ``(league, season)`` and keeps the residual.
     A player at a dominant club has to beat a higher bar to score positively,
-    which is the whole point — it separates the player from the side around him.
+    which is the whole point, because it separates the player from the side around him.
 
     Parameters
     ----------
@@ -205,7 +231,7 @@ def add_above_team(
         ``False`` for keeper goals-against, where a negative residual is good;
         the sign is flipped so the requirement still reads higher-is-better.
     """
-    # A collapsed player-season has no single `team` — it carries a
+    # A collapsed player-season has no single `team`. It carries a
     # minutes-weighted `elo` attached during cleaning instead. Uncollapsed
     # frames (keepers) still join on the club.
     out = df.copy() if "elo" in df.columns else df.merge(elo, on=["season", "team"], how="left")
