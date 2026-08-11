@@ -220,8 +220,22 @@ is *where it disagrees and why*.
   the closest working alternative and append to `DEVIATIONS.md` with what, why
   and impact.
 - **No GPU code without a benchmark.** Spec §7.
-- **`data/sample/` holds derived aggregates only**, ≤5 MB, enforced by
-  pre-commit. Raw scrapes are never redistributed.
+- **No data is committed at all.** `data/sample/` holds the derived aggregates
+  every chapter reads, and it is gitignored along with `vault/`.
+
+  Changed on 2026-08-12. It used to be committed on the reasoning that a reader
+  should be able to re-run everything from a fresh clone, which is a real
+  benefit and was traded away deliberately.
+
+  What replaces it: **the notebooks carry their outputs**, so every number,
+  table and figure is visible to a reader who never holds the data. What is
+  lost: re-running the book locally needs a copy of `data/sample`, which is
+  published separately if at all.
+
+  Rejected: committing a smaller sample. A subset produces different z-scores,
+  different league offsets and a different ranking, so the book would show
+  numbers that no full run reproduces, which is worse than showing numbers a
+  reader cannot recompute.
 - **Notebooks are committed with their outputs**, executed against
   `data/sample/` before every commit.
 

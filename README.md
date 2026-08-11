@@ -96,8 +96,10 @@ uv run streamlit run dugout/app.py
 quarto render                 # builds the book into tome/_book
 ```
 
-Everything runs against `data/sample/`, which is 3.6 MB of derived aggregates,
-so every figure reproduces without scraping a page.
+Everything runs against `data/sample/`, which is derived aggregates rather than
+raw scrapes. **It is not in this repository.** The notebooks carry their
+outputs, so every number and figure here is visible without it; rebuilding the
+book yourself needs a copy, or a run of `uv run gambeta all`.
 
 ### Running the notebooks
 

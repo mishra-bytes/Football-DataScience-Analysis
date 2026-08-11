@@ -17,4 +17,4 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: check-added-large-files
-        args: [--maxkb=5120]  # data/sample must stay under 5 MB (spec 3.4)
+        args: [--maxkb=2048]  # no data is committed; notebooks with outputs are the ceiling

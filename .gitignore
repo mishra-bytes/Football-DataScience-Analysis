@@ -39,6 +39,11 @@ htmlcov/
 # to read in a diff.
 /_freeze/
 
+# No data in the repository. The notebooks carry their outputs, so a reader sees
+# every number without holding the data; running the book locally needs a copy
+# of `data/sample`, which is published separately if at all.
+/data/
+
 # DVC-managed data (pointers and dvc.lock are tracked; contents are not)
 /vault/
 
