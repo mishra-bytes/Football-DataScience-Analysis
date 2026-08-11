@@ -24,7 +24,7 @@ women's football, live updating, a general scraping framework.
 
 | Layer | Choice | Why not the obvious alternative |
 |---|---|---|
-| Language | Python 3.12 | — |
+| Language | Python 3.12 | - |
 | Env | `uv` | Lockfile plus resolver speed; pip has neither |
 | Frames | pandas + pyarrow | Parquet is the interchange format between every stage |
 | Schemas | pandera | Validation at stage boundaries beats trusting a `.csv` |
@@ -34,7 +34,7 @@ women's football, live updating, a general scraping framework.
 | Pipeline | DVC | Stages the scrape → clean → derive DAG |
 | Book | Quarto | Renders `.ipynb` directly, so notebooks stay the single source |
 | Dashboard | Streamlit | Reads the committed sample; no server, no database |
-| Lint / types | ruff, mypy `--strict` | — |
+| Lint / types | ruff, mypy `--strict` | - |
 
 **Windows-native, no WSL2.** Parallel code needs `if __name__ == "__main__"`
 guards because Windows uses `spawn`.
@@ -45,12 +45,12 @@ guards because Windows uses `spawn`.
 
 | Source | Endpoint | Terms |
 |---|---|---|
-| FBref | via soccerdata; drives Chrome through seleniumbase | Bulk redistribution restricted — raw stays local, DVC `push: false` |
+| FBref | via soccerdata; drives Chrome through seleniumbase | Bulk redistribution restricted, raw stays local, DVC `push: false` |
 | Wikidata | `https://query.wikidata.org/sparql` | CC0 |
 | ClubElo | via soccerdata | Free, non-commercial |
 
 FBref requires a real browser: soccerdata drives undetected chromedriver past
-Cloudflare. Chrome is therefore a system prerequisite for ingestion only —
+Cloudflare. Chrome is therefore a system prerequisite for ingestion only,
 everything downstream reads Parquet.
 
 ---
@@ -72,12 +72,12 @@ structural decision in the repository and everything below serves it.
 
 Both network sources cache **per unit of work**, not per run:
 
-- FBref — one HTML file per (league, season, table). 634 files, 1.19 GB.
-- Wikidata — one Parquet per birth year, keyed by a hash of the query text.
+- FBref, one HTML file per (league, season, table). 634 files, 1.19 GB.
+- Wikidata, one Parquet per birth year, keyed by a hash of the query text.
 
-Rejected: caching the finished artifact only. Measured cost of that mistake —
-when 2 of 41 birth-year cohorts failed, repairing them meant re-running all 41,
-about 35 minutes for four minutes of real work. A changed query must still
+Rejected: caching the finished artifact only. The cost of that mistake was
+measured. When 2 of 41 birth-year cohorts failed, repairing them meant re-running
+all 41: about 35 minutes for four minutes of real work. A changed query must still
 invalidate everything, which is what the query hash is for: **a cached answer to
 a different question is a wrong answer, not a saving.**
 
@@ -105,7 +105,7 @@ who qualifies, and only then are qualifiers ranked.
 
 Rejected: a weighted average. It lets a player be genuinely poor at something the
 definition calls mandatory and win on volume elsewhere. The gate is what stops
-that, and it is why weights are safe to expose to a reader — **no weighting can
+that, and it is why weights are safe to expose to a reader, **no weighting can
 move the gate**, only the percentile can.
 
 ### The player is the unit, not the league
@@ -142,7 +142,7 @@ Dropping raises no error and quietly deletes a career.
 ### Two leaderboards, not one
 
 Keepers are ranked on their own eight requirements. Save percentage and goals per
-90 are not comparable quantities and pretending otherwise would be dishonest —
+90 are not comparable quantities and pretending otherwise would be dishonest,
 even though the project's headline question implies a single answer.
 
 ### Uncertainty is reported, not hidden
@@ -155,8 +155,8 @@ Where the honest answer is "these two are not separable", that is printed.
 ### One outside opinion
 
 Ballon d'Or and world-player voting is the only external check. It is not ground
-truth — it rewards teammates' trophies and leans toward forwards — which is
-exactly why it is compared against rather than fitted to. The output that matters
+truth, because it rewards teammates' trophies and leans toward forwards, and
+that is exactly why it is compared against rather than fitted to. The output that matters
 is *where it disagrees and why*.
 
 ---
@@ -177,11 +177,16 @@ is *where it disagrees and why*.
 
 ## The bug class this project keeps finding
 
-Four defects so far — `consistency` measured as variance, `reliability` measured
-as being a forward, ages attached by position, award winners not filtered to
-men's football — shared one property: **plausible output, no exception, every
-test passing.** None was caught by the test suite. All four were caught by
-reading the answer and asking whether it made sense.
+Six defects so far. `consistency` measured as variance. `reliability` measured
+being a forward. Ages attached by row position. Award winners not filtered to
+men's football. A side-table join key that was not unique, which fabricated a
+player with 19,288 minutes. A share of team minutes summed across clubs, which
+gave one player 296% of them.
+
+All six shared one property: **plausible output, no exception, every test
+passing.** Not one was caught by the test suite. The first four were caught by
+reading the answer and asking whether it made sense; the last two by asserting
+something the data had to satisfy and watching it raise.
 
 That is why the failure table, `unresolved.csv` and the awards check are
 first-class outputs rather than diagnostics. They exist to make wrong answers
