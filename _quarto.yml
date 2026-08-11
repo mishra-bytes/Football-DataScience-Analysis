@@ -10,6 +10,10 @@ project:
     - labs/02-how-far-ahead-is-the-best.ipynb
     - labs/03-method-requirements-and-gates.ipynb
     - labs/04-method-league-strength.ipynb
+    - labs/05-method-normalisation-and-shrinkage.ipynb
+    - labs/06-method-the-bootstrap.ipynb
+    - labs/07-method-testing-without-a-distribution.ipynb
+    - labs/08-method-selection-bias.ipynb
     - tome/method-template.qmd
 
 book:
@@ -25,8 +29,12 @@ book:
         - labs/02-how-far-ahead-is-the-best.ipynb
     - part: "Methods"
       chapters:
+        - labs/05-method-normalisation-and-shrinkage.ipynb
         - labs/03-method-requirements-and-gates.ipynb
+        - labs/06-method-the-bootstrap.ipynb
+        - labs/07-method-testing-without-a-distribution.ipynb
         - labs/04-method-league-strength.ipynb
+        - labs/08-method-selection-bias.ipynb
         - tome/method-template.qmd
 
 format:
