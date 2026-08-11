@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from dugout.app import filter_ratings, load_keepers, load_ratings, sigma
+from dugout.app import filter_ratings, load_keepers, load_ratings, reweight, sigma
+from gambeta import needs
 
 SAMPLE = Path(__file__).resolve().parent.parent / "data" / "sample"
 pytestmark = pytest.mark.skipif(
@@ -66,3 +67,37 @@ def test_sigma_survives_a_zero_spread_population() -> None:
     df = load_ratings(SAMPLE).head(3).copy()
     df["score"] = 1.0
     assert sigma(df, df)["sigma"].notna().all()
+
+
+def test_reweight_reproduces_the_published_ranking_at_equal_weights() -> None:
+    """The dashboard must not quietly disagree with the committed answer."""
+    published = load_ratings(SAMPLE)
+    again = reweight(published, needs.OUTFIELD)
+    assert list(again["player"].head(10)) == list(published["player"].head(10))
+    assert int(again["qualified"].sum()) == int(published["qualified"].sum())
+
+
+def test_reweight_changes_the_order_but_not_the_qualifiers() -> None:
+    published = load_ratings(SAMPLE)
+    tilted = reweight(published, needs.OUTFIELD, weights={"longevity": 5.0, "scoring": 0.0})
+    assert int(tilted["qualified"].sum()) == int(published["qualified"].sum())
+    assert list(tilted["player"].head(10)) != list(published["player"].head(10))
+
+
+def test_raising_the_gate_in_the_dashboard_shrinks_the_field() -> None:
+    published = load_ratings(SAMPLE)
+    strict = reweight(published, needs.OUTFIELD, gate_percentile=60.0)
+    assert int(strict["qualified"].sum()) < int(published["qualified"].sum())
+
+
+def test_every_named_argument_runs_against_the_real_data() -> None:
+    published = load_ratings(SAMPLE)
+    for name, vector in needs.ARGUMENTS.items():
+        out = reweight(published, needs.OUTFIELD, weights=vector)
+        assert out["score"].notna().all(), name
+
+
+def test_reweight_works_for_keepers_on_their_own_requirements() -> None:
+    keepers = load_keepers(SAMPLE)
+    again = reweight(keepers, needs.KEEPER)
+    assert list(again["player"].head(5)) == list(keepers["player"].head(5))
