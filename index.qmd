@@ -5,23 +5,35 @@ twenty-five years were**, and **how you would actually find out**.
 
 ## The answer, before the argument
 
-No suspense. Here is what the method produces, computed live from the same data
-every chapter uses. A player must clear a floor on **all eleven requirements**
-to appear at all.
+No suspense. Everything on this page is computed live from the same committed
+data every chapter uses, so it cannot drift out of step with the book. A player
+must clear a floor on **all eleven requirements** to appear at all.
 
 ```{python}
 #| echo: false
+import itertools
+
 import pandas as pd
+
+from gambeta import doubt
 
 ranking = pd.read_parquet("data/sample/ranking.parquet")
 keepers = pd.read_parquet("data/sample/keeper_ranking.parquet")
 offsets = pd.read_parquet("data/sample/league_offsets.parquet")
+seasons = pd.read_parquet("data/sample/player_season_scored.parquet")
 
-mean, spread = ranking["score"].mean(), ranking["score"].std()
+mean, spread = ranking["score"].mean(), ranking["score"].std(ddof=0)
 best = ranking[ranking["qualified"]].head(10).copy()
 best.insert(0, "#", range(1, len(best) + 1))
-best["σ above mean"] = ((best["score"] - mean) / spread).round(1)
-best[["#", "player", "score", "σ above mean", "seasons", "leagues"]].round(2).style.hide(axis="index")
+best["sigma"] = (best["score"] - mean) / spread
+
+(
+    best[["#", "player", "score", "sigma", "seasons", "leagues"]]
+    .rename(columns={"player": "Player", "score": "Score", "sigma": "σ above mean",
+                     "seasons": "Seasons", "leagues": "Leagues"})
+    .style.format({"Score": "{:.2f}", "σ above mean": "{:+.1f}"})
+    .hide(axis="index")
+)
 ```
 
 ```{python}
@@ -29,25 +41,96 @@ best[["#", "player", "score", "σ above mean", "seasons", "leagues"]].round(2).s
 from IPython.display import Markdown
 
 qualified = int(ranking["qualified"].sum())
-kq = keepers[keepers["qualified"]]
 Markdown(
-    f"**{qualified} of {len(ranking):,} players** clear every requirement. "
-    f"Goalkeepers are ranked separately on their own eight requirements: "
-    f"{', '.join(kq.head(5)['player'])}. Save percentage and goals per 90 "
-    f"are not comparable quantities and pretending otherwise would be dishonest.\n\n"
-    f"League strength is estimated from transfers alone, with England pinned at zero: "
-    + ", ".join(
-        f"**{lg.split('-')[0]}** {v:+.3f}"
-        for lg, v in offsets.groupby("league")["offset"].mean().sort_values(ascending=False).items()
-    )
-    + "."
+    f"**{qualified} of {len(ranking):,} players** clear every one of the eleven "
+    f"requirements, which is {100 * qualified / len(ranking):.1f}% of the ranked "
+    f"population. The other {len(ranking) - qualified:,} are still listed, with "
+    f"the requirement they missed published beside them, so the definition can be "
+    f"argued with rather than simply asserted."
 )
 ```
 
-**Now the part that matters.** That table is an ordering, and the statistics
-behind it do not support one: only three of the twenty-eight pairs among the top
-eight can be told apart at all. Chapters 6 and 7 make that case against the
-table above, which is the honest way round.
+### Goalkeepers, on their own eight requirements
+
+Save percentage and goals per 90 are not comparable quantities, so keepers get
+their own board rather than a combined number the data cannot support.
+
+```{python}
+#| echo: false
+kq = keepers[keepers["qualified"]].head(5).copy()
+kq.insert(0, "#", range(1, len(kq) + 1))
+(
+    kq[["#", "player", "score", "seasons", "leagues"]]
+    .rename(columns={"player": "Player", "score": "Score",
+                     "seasons": "Seasons", "leagues": "Leagues"})
+    .style.format({"Score": "{:.2f}"})
+    .hide(axis="index")
+)
+```
+
+### League strength, estimated from transfers alone
+
+A player who changes league is the same footballer on both sides of the move, so
+the change in his score measures the gap between those leagues. Nothing about
+money, TV deals or transfer fees is in the model. England is pinned at zero
+because the offsets are identified only up to a constant, which makes it the
+reference rather than a verdict.
+
+```{python}
+#| echo: false
+strength = (
+    offsets.groupby("league")
+    .agg(Strength=("offset", "mean"), Endpoints=("moves", "sum"))
+    .sort_values("Strength", ascending=False)
+    .reset_index()
+    .rename(columns={"league": "League"})
+)
+# `moves` repeats across the five seasons of each era block, so the distinct
+# endpoint count is a fifth of the sum.
+strength["Endpoints"] = (strength["Endpoints"] // 5).astype(int)
+strength["League"] = strength["League"].map(
+    {
+        "ENG-Premier League": "England",
+        "ESP-La Liga": "Spain",
+        "ITA-Serie A": "Italy",
+        "GER-Bundesliga": "Germany",
+        "FRA-Ligue 1": "France",
+    }
+)
+strength.style.format({"Strength": "{:+.3f}", "Endpoints": "{:,}"}).hide(axis="index")
+```
+
+## Now the part that matters
+
+That first table is an ordering, and the statistics behind it do not support
+one. Every pair among the top eight gets a two-sided permutation test below, run
+against this data at render time rather than transcribed from a previous run.
+
+```{python}
+#| echo: false
+top = ranking[ranking["qualified"]].head(8)
+career = {
+    name: seasons.loc[seasons["player_id"] == pid, "season_score"].to_numpy(dtype=float)
+    for pid, name in zip(top["player_id"], top["player"], strict=True)
+}
+pvalues = [
+    doubt.permutation_test(career[a], career[b], two_sided=True)[1]
+    for a, b in itertools.combinations(top["player"], 2)
+]
+n_tests = len(pvalues)
+loose = sum(p < 0.05 for p in pvalues)
+strict = sum(p < 0.05 / n_tests for p in pvalues)
+
+Markdown(
+    f"Of the **{n_tests} pairs** among the top eight, **{loose}** can be told "
+    f"apart at p < 0.05, and after correcting for the number of tests, "
+    f"**{strict}**. The ranking prints an order because a table has to. The "
+    f"evidence supports *this group, clear of the rest*, and not much more."
+)
+```
+
+The chapters on the bootstrap and on permutation testing make that case against
+the table above, which is the honest way round.
 
 Those two questions are harder to separate than they look. Most arguments about
 the greatest player are not really disagreements about facts. They are
@@ -55,21 +138,33 @@ disagreements about what "greatest" means, conducted as though they were
 disagreements about facts. One person means peak. Another means longevity.
 A third means trophies. They talk past each other for hours and nobody moves.
 
-So this book does the unglamorous thing first: it says out loud what it is
-measuring, shows you the arithmetic, and tells you where the arithmetic runs out.
+So this book does the unglamorous thing first. It says out loud what it is
+measuring, shows you the arithmetic, and tells you where the arithmetic runs
+out.
 
-## Two ways to read this
+## How this is laid out
 
-**If you are learning data science**, read the investigation chapters in order.
-They move from a raw table of numbers to a defended conclusion, and every time a
-statistical idea is needed, it appears with a link to the chapter that derives
-it properly. You can follow the story without clicking a single one of those
-links, and you will still know what was done and why.
+Four parts, read in order, going from a raw HTML page through to the answer and
+then back at it.
 
-**If you already know the statistics**, the method chapters are the substance.
-Each follows the same six-part structure:
+**Getting the data, and making it honest.** Where twenty-five seasons actually
+come from, how a player is identified when the source gives you no ID, what to
+do with a column the source never recorded, and the class of bug that passes
+every test you own.
 
-> **Question → Intuition → Math → Code → Assumptions → How it breaks**
+**Turning data into a measure.** What greatness requires, how to compare a 2003
+season against a 2023 one, and how to compare a Ligue 1 season against a Premier
+League one.
+
+**The answer.** The ranking, and how far ahead the top of it really is.
+
+**Attacking the answer.** How much of it is luck, whether any two players can be
+told apart, who is missing from the data entirely, and whether any of it agrees
+with the people who were there.
+
+Every method chapter follows the same six-part structure:
+
+> **Question, Intuition, Math, Code, Assumptions, How it breaks**
 
 That last section is the one most tutorials skip, and it is the one that matters
 most. Any method looks good on the data it was demonstrated with.
