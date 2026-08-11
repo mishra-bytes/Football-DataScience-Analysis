@@ -1,0 +1,19 @@
+qid,honours,award_years,awards_won,player_id,player,rank,score,qualified,worst_requirement,failed
+Q615,12,"2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023","Ballon d'Or, FIFA Ballon d'Or, FIFA World Player of the Year, The Best FIFA Men's Player, UEFA Men's Player of the Year",782565d7d81b,Lionel Messi,1.0,3.323049135392911,True,reliability,
+Q11571,7,"2008, 2013, 2014, 2016, 2017","Ballon d'Or, FIFA Ballon d'Or, FIFA World Player of the Year, UEFA Men's Player of the Year",b662a2c740c4,Cristiano Ronaldo,2.0,2.9360379757224195,True,discipline,
+Q483837,3,2018,"Ballon d'Or, FIFA World Player of the Year, UEFA Men's Player of the Year",,,,,,,
+Q39444,3,"2004, 2005","Ballon d'Or, FIFA World Player of the Year",c08a260e13a4,Ronaldinho,42.0,1.6129324011314436,True,reliability,
+Q102027,2,2006,"Ballon d'Or, FIFA World Player of the Year",29bf7ed25ac2,Fabio Cannavaro,2707.0,-0.0929715777859712,False,creation,"above_team, consistency, creation, discipline, finishing, scoring, team_share, threat"
+Q1835,2,"2000, 2003",FIFA World Player of the Year,2d5bf5088a8e,Zinédine Zidane,104.0,1.093945402489026,True,longevity,
+Q483145,2,"2000, 2001","Ballon d'Or, FIFA World Player of the Year",f98362814b84,Luís Figo,849.0,0.6419559334112184,False,discipline,discipline
+Q529207,2,2002,"Ballon d'Or, FIFA World Player of the Year",0c84a3519f97,Ronaldo,11.0,2.2914159952182866,True,longevity,
+Q531814,2,2007,"Ballon d'Or, FIFA World Player of the Year",43fa9f3406f5,Kaká,80.0,1.2268685860678703,True,reliability,
+Q128829,1,2001,Ballon d'Or,,,,,,,
+Q20851003,1,2025,Ballon d'Or,84a0939af903,Ousmane Dembélé,456.0,1.1880641349319285,False,reliability,"availability, reliability"
+Q1912,1,2022,Ballon d'Or,463666c5f031,Karim Benzema,10.0,2.3436081405759768,True,reliability,
+Q171295,1,2003,Ballon d'Or,649efba4004b,Pavel Nedvěd,704.0,0.8089620583919106,False,discipline,discipline
+Q151269,1,2020,UEFA Men's Player of the Year,f29805b631d2,Robert Lewandowski,7.0,2.5816226590999993,True,discipline,
+Q133903,1,2019,UEFA Men's Player of the Year,4060066908fd,Virgil van Dijk,1036.0,0.4958152450873245,False,creation,creation
+Q1354960,1,2018,The Best FIFA Men's Player,9dd7af3dc8d4,Mohamed Salah,9.0,2.5031798701722177,True,reliability,
+Q41244,1,2004,Ballon d'Or,f3196351859b,Andriy Shevchenko,35.0,1.7605964332885533,True,longevity,
+Q20994118,1,2024,Ballon d'Or,2fd777b8dff3,Rodri,1171.0,0.4088073025681682,False,discipline,discipline
