@@ -109,7 +109,7 @@ def clean(cfg: kit.Config) -> None:
 
     collapsed = tally.collapse_transfers(labelled)
     collapsed = tally.add_team_share(collapsed, labelled)
-    collapsed["age"] = labelled.groupby(["player_id", "season"])["age"].first().to_numpy()
+    collapsed = tally.add_age(collapsed, labelled)
 
     # Club strength has to be attached before the transfer collapse, while rows
     # still name a club. A player who moved mid-season gets the minutes-weighted

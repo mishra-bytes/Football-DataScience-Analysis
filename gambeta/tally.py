@@ -70,6 +70,33 @@ def add_rates(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def add_age(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
+    """Attach each player-season's age, joined on the keys rather than by position.
+
+    This was ``df["age"] = raw.groupby(keys)["age"].first().to_numpy()``, which
+    silently scrambled the column. ``collapse_transfers`` groups with
+    ``sort=False`` and keeps insertion order, while ``groupby`` sorts by default,
+    so the two sequences disagreed at **every** position: 61,131 of 65,069
+    player-seasons carried somebody else's age, off by 5.4 years on average and
+    by as much as 23.
+
+    Nothing raised, because both sides were the same length. Age is a control in
+    the league-strength regression, so the damage surfaced as offsets that
+    quietly moved whenever row order did — which is exactly the kind of bug that
+    hides until something unrelated perturbs the ordering.
+
+    Parameters
+    ----------
+    df
+        Collapsed player-season frame, one row per ``(player_id, season)``.
+    raw
+        Uncollapsed frame carrying ``player_id``, ``season`` and ``age``.
+    """
+    keys = ["player_id", "season"]
+    ages = raw.groupby(keys, as_index=False)["age"].first()
+    return df.merge(ages, on=keys, how="left")
+
+
 def add_team_share(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
     """Add each player's share of the goals scored by the clubs they played for.
 

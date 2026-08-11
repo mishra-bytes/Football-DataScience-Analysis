@@ -27,6 +27,45 @@ def _labelled() -> pd.DataFrame:
     )
 
 
+def test_age_lands_on_the_right_player() -> None:
+    """Ages were attached by position, and the two orderings never matched.
+
+    ``collapse_transfers`` groups with ``sort=False``; a plain ``groupby`` sorts.
+    On the real data that put somebody else's age on 61,131 of 65,069
+    player-seasons, out by 5.4 years on average. Nothing raised, because the two
+    sequences were the same length.
+    """
+    # Insertion order deliberately unsorted, so a positional assignment breaks.
+    labelled = pd.DataFrame(
+        {
+            "player_id": ["zzz", "aaa", "mmm"],
+            "season": ["0405", "0405", "0405"],
+            "age": [34.0, 19.0, 27.0],
+        }
+    )
+    collapsed = pd.DataFrame({"player_id": ["zzz", "aaa", "mmm"], "season": ["0405"] * 3})
+
+    got = tally.add_age(collapsed, labelled).set_index("player_id")["age"]
+    assert got["zzz"] == 34.0
+    assert got["aaa"] == 19.0
+    assert got["mmm"] == 27.0
+
+
+def test_age_survives_a_mid_season_transfer() -> None:
+    """Two rows for one player-season must collapse to a single age."""
+    labelled = _labelled().assign(age=[24.0, 24.0, 19.0])
+    collapsed = tally.collapse_transfers(labelled)
+    got = tally.add_age(collapsed, labelled)
+    assert len(got) == len(collapsed)
+    assert got.set_index("player_id")["age"]["aaa"] == 24.0
+
+
+def test_age_is_null_when_the_source_has_none() -> None:
+    labelled = _labelled().assign(age=[float("nan")] * 3)
+    got = tally.add_age(tally.collapse_transfers(labelled), labelled)
+    assert got["age"].isna().all()
+
+
 def test_collapse_sums_stats_across_clubs() -> None:
     out = tally.collapse_transfers(_labelled()).set_index("player_id")
     assert out.loc["aaa", "minutes"] == 1800
