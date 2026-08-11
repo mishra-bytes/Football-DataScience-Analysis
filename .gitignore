@@ -1,6 +1,17 @@
 # Superpowers working documents — local only, never published
 docs/superpowers/
 
+# Graphify knowledge-graph output. Regenerated from the source tree on demand,
+# and it vendors a bundled graph.html plus a SHA256 cache that no reviewer
+# should be asked to read in a diff.
+graphify-out/
+
+# Graphify's --project install writes .claude/settings.json with an absolute,
+# machine-specific hook path (C:/Users/<name>/.local/bin/graphify.EXE). Sharing
+# that would fire a broken hook on every tool call in any other clone or in CI.
+# Local tooling, not shared config.
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]
