@@ -19,6 +19,7 @@ project:
     - labs/11-can-we-tell-them-apart.ipynb
     - labs/12-who-is-missing-from-this-data.ipynb
     - labs/13-does-it-agree-with-the-voters.ipynb
+    - labs/14-does-the-answer-depend-on-my-choices.ipynb
     - tome/method-template.qmd
 
 book:
@@ -52,6 +53,7 @@ book:
         - labs/11-can-we-tell-them-apart.ipynb
         - labs/12-who-is-missing-from-this-data.ipynb
         - labs/13-does-it-agree-with-the-voters.ipynb
+        - labs/14-does-the-answer-depend-on-my-choices.ipynb
         - tome/method-template.qmd
 
 format:

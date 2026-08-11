@@ -153,6 +153,7 @@ One arc, running from a raw HTML page through to the answer and then back at it.
 | `11-can-we-tell-them-apart` | Permutation tests, p-values, and the multiple-comparisons trap |
 | `12-who-is-missing-from-this-data` | Why transfers are not a random sample, and Simpson's paradox |
 | `13-does-it-agree-with-the-voters` | The one outside opinion, and where it disagrees |
+| `14-does-the-answer-depend-on-my-choices` | Sensitivity to the four constants, and the one that turned out to do nothing |
 
 Method chapters follow one structure: **Question, Intuition, Math, Code,
 Assumptions, How it breaks.** The last section is the one most tutorials skip.
