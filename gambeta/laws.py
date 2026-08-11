@@ -151,6 +151,22 @@ CROSSWALK = DataFrameSchema(
 )
 """Wikidata identity crosswalk, one row per person."""
 
+AWARDS = DataFrameSchema(
+    {
+        "qid": Column(str),
+        "award": Column(str),
+        "year": Column("Int64", nullable=True),
+    },
+    strict=True,
+    coerce=True,
+)
+"""Individual honours, one row per (person, award, year).
+
+Not unique on ``qid``: winning twice is the interesting case. This is the only
+table in the project that carries an outside opinion, which is exactly what
+makes it worth having — every other check the project runs is internal.
+"""
+
 ELO = DataFrameSchema(
     {
         "season": Column(str, _SEASON),
