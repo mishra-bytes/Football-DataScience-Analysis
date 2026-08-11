@@ -179,10 +179,15 @@ def rank(cfg: kit.Config) -> None:
     keeper = pd.read_parquet(cfg.clean / CLEAN_KEEPER)
     elo = align_teams(locker.read(cfg.raw / RAW_ELO, laws.ELO), keeper["team"])
 
+    # Filter before deriving, not after. `reliability` subtracts a positional
+    # median and the `misc` terms test per-league-season coverage, so both must
+    # be computed against the population that is actually ranked. Filtering
+    # afterwards left the medians dragged down by cameo appearances and the
+    # positional gap four times wider than it should be.
+    #
     # No above_team for outfielders: club strength does not predict individual
     # attacking output, so the residual was a copy of `scoring`. See needs.OUTFIELD.
-    values = needs.outfield_values(outfield)
-    values = values[values["minutes"] >= cfg.min_minutes]
+    values = needs.outfield_values(outfield[outfield["minutes"] >= cfg.min_minutes])
     ranking, offsets, scored = _rank_group(values, needs.OUTFIELD, cfg)
 
     # Published alongside the raw per-season values, not instead of them: the
@@ -196,9 +201,8 @@ def rank(cfg: kit.Config) -> None:
 
     # A keeper's "full season" is the most minutes anyone played in that league-season.
     keeper["team_minutes"] = keeper.groupby(["league", "season"])["minutes"].transform("max")
-    kv = needs.keeper_values(keeper)
+    kv = needs.keeper_values(keeper[keeper["minutes"] >= cfg.min_minutes])
     kv = needs.add_above_team(kv, elo, "concedes_little")
-    kv = kv[kv["minutes"] >= cfg.min_minutes]
     keeper_ranking, _, _ = _rank_group(kv, needs.KEEPER, cfg)
 
     cfg.derive.mkdir(parents=True, exist_ok=True)

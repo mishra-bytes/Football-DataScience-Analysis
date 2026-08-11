@@ -223,7 +223,7 @@ Not bugs. Decisions that need a person.
 |---|---|---|
 | How high should the gate be? | 40th percentile on all ten | 343 of 5,508 qualify. At 50 only 132 do; at 30, 824. There is no principled value, the dashboard slider now lets a reader pick their own and watch the field change. |
 | How much should fouls count? | Reds + second yellows + fouls per 90, equal weight with everything else | Totti, Zlatan and Neymar fail on discipline *alone*. Defensible, or an artefact of weighting aggression like unavailability. Now that `misc` is complete this requirement bites harder than it did. |
-| Is `starts / appearances` right for reliability? | Yes, after the fix | Better than completed-matches-per-start, which measured being a forward. Still says nothing about missing matches through injury, that is `availability`'s job, and the two may overlap. |
+| Is `starts / appearances` right for reliability? | Replaced 2026-08-12 | Now completed matches per appearance against the player's own position. Chosen on four measured faults; see DECISION.md. Overlap with `availability` is 0.55, down from 0.72, so the two still share more than a ten-item gate implies. |
 | Should keepers and outfielders ever be compared? | No, two leaderboards | The honest choice. But the project's headline question implies one answer, and this declines to give one for keepers. |
 
 ---

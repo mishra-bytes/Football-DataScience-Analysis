@@ -39,7 +39,7 @@ OUTFIELD: tuple[Requirement, ...] = (
     Requirement("threat", "Generates threat", "season"),
     Requirement("team_share", "Carries his team", "season"),
     Requirement("availability", "Is available", "season"),
-    Requirement("reliability", "Is picked to start", "season"),
+    Requirement("reliability", "Sees matches out", "season"),
     Requirement("longevity", "Sustains it", "career"),
     Requirement("consistency", "Has no bad seasons", "career"),
     Requirement("discipline", "Does not cost his team", "season"),
@@ -161,6 +161,49 @@ def _misc_term(df: pd.DataFrame, column: str, minutes: pd.Series | None = None) 
     return np.where(usable, present, 0.0)
 
 
+def _role_relative(values: np.ndarray, df: pd.DataFrame) -> np.ndarray:
+    """Subtract the median of the player's own position.
+
+    A usage statistic carries a mechanical role artefact: a centre-back is left
+    on for ninety minutes because he is a centre-back, and a striker comes off
+    because he is a striker. Neither fact is about being trusted, which is what
+    the requirement is trying to measure.
+
+    **One median per position, pooled across every league and season**, and taken
+    over the ranked population rather than everyone who appeared. Both choices
+    were measured against the two things that matter, how much of the positional
+    gap survives and whether a season predicts the same player's next one:
+
+    ========================================  =========  ==============
+    baseline                                  role gap   predicts next
+    ========================================  =========  ==============
+    everyone, per league-season-position          0.233           0.511
+    ranked only, per league-season-position       0.068           0.449
+    ranked only, per position                     0.073           0.495
+    ========================================  =========  ==============
+
+    Including cameo appearances gives a steadier median and fails at the job:
+    a thirty-minute substitute completes nothing whatever his position, so those
+    rows drag every median toward zero and flatten the differences that exist
+    among players who actually play. Restricting to the ranked population fixes
+    that and costs stability, because a league-season-position cell can be small.
+    Pooling positions across leagues and eras recovers the stability, since what
+    counts as a full shift for a centre-back does not meaningfully differ between
+    the 2004 Bundesliga and the 2019 Premier League. Five cells rather than five
+    hundred.
+
+    Phase 2 §8 rejected standardising *within* position, and this is not that.
+    §8 forbids z-scoring **output** by position, because that finds the most
+    attacking defender and presents it as defensive quality. Here a **usage**
+    ratio has a role median subtracted, with no rescaling by within-position
+    spread, so it cannot manufacture a quality claim. It is the same move as the
+    keeper `above_team`: strip a context artefact, keep the player.
+    """
+    series = pd.Series(values, index=df.index)
+    position = df["pos"].fillna("").str.split(",").str[0].replace("", "UNK")
+    return (series - series.groupby(position).transform("median")).to_numpy(dtype=float)
+
+
 def _ratio(numerator: pd.Series, denominator: pd.Series) -> np.ndarray:
     """Safe ratio; a zero or missing denominator yields zero."""
     den = denominator.to_numpy(dtype=float)
@@ -171,13 +214,23 @@ def _ratio(numerator: pd.Series, denominator: pd.Series) -> np.ndarray:
 def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     """Add one column per season-level outfield requirement.
 
-    ``reliability`` is **starts per appearance**, not completed matches per start.
-    The latter asks "did he play the full ninety", which a manager decides on
-    tactics rather than trust, and it systematically punished forwards: on real
-    data, Benzema, Aguero, Higuain, Villa, Owen and Trezeguet all missed
-    qualification on that single requirement, because strikers get substituted.
-    Being taken off no longer counts against a player; only being a substitute
-    does.
+    ``reliability`` is **completed matches per appearance, relative to the
+    player's own position**. It has been three things.
+
+    It began as completed matches per *start*, which measured being a forward:
+    Benzema, Aguero, Higuain, Villa, Owen and Trezeguet all failed qualification
+    on that requirement alone, because strikers get substituted.
+
+    It then became starts per appearance, which fixed the role bias by throwing
+    away the information. A quarter of player-seasons scored exactly 1.000, so
+    the requirement could not separate a squad player with twelve starts from a
+    captain with thirty-eight, and it correlated 0.72 with ``availability``.
+
+    Measured against those four faults, the current form is better on three:
+    no ceiling, a role gap of 0.07 rather than 0.25, and elite players standing
+    1.85 standard deviations clear rather than 0.58. The overlap with
+    ``availability`` improves only from 0.62 to 0.55, and is the reason this
+    requirement still has an open question against it.
 
     Parameters
     ----------
@@ -201,7 +254,7 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     out["threat"] = _rate(_column(out, "sot"), minutes)
     out["team_share"] = out["team_goal_share"].fillna(0.0)
     out["availability"] = _column(out, "min_pct") / 100.0
-    out["reliability"] = _ratio(out["starts"], out["mp"])
+    out["reliability"] = _role_relative(_ratio(_column(out, "complete"), out["mp"]), out)
 
     # Negated so higher is better, like every other requirement.
     #

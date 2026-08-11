@@ -9,19 +9,20 @@ and a worked textbook on the statistics behind it.
 ## The answer
 
 A player must clear a floor on **all ten requirements** to qualify at all.
-343 of 5,508 players do. Ranked among them:
+445 of 5,508 players do. Ranked among them:
 
 | # | Player | Score | σ above mean | Seasons | Leagues |
 |---|---|---|---|---|---|
-| 1 | **Lionel Messi** | 3.13 | **+5.8** | 18 | Spain, France |
-| 2 | **Cristiano Ronaldo** | 2.77 | +5.1 | 19 | England, Spain, Italy |
-| 3 | Harry Kane | 2.57 | +4.7 | 11 | England, Germany |
-| 4 | Thierry Henry | 2.49 | +4.6 | 10 | England, Spain |
-| 5 | Erling Haaland | 2.45 | +4.5 | 6 | England, Germany |
+| 1 | **Lionel Messi** | 3.39 | **+5.8** | 18 | Spain, France |
+| 2 | **Cristiano Ronaldo** | 2.99 | +5.1 | 19 | England, Spain, Italy |
+| 3 | Harry Kane | 2.74 | +4.7 | 11 | England, Germany |
+| 4 | Thierry Henry | 2.71 | +4.6 | 10 | England, Spain |
+| 5 | Erling Haaland | 2.59 | +4.4 | 6 | England, Germany |
 
-**None of that ordering is statistically supported.** Of the 28 pairs among the
-top eight, **not one survives a two-sided permutation test** at p < 0.05.
-Chapters 10 and 11 make that argument rather than burying it.
+**Almost none of that ordering is statistically supported.** Of the 28 pairs
+among the top eight, **one survives a two-sided permutation test** at p < 0.05,
+and none survives a correction for running 28 of them. Chapters 10 and 11 make
+that argument rather than burying it.
 
 (Their confidence intervals overlap almost everywhere too, but that is a
 description and not a test. Overlapping intervals do not imply a
@@ -29,7 +30,7 @@ non-significant difference, which is why the permutation test is the one that
 counts.)
 
 **Goalkeepers** are ranked separately on their own eight requirements.
-Cañizares, Neuer, Valdés, ter Stegen and Ederson lead, and they get their own
+Cañizares, Neuer, Valdés, Ederson and ter Stegen lead, and they get their own
 board because save percentage and goals per 90 are not comparable quantities and
 pretending otherwise would be dishonest.
 
@@ -45,7 +46,7 @@ Ten requirements, each measurable across all 25 seasons and every league:
 | 4 | Generates threat | shots on target / 90 |
 | 5 | Carries his team | share of club goals |
 | 6 | Is available | share of team minutes |
-| 7 | Is picked to start | starts / appearances |
+| 7 | Sees matches out | completed matches per appearance, against his position |
 | 8 | Sustains it | qualifying seasons |
 | 9 | Has no bad seasons | 20th percentile of his season scores |
 | 10 | Does not cost his team | negative cards and fouls |
@@ -72,10 +73,10 @@ the gap between those leagues. Solved across thousands of moves:
 | League | Strength (England = 0) | Move endpoints |
 |---|---|---|
 | England | 0.000 | 967 |
-| Spain | −0.173 | 788 |
-| Italy | −0.245 | 684 |
-| Germany | −0.268 | 496 |
-| France | −0.365 | 743 |
+| Spain | −0.188 | 788 |
+| Italy | −0.267 | 684 |
+| Germany | −0.294 | 496 |
+| France | −0.379 | 743 |
 
 1,839 distinct transfers, each counted once at each end. **England is pinned at
 zero, not measured as best**, because the offsets are identified only up to a
@@ -172,8 +173,8 @@ Assumptions, How it breaks.** The last section is the one most tutorials skip.
 - **Identity is probabilistic.** 93.9% of player-seasons resolve to a Wikidata
   entity. The other 1,240 players are listed, never dropped.
 - **Ten requirements are not ten independent tests.** They behave like about
-  5.4, and `reliability` still correlates 0.7 with `availability`. Chapter 15
-  measures it.
+  five and a half, and `reliability` still correlates 0.55 with `availability`,
+  down from 0.72. Chapter 15 measures it.
 - **The top ten is not an ordering.** Not one of the 28 pairs among the top
   eight is separable at p < 0.05. The
   ranking prints an order because a table has to. The statistics support "this

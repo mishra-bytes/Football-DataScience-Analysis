@@ -139,6 +139,38 @@ that ID anyway.
 A player who cannot be matched is reported in `unresolved.csv`, never dropped.
 Dropping raises no error and quietly deletes a career.
 
+### `reliability` is completed matches, adjusted for position
+
+Completed matches per appearance, minus the median of the player's own position.
+It has been three definitions, and each replacement was measured rather than
+argued.
+
+Completed matches per *start* came first and measured being a forward. Benzema,
+Aguero, Higuain, Villa, Owen and Trezeguet all failed qualification on that
+requirement alone, because strikers get substituted.
+
+Starts per appearance replaced it and fixed the role bias by discarding the
+information. A quarter of player-seasons scored exactly 1.000, so a squad player
+with twelve starts was indistinguishable from a captain with thirty-eight.
+
+The current form was chosen against four faults at once: no ceiling (was 24.6%),
+a positional gap of 0.07 (was 0.25), elite players standing 1.85 standard
+deviations clear (was 0.58), and overlap with `availability` down to 0.55 (was
+0.72). Completed matches per start, the original, scores 0.05 on that third
+measure, which is the arithmetic confirming why it was scrapped.
+
+Rejected: taking the positional median over every player rather than the ranked
+ones. It gives a steadier baseline, measurably, but a thirty-minute substitute
+completes nothing whatever his position, so those rows drag every median toward
+zero and leave the positional gap at 0.23. Rejected too: a median per
+league-season-position, which centres correctly but is noisy at that cell size.
+One median per position, pooled across leagues and eras, keeps the correction
+and recovers the stability.
+
+Phase 2 §8 rejected standardising within position. This is not that: §8 forbids
+z-scoring **output** by position, and this subtracts a median from a **usage**
+ratio with no rescaling, so it cannot manufacture a quality claim.
+
 ### A requirement has to measure something the others do not
 
 `above_team` was the residual of a player's output after regressing on his club's

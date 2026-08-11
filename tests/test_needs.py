@@ -11,6 +11,7 @@ def _outfield() -> pd.DataFrame:
             "season": ["0405"] * 3,
             "team": ["Arsenal", "Chelsea", "Arsenal"],
             "player": ["A", "B", "C"],
+            "pos": ["FW", "FW", "FW"],
             "minutes": [1800, 900, 0],
             "mp": [20, 12, 0],
             "starts": [20, 10, 0],
@@ -45,20 +46,46 @@ def test_finishing_is_goals_per_shot_on_target() -> None:
     assert out.loc["A", "finishing"] == 10 / 40
 
 
-def test_reliability_does_not_punish_being_substituted() -> None:
-    """A striker hooked at 70 minutes every week was still relied upon."""
+def test_reliability_rewards_finishing_the_matches_you_appear_in() -> None:
+    """Completed matches per appearance, which is what the manager decided."""
     df = _outfield()
-    df.loc[df["player"] == "A", ["mp", "starts", "complete"]] = [30, 30, 0]  # always subbed off
-    df.loc[df["player"] == "B", ["mp", "starts", "complete"]] = [30, 5, 5]  # mostly a substitute
+    df.loc[df["player"] == "A", ["mp", "starts", "complete"]] = [30, 30, 27]
+    df.loc[df["player"] == "B", ["mp", "starts", "complete"]] = [30, 30, 6]
     out = needs.outfield_values(df).set_index("player")
-    assert out.loc["A", "reliability"] == 1.0
     assert out.loc["A", "reliability"] > out.loc["B", "reliability"]
+
+
+def test_reliability_is_measured_against_the_players_own_position() -> None:
+    """Finishing 90% of matches is ordinary for a defender and not for a striker.
+
+    Without the positional median this requirement measured being a defender:
+    the gap between the mean forward and the mean defender was 0.25, and it is
+    0.07 now.
+    """
+    base = _outfield().iloc[0].to_dict()
+    df = pd.DataFrame(
+        [
+            {**base, "player": "back-typical", "pos": "DF", "mp": 30, "complete": 27.0},
+            {**base, "player": "back-poor", "pos": "DF", "mp": 30, "complete": 21.0},
+            {**base, "player": "striker-same-rate", "pos": "FW", "mp": 30, "complete": 27.0},
+            {**base, "player": "striker-typical", "pos": "FW", "mp": 30, "complete": 15.0},
+        ]
+    )
+    out = needs.outfield_values(df).set_index("player")
+
+    # Identical completion rates, different positions, different verdicts.
+    assert out.loc["striker-same-rate", "reliability"] > out.loc["back-typical", "reliability"]
+    # And a defender below his own position's norm is penalised.
+    assert out.loc["back-poor", "reliability"] < out.loc["back-typical", "reliability"]
 
 
 def test_zero_minutes_never_divides_by_zero() -> None:
     out = needs.outfield_values(_outfield()).set_index("player")
-    for key in ("scoring", "creation", "threat", "reliability"):
+    for key in ("scoring", "creation", "threat"):
         assert out.loc["C", key] == 0.0
+    # `reliability` is centred on the player's position, so a zero rate lands
+    # below that median rather than at zero. Finite is the claim being made.
+    assert np.isfinite(out.loc["C", "reliability"])
 
 
 def test_discipline_is_negated_so_higher_is_better() -> None:
