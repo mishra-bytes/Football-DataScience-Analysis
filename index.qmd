@@ -3,6 +3,52 @@
 This is a book about two things at once: **who the best footballers of the last
 twenty-five years were**, and **how you would actually find out**.
 
+## The answer, before the argument
+
+No suspense. Here is what the method produces, computed live from the same data
+every chapter uses — a player must clear a floor on **all eleven requirements**
+to appear at all.
+
+```{python}
+#| echo: false
+import pandas as pd
+
+ranking = pd.read_parquet("data/sample/ranking.parquet")
+keepers = pd.read_parquet("data/sample/keeper_ranking.parquet")
+offsets = pd.read_parquet("data/sample/league_offsets.parquet")
+
+mean, spread = ranking["score"].mean(), ranking["score"].std()
+best = ranking[ranking["qualified"]].head(10).copy()
+best.insert(0, "#", range(1, len(best) + 1))
+best["σ above mean"] = ((best["score"] - mean) / spread).round(1)
+best[["#", "player", "score", "σ above mean", "seasons", "leagues"]].round(2).style.hide(axis="index")
+```
+
+```{python}
+#| echo: false
+from IPython.display import Markdown
+
+qualified = int(ranking["qualified"].sum())
+kq = keepers[keepers["qualified"]]
+Markdown(
+    f"**{qualified} of {len(ranking):,} players** clear every requirement. "
+    f"Goalkeepers are ranked separately on their own eight — "
+    f"{', '.join(kq.head(5)['player'])} — because save percentage and goals per 90 "
+    f"are not comparable quantities and pretending otherwise would be dishonest.\n\n"
+    f"League strength is estimated from transfers alone, with England pinned at zero: "
+    + ", ".join(
+        f"**{lg.split('-')[0]}** {v:+.3f}"
+        for lg, v in offsets.groupby("league")["offset"].mean().sort_values(ascending=False).items()
+    )
+    + "."
+)
+```
+
+**Now the part that matters.** That table is an ordering, and the statistics
+behind it do not support one: only three of the twenty-eight pairs among the top
+eight can be told apart at all. Chapters 6 and 7 make that case against the
+table above, which is the honest way round.
+
 Those two questions are harder to separate than they look. Most arguments about
 the greatest player are not really disagreements about facts — they are
 disagreements about what "greatest" means, conducted as though they were

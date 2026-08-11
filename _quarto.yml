@@ -14,6 +14,7 @@ project:
     - labs/06-method-the-bootstrap.ipynb
     - labs/07-method-testing-without-a-distribution.ipynb
     - labs/08-method-selection-bias.ipynb
+    - labs/09-does-it-agree-with-the-voters.ipynb
     - tome/method-template.qmd
 
 book:
@@ -27,6 +28,7 @@ book:
       chapters:
         - labs/01-who-is-the-best-footballer.ipynb
         - labs/02-how-far-ahead-is-the-best.ipynb
+        - labs/09-does-it-agree-with-the-voters.ipynb
     - part: "Methods"
       chapters:
         - labs/05-method-normalisation-and-shrinkage.ipynb
