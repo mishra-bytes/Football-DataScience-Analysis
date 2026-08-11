@@ -65,13 +65,18 @@ countries are one career.
 same footballer on both sides of the move, so the change in his score measures
 the gap between those leagues. Solved across thousands of moves:
 
-| League | Strength (England = 0) | Backed by |
+| League | Strength (England = 0) | Move endpoints |
 |---|---|---|
-| England | 0.000 | 4,835 moves |
-| Spain | −0.163 | 3,940 |
-| Italy | −0.213 | 3,420 |
-| Germany | −0.227 | 2,480 |
-| France | −0.300 | 3,715 |
+| England | 0.000 | 967 |
+| Spain | −0.163 | 788 |
+| Italy | −0.213 | 684 |
+| Germany | −0.227 | 496 |
+| France | −0.300 | 743 |
+
+1,839 distinct transfers, each counted once at each end. **England is pinned at
+zero, not measured as best** — the offsets are identified only up to a constant.
+Pinning any other league instead reproduces the same gaps to within 0.013, and
+England still comes out top.
 
 The gaps are small in 2000-04 and widen from 2005 — the Premier League's
 financial ascent, recovered purely from players moving. Nothing about money is
