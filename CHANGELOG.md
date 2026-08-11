@@ -75,6 +75,27 @@ rebuilt, and three long-pending analysis features shipped.
 
 ### Fixed
 
+- **Interval overlap was used as a significance test.** Overlapping confidence
+  intervals do not imply a non-significant difference; only non-overlap implies
+  the reverse, because the interval for a difference is narrower than two
+  individual intervals suggest. Four top-ten pairs whose intervals overlap are
+  separable at p < 0.05, so the heuristic was reaching a defensible conclusion
+  by invalid reasoning. README, DEVIATIONS and notebook 06 now lead with the
+  test and label the overlap count as description.
+- **Post-hoc one-sided p-values.** The pairwise scan reads a table sorted by
+  score, so the higher scorer is always named first and the direction was chosen
+  after seeing the data — anti-conservative by roughly a factor of two.
+  `doubt.permutation_test` gained `two_sided`, used by the scan and by the
+  dashboard's A-vs-B tab, whose dropdowns are also rank-ordered. Significant
+  pairs: 5 → 3.
+- **Notebook 05's regression-to-mean demonstration did not demonstrate it.** It
+  bucketed z-scores by minutes and asserted the spread shrinks; measured, the
+  standard deviations ran 1.01, 1.00, 0.99, 1.04, 0.88 — not monotone — and the
+  maximum *rose* with minutes. Replaced by a reliability measurement: how well a
+  season predicts the same player's next one, climbing 0.646 → 0.822 from the
+  shortest bucket to the longest. That version earns more than the original,
+  because the shrinkage weight is an estimate of exactly that quantity, so
+  m0 = 900 is now checked against measured reliability rather than asserted.
 - **Ages were attached by position and 94% were wrong.** `clean()` assigned
   `groupby(keys)["age"].first().to_numpy()` onto a frame built with
   `sort=False`; the orderings disagreed at every position, so 61,131 of 65,069
@@ -106,6 +127,9 @@ rebuilt, and three long-pending analysis features shipped.
   contradicted their own captions: an effect-size example whose gap never became
   significant at any sample size shown, and a Simpson's paradox that did not
   reverse. Now p → 0.0010 as n grows, and the correlation flips +0.96 → −0.96.
+- A statistical audit of the new chapters found three further faults, all fixed
+  (see **Fixed** below): an unsupported claim about spread, an unsound use of
+  interval overlap as a test, and post-hoc one-sided p-values.
 
 ### Known issues
 
@@ -115,10 +139,13 @@ rebuilt, and three long-pending analysis features shipped.
   folded onto FBref's Latin spelling — and players genuinely absent from
   Wikidata. Every further loosening trades a missing match for the risk of a
   wrong one, which is the worse error.
-- **The top ten is not an ordering.** 42 of its 45 pairs have overlapping
-  bootstrap intervals and only 5 of 28 pairwise claims among the top eight reach
-  p < 0.05. More data did not fix this and more seasons will not; it needs more
+- **The top ten is not an ordering.** Only 3 of 28 pairwise comparisons among the
+  top eight are separable at p < 0.05 two-sided, and one survives a Bonferroni
+  correction. More data did not fix this and more seasons will not; it needs more
   signal per season.
+- **Percentile bootstrap under-covers on short careers**: 74% actual against a
+  nominal 95% at three seasons, which `min_seasons = 3` admits. BCa intervals are
+  the fix and are not implemented.
 - `failure_summary` is near information-free by construction: a percentile gate
   eliminates exactly that share of the population on every requirement.
 - Defenders remain unmeasurable. Top 50 qualifiers are 96% forwards, 4%

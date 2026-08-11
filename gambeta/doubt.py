@@ -79,6 +79,7 @@ def permutation_test(
     b: np.ndarray,
     n: int = 10_000,
     seed: int = 20260810,
+    two_sided: bool = False,
 ) -> tuple[float, float]:
     """Test "A is better than B" by shuffling the two careers together.
 
@@ -92,9 +93,16 @@ def permutation_test(
     nineteen numbers, the score distribution is visibly skewed, and a t-test
     would be asserting a shape the data does not have.
 
-    **One-sided**, because the claim being tested is directional. Swapping the
-    arguments tests the opposite claim, and both p-values will be large when the
-    players are genuinely inseparable.
+    **One-sided by default**, because a claim like "Henry was better than Suárez"
+    is directional and stated before looking. Swapping the arguments tests the
+    opposite claim.
+
+    **Use ``two_sided=True`` when the direction came from the data.** Scanning
+    every pair in a table sorted by score means ``a`` is always the higher
+    scorer, so the direction was chosen after seeing the answer — and a
+    one-sided test picked that way is anti-conservative by roughly a factor of
+    two. On the top eight of this ranking it reports 5 significant pairs where
+    the two-sided test reports 3.
 
     Parameters
     ----------
@@ -106,6 +114,9 @@ def permutation_test(
         Number of random reallocations.
     seed
         Random seed; a fixed seed makes the p-value exactly reproducible.
+    two_sided
+        Test "these differ" rather than "a beats b", by comparing absolute
+        differences. Required whenever the direction was picked post hoc.
 
     Returns
     -------
@@ -127,7 +138,8 @@ def permutation_test(
 
     draws = rng.permuted(np.tile(pooled, (n, 1)), axis=1)
     diffs = draws[:, : left.size].mean(axis=1) - draws[:, left.size :].mean(axis=1)
-    p = float((1 + int((diffs >= observed).sum())) / (n + 1))
+    extreme = np.abs(diffs) >= abs(observed) if two_sided else diffs >= observed
+    p = float((1 + int(extreme.sum())) / (n + 1))
     return observed, p
 
 

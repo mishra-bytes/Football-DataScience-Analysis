@@ -19,10 +19,14 @@ A player must clear a floor on **all eleven requirements** to qualify at all.
 | 4 | Erling Haaland | 2.71 | +4.8 | 6 | England, Germany |
 | 5 | Harry Kane | 2.65 | +4.7 | 11 | England, Germany |
 
-**The bootstrap cannot separate most of them.** 42 of the 45 pairs in the top ten
-have overlapping confidence intervals, and only five of 28 pairwise claims reach
-p < 0.05 under a permutation test. That is the honest reading, and notebooks 06
-and 07 make the argument rather than burying it.
+**Most of that ordering is not statistically supported.** Of the 28 pairs among
+the top eight, **3 survive a two-sided permutation test** at p < 0.05, and under
+a Bonferroni correction for running 28 tests, one does. Notebooks 06 and 07 make
+the argument rather than burying it.
+
+(Their confidence intervals also overlap for 42 of 45 top-ten pairs, but that is
+a description and not a test — overlapping intervals do not imply a
+non-significant difference, and on this data four such pairs are separable.)
 
 **Goalkeepers** are ranked separately on their own eight requirements — Neuer,
 Cañizares, Valdés, ter Stegen, Weidenfeller — because save percentage and goals
@@ -131,9 +135,13 @@ Assumptions → How it breaks.** The last section is the one most tutorials skip
   domestic league career.
 - **Identity is probabilistic.** 94% of player-seasons resolve to a Wikidata
   entity; the other 1,240 players are listed, never dropped.
-- **The top ten is not an ordering.** Confidence intervals overlap for 42 of its
-  45 pairs. The ranking prints an order because a table has to; the statistics
-  support "this group, clear of the rest" and not much more.
+- **The top ten is not an ordering.** Only 3 of 28 pairs among the top eight are
+  separable at p < 0.05, and one after correcting for the number of tests. The
+  ranking prints an order because a table has to; the statistics support "this
+  group, clear of the rest" and not much more.
+- **Intervals on short careers are optimistic.** A three-season career is allowed
+  into the ranking, and a percentile bootstrap at n = 3 covers the truth about
+  74% of the time, not 95%.
 
 Two bugs worth reading about, both caught by looking at output rather than by
 tests: `consistency` was measured as variance, which rewarded mediocrity and

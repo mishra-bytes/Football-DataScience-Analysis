@@ -34,17 +34,23 @@ def load_seasons(sample_dir: Path = SAMPLE) -> pd.DataFrame:
 def head_to_head(
     seasons: pd.DataFrame, a: str, b: str, n: int = 10_000
 ) -> tuple[float, float] | None:
-    """Is A's advantage over B bigger than two equal players would produce?
+    """Do these two careers differ by more than chance would produce?
 
-    Returns ``None`` when either career is missing the normalised season score —
-    a sample built before that column existed, rather than a real answer.
+    **Two-sided**, and that is not a detail. Both dropdowns are populated in rank
+    order, so whichever pair a reader picks, the direction of the difference was
+    decided by the ranking rather than by them. A one-sided test in a direction
+    the data chose is anti-conservative by roughly a factor of two.
+
+    Returns ``None`` when the sample predates the normalised season score, rather
+    than inventing an answer from the raw per-90 values, which are not comparable
+    across eras or leagues.
     """
     if "season_score" not in seasons.columns:
         return None
     scores = seasons.dropna(subset=["season_score"])
     left = scores.loc[scores["player"] == a, "season_score"].to_numpy()
     right = scores.loc[scores["player"] == b, "season_score"].to_numpy()
-    return doubt.permutation_test(left, right, n=n)
+    return doubt.permutation_test(left, right, n=n, two_sided=True)
 
 
 def filter_ratings(
@@ -189,15 +195,17 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
             "Pick two players. Their seasons are pooled and dealt back out at random "
             "ten thousand times; the p-value is how often chance alone opens a gap as "
             "large as the real one. No distribution is assumed — a career is a dozen "
-            "numbers, which is far too few to take a bell curve on trust."
+            "numbers, which is far too few to take a bell curve on trust. The test is "
+            "two-sided, because these lists are in rank order and so the direction of "
+            "any difference was chosen by the ranking rather than by you."
         )
         names = list(everyone.loc[everyone["qualified"], "player"])
         if len(names) < 2:
             st.warning("Not enough qualifiers to compare.")
         else:
             pick_a, pick_b = st.columns(2)
-            a = pick_a.selectbox("Claim this player", names, index=0)
-            b = pick_b.selectbox("is better than", names, index=1)
+            a = pick_a.selectbox("Compare this player", names, index=0)
+            b = pick_b.selectbox("against", names, index=1)
             result = head_to_head(load_seasons(), a, b)
             if result is None:
                 st.warning("Rebuild the sample (`uv run gambeta all`) to enable this test.")
@@ -214,6 +222,11 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
                         "That is a finding, not a failure: it says the argument about who "
                         "is better cannot be settled by these numbers."
                     )
+                st.caption(
+                    "One comparison at a time. Working through many pairs is 45 tests "
+                    "on the top ten, and at a 5% threshold roughly two come out "
+                    "'significant' on noise alone."
+                )
 
     with distribution_tab:
         top5 = shown.head(5)

@@ -90,6 +90,32 @@ def test_permutation_never_reports_zero() -> None:
     assert p == pytest.approx(1 / 1001)
 
 
+def test_two_sided_is_stricter_than_one_sided() -> None:
+    """Scanning a sorted table picks the direction from the data.
+
+    A one-sided test chosen that way is anti-conservative by roughly a factor
+    of two, so the exploratory pair scan must not use it.
+    """
+    # A modest gap, so the p-value sits well away from the 1/(n+1) floor where
+    # the doubling relation is lost to the discreteness of the permutations.
+    rng = np.random.default_rng(11)
+    better, worse = rng.normal(0.3, 1, 40), rng.normal(0, 1, 40)
+    _, one = doubt.permutation_test(better, worse, n=20_000, seed=1)
+    _, two = doubt.permutation_test(better, worse, n=20_000, seed=1, two_sided=True)
+    assert 0.01 < one < 0.4, "test is only meaningful away from the p-value floor"
+    assert two > one
+    assert two == pytest.approx(2 * one, rel=0.2)
+
+
+def test_two_sided_ignores_the_direction() -> None:
+    """'These differ' is the same claim whichever way round it is asked."""
+    a = np.array([2.0, 2.4, 1.8, 2.2, 2.6])
+    b = np.array([0.4, 0.1, 0.6, 0.3, 0.2])
+    _, forwards = doubt.permutation_test(a, b, n=5_000, seed=2, two_sided=True)
+    _, backwards = doubt.permutation_test(b, a, n=5_000, seed=2, two_sided=True)
+    assert forwards == pytest.approx(backwards, abs=0.01)
+
+
 def test_permutation_is_reproducible_for_a_fixed_seed() -> None:
     a, b = np.arange(10.0), np.arange(10.0) + 0.5
     once = doubt.permutation_test(a, b, n=500, seed=4)

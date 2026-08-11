@@ -172,18 +172,38 @@ which makes it worth checking against.
   displace Kahn, Ederson, Čech and Buffon from the top five. Neuer still leads.
   Qualifiers went from 56 of 232 to 75 of 395.
 
-## An honest finding, restated with better tools
+## An honest finding, and a correction to how it was argued
 
 Phase 1 reported that 44 of 45 pairs in the top ten had overlapping bootstrap
-intervals. On the complete Big 5, with a permutation test as well as an interval,
-the picture is the same and now has two independent measurements: **42 of 45
-pairs overlap, and only 5 of 28 pairwise claims among the top eight reach
-p < 0.05.**
+intervals, and concluded the lens "cannot statistically separate the top ten".
+
+**The conclusion stands; the reasoning behind it did not.** Overlapping
+confidence intervals do not imply a non-significant difference. Non-overlap
+implies significance, but the converse fails, because the interval for a
+difference is narrower than two individual intervals suggest — standard errors
+combine in quadrature. Measured on this data, four pairs whose intervals overlap
+are separable at p < 0.05, so the heuristic was giving the right answer for the
+wrong reason.
+
+Re-argued with an actual test: of the 28 pairs among the top eight, **3 reach
+p < 0.05 two-sided**, and one survives a Bonferroni correction for 28 tests.
+
+Two further corrections from the same audit:
+
+- **One-sided p-values were reported for pairs drawn from a sorted table.** The
+  direction was therefore chosen after seeing the data, which is
+  anti-conservative by roughly a factor of two — 5 significant pairs became 3
+  once the scan was made two-sided. `doubt.permutation_test` grew a `two_sided`
+  option and the exploratory scan uses it; a pre-specified directional claim
+  still uses one.
+- **The percentile bootstrap under-covers badly on short careers.** At three
+  seasons — which `min_seasons = 3` permits into the ranking — a nominal 95%
+  interval contains the truth 74% of the time. BCa would narrow the gap; more
+  seasons would close it.
 
 More data did not resolve the top of the table, and that is the correct outcome
 to report rather than a disappointment. Narrowing those bands needs more signal
-per season — more metrics — not more seasons. Notebooks 06 and 07 make the
-argument in full.
+per season, not more seasons.
 - **Discipline bites harder.** Complete `misc` means second yellows and fouls
   per 90 are measured the same way in every league instead of degrading to
   reds-and-yellows where the table was missing.

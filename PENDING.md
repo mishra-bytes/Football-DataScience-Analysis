@@ -125,10 +125,14 @@ and already dispatches to the GPU above a size threshold.
 
 `doubt.permutation_test`, with an "A vs B" dashboard tab and notebook 07.
 
-The finding is uncomfortable and belongs in the open: **only 5 of 28 pairwise
-claims among the top eight reach p < 0.05**, and running 28 tests at that
-threshold is itself the multiple-comparisons trap the chapter demonstrates. The
-ranking's ordering is far weaker evidence than a sorted table implies.
+The finding is uncomfortable and belongs in the open: **only 3 of 28 pairwise
+comparisons among the top eight reach p < 0.05 two-sided**, and one survives a
+Bonferroni correction. The ranking's ordering is far weaker evidence than a
+sorted table implies.
+
+Still open, and now the most defensible next step for uncertainty: **BCa
+intervals**. The percentile bootstrap covers 74% at three seasons against a
+nominal 95%, and `min_seasons = 3` lets those careers into the published table.
 
 ## Phase 4 — Presentation
 
