@@ -149,7 +149,7 @@ def _rank_group(
 
     Returns the ranking, the league offsets, and the per-season frame behind
     them. The third is not a by-product: comparing two careers season by season
-    — as :func:`gambeta.doubt.permutation_test` does — is only meaningful on
+    (as :func:`gambeta.doubt.permutation_test` does) is only meaningful on
     these normalised, offset-adjusted numbers, never on the raw per-90s.
     """
     keys = needs.season_keys(reqs)
@@ -183,7 +183,7 @@ def rank(cfg: kit.Config) -> None:
 
     # Published alongside the raw per-season values, not instead of them: the
     # raw columns answer "what did he do", `season_score` answers "how good was
-    # that, here, then" — and only the second can be compared between careers.
+    # that, here, then", and only the second can be compared between careers.
     values = values.merge(
         scored[["player_id", "season", "score"]].rename(columns={"score": "season_score"}),
         on=["player_id", "season"],
@@ -205,7 +205,7 @@ def rank(cfg: kit.Config) -> None:
     gate.failure_summary(ranking, needs.OUTFIELD).to_csv(cfg.derive / FAILURES, index=False)
 
     # The only outside opinion the project consults. Optional, because the
-    # ranking stands without it — but when it is present, disagreeing with the
+    # ranking stands without it, but when it is present, disagreeing with the
     # Ballon d'Or is a claim that should be made in public with reasons.
     if (cfg.raw / RAW_AWARDS).exists():
         awards = locker.read(cfg.raw / RAW_AWARDS, laws.AWARDS)

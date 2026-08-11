@@ -1,6 +1,6 @@
 """Source adapters. Each scout returns a tidy DataFrame matching a schema in `laws`.
 
-Adding a source means adding one file here and changing nothing else — this
+Adding a source means adding one file here and changing nothing else. This
 protocol is the project's extension seam.
 """
 

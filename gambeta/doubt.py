@@ -1,12 +1,12 @@
 """Uncertainty: bootstrap confidence intervals and permutation tests.
 
 Every published ranking carries an interval. Where two players' intervals
-overlap, the project says so rather than reporting a spurious ordering — which
+overlap, the project says so rather than reporting a spurious ordering, which
 is the difference between an analysis and a hot take.
 
 The interval answers "how precisely do we know this player's level?". The
-permutation test answers the question people actually argue about — "is A
-better than B, or is that gap what two equal players look like?" — and it
+permutation test answers the question people actually argue about: "is A
+better than B, or is that gap what two equal players look like?", and it
 answers it without assuming a distribution, which matters when a career is
 five numbers long.
 """
@@ -23,7 +23,7 @@ GPU_MIN_ELEMENTS = 1_000_000
 
 Kernel-launch and host-to-device transfer overhead dominate small problems, and
 this project calls ``bootstrap`` thousands of times on five-element careers.
-Dispatching those to the GPU would be slower, not faster — hence the floor.
+Dispatching those to the GPU would be slower, not faster, hence the floor.
 """
 
 
@@ -99,7 +99,7 @@ def permutation_test(
 
     **Use ``two_sided=True`` when the direction came from the data.** Scanning
     every pair in a table sorted by score means ``a`` is always the higher
-    scorer, so the direction was chosen after seeing the answer — and a
+    scorer, so the direction was chosen after seeing the answer, and a
     one-sided test picked that way is anti-conservative by roughly a factor of
     two. On the top eight of this ranking it reports 5 significant pairs where
     the two-sided test reports 3.
@@ -122,7 +122,7 @@ def permutation_test(
     -------
     tuple of float
         ``(observed difference in means, p-value)``. The p-value uses the
-        ``(hits + 1) / (n + 1)`` correction, so it is never reported as zero —
+        ``(hits + 1) / (n + 1)`` correction, so it is never reported as zero.
         10,000 shuffles cannot distinguish "impossible" from "rarer than 1 in
         10,000", and printing ``p = 0`` would claim it can. Fewer than two
         seasons on either side yields NaN: there is nothing to shuffle.

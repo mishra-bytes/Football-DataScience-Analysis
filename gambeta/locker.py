@@ -32,7 +32,7 @@ def write(
 
     Validation happens before any file is created, so a rejected frame never
     leaves a partial artifact behind. A partial scrape must always be
-    distinguishable from a complete one — that is the manifest's real job.
+    distinguishable from a complete one. That is the manifest's real job.
 
     Parameters
     ----------

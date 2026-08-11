@@ -10,7 +10,7 @@ import pandas as pd
 def season_dates(seasons: Sequence[str]) -> dict[str, str]:
     """Map each 4-digit season code to a mid-season sampling date.
 
-    ``"0405"`` denotes 2004-05, so the sample is taken on 2005-01-01 — roughly
+    ``"0405"`` denotes 2004-05, so the sample is taken on 2005-01-01, roughly
     the midpoint, when a season's team strengths are informative but not yet
     contaminated by end-of-season dead rubbers.
 

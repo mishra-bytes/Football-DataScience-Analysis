@@ -5,7 +5,7 @@ floor on every requirement decides who qualifies, and only qualifiers are ranked
 A weighted average alone would let a player be genuinely poor at something the
 list calls a requirement and still win on volume elsewhere.
 
-The third output — which requirement each failed player missed — is a
+The third output, which requirement each failed player missed, is a
 first-class deliverable, not diagnostics. "Haaland fails longevity" is more
 informative than his rank, and it is what makes the definition arguable instead
 of decreed.

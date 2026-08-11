@@ -5,7 +5,7 @@ The project's highest-risk component. FBref exposes no player ID at season level
 and enriched with a Wikidata QID where both name and birth year agree.
 
 The cardinal rule: a player who cannot be matched is **reported**, never
-dropped. Silently discarding an unmatched row does not raise an error — it just
+dropped. Silently discarding an unmatched row does not raise an error. It just
 quietly deletes a career from the analysis, and no test would ever notice.
 
 **Matching runs in tiers.** Measured on the real data, 90% of unmatched players
@@ -47,8 +47,8 @@ _ID_LENGTH = 12
 def normalize(name: str) -> str:
     """Fold accents and punctuation, collapse whitespace, and lowercase a name.
 
-    FBref and Wikidata disagree routinely on diacritics — "Fàbregas" against
-    "Fabregas" — and on punctuation — "M'Boma" against "Mboma" — so both sides
+    FBref and Wikidata disagree routinely on diacritics ("Fàbregas" against
+    "Fabregas") and on punctuation ("M'Boma" against "Mboma"), so both sides
     are folded to a common form before matching.
     """
     decomposed = unicodedata.normalize("NFKD", str(name))

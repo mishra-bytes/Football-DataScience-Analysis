@@ -5,8 +5,8 @@ with a Latin-script label, date of birth, and an FBref player ID where one
 exists. Players holding multiple citizenships return one row per citizenship, so
 `parse_bindings` deduplicates on QID.
 
-**Occupation is the anchor, not the FBref ID.** The obvious query — "everyone
-carrying P5750" — was measured against the real data and threw away 56% of the
+**Occupation is the anchor, not the FBref ID.** The obvious query, "everyone
+carrying P5750", was measured against the real data and threw away 56% of the
 candidates: 114,084 people carry an FBref ID, 261,725 footballers of the right
 age exist, and Modrić, Puyol, Handanović and Weidenfeller are all in the second
 group. Since :func:`gambeta.whois.resolve` joins on ``(name, birth year)`` and
@@ -14,7 +14,7 @@ has never once used ``fbref_id``, requiring the property bought nothing and cost
 half the pool. It is kept as an optional column for provenance.
 
 **The label service is asked for Latin scripts only.** With ``language "en"``
-alone it silently returns the bare QID for anyone lacking an English label —
+alone it silently returns the bare QID for anyone lacking an English label.
 328 crosswalk rows were literally named ``Q483837``, which is Luka Modrić. A
 Cyrillic or Greek label is no more useful than that, since it cannot be folded
 onto FBref's Latin spelling, so the fallback chain lists Latin-script languages
@@ -148,7 +148,7 @@ def ask(query: str, what: str) -> list[dict[str, Any]]:
             response.raise_for_status()
             # strict=False, not response.json(): the payload contains raw
             # control characters inside player labels, which the strict decoder
-            # rejects outright — one bad byte would discard the whole page.
+            # rejects outright, because one bad byte would discard the whole page.
             payload = json.loads(response.text, strict=False)
             bindings: list[dict[str, Any]] = payload["results"]["bindings"]
             return bindings
@@ -171,7 +171,7 @@ AWARDS: dict[str, str] = {
 
 France Football's Ballon d'Or and FIFA's world player award merged for 2010-2015
 and split again afterwards, so no single award spans the window. Taking all five
-is not double counting — it is the contemporaneous consensus, and where two
+is not double counting. It is the contemporaneous consensus, and where two
 bodies disagreed in the same year that disagreement is itself evidence.
 """
 
@@ -185,8 +185,8 @@ SELECT ?p ?award ?when WHERE {
 """
 """Winners of the tracked awards, restricted to men's football.
 
-The P21 filter matches the project's declared scope — the Big 5 men's domestic
-leagues — and without it the check misreports itself. Wikidata attaches several
+The P21 filter matches the project's declared scope, the Big 5 men's domestic
+leagues, and without it the check misreports itself. Wikidata attaches several
 of these award items to women's winners too, so Birgit Prinz, Carli Lloyd and
 Aitana Bonmatí arrived counted as "winners our data is missing" when their
 absence is correct and by design.
@@ -220,7 +220,7 @@ def parse_awards(bindings: list[dict[str, Any]]) -> pd.DataFrame:
 
 
 class AwardsScout:
-    """Fetch individual honours — the only outside opinion in the project."""
+    """Fetch individual honours, the only outside opinion in the project."""
 
     name = "wikidata-awards"
 
@@ -275,7 +275,7 @@ class WikidataScout:
         request comfortably inside the limit.
 
         This is not hypothetical. 1985 was lost on two consecutive full runs, and
-        1985 is when Cristiano Ronaldo and Luka Modrić were born — so the cost of
+        1985 is when Cristiano Ronaldo and Luka Modrić were born, so the cost of
         skipping the fallback was the second name in our own ranking going
         unresolved.
         """

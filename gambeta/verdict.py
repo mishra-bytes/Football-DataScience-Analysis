@@ -2,7 +2,7 @@
 
 Every other check in this project is internal. The gate is consistent with the
 requirement list, the requirement list is consistent with the definition, the
-bootstrap is consistent with the data — and all of that could be internally
+bootstrap is consistent with the data, and all of that could be internally
 perfect while measuring the wrong thing entirely.
 
 Ballon d'Or and world-player voting is the one available outside opinion. It is
@@ -11,7 +11,7 @@ Cups this project cannot see, and it has its own well-known biases toward
 forwards and toward whoever won the Champions League. That is precisely why it
 is worth comparing against rather than fitting to. Agreement is evidence the
 method measures something real; **disagreement is the more interesting output**,
-because each disagreement has a nameable cause — and this module names it.
+because each disagreement has a nameable cause, and this module names it.
 """
 
 from __future__ import annotations
@@ -58,7 +58,7 @@ def against_awards(
     awards
         Honours conforming to :data:`gambeta.laws.AWARDS`.
     identity
-        Any frame carrying both ``player_id`` and ``qid`` — the per-season table
+        Any frame carrying both ``player_id`` and ``qid``: the per-season table
         is the obvious one. The ranking is keyed by ``player_id`` and the awards
         by ``qid``, and nothing else bridges them.
     window
@@ -120,7 +120,7 @@ def disagreements(placed: pd.DataFrame, worst: int = 15) -> pd.DataFrame:
     found["verdict"] = [
         "qualified" if q else f"failed: {f}"
         for q, f in zip(
-            found["qualified"].fillna(False).astype(bool), found["failed"].fillna("—"), strict=True
+            found["qualified"].fillna(False).astype(bool), found["failed"].fillna("-"), strict=True
         )
     ]
     return found.nlargest(worst, "rank")[

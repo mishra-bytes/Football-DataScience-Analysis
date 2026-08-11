@@ -2,10 +2,10 @@
 
 Two forms, each chosen for the job the data does:
 
-* :func:`ranked_dots` — magnitude with uncertainty. A dot plot, not a bar chart,
+* :func:`ranked_dots`, magnitude with uncertainty. A dot plot, not a bar chart,
   because the quantity is a standard score with a meaningful zero *and* an
   interval; bars would imply a length that starts at zero and hide the interval.
-* :func:`bump` — change in rank over time.
+* :func:`bump`, change in rank over time.
 
 Both modes are **selected, not flipped**: the dark palette is its own set of
 steps chosen for the dark surface, not a lightness inversion of the light one.
@@ -15,9 +15,9 @@ Palette provenance
 Colours are the validated reference categorical palette. Verified with the
 data-viz validator on this exact ordering:
 
-* light, adjacent pairs, 8 slots — CVD ΔE 9.1, normal-vision ΔE 19.6, PASS
-* dark, adjacent pairs, 8 slots — CVD ΔE 8.4, normal-vision ΔE 19.3, PASS
-* all-pairs — only the first three slots clear the floors in both modes
+* light, adjacent pairs, 8 slots: CVD ΔE 9.1, normal-vision ΔE 19.6, PASS
+* dark, adjacent pairs, 8 slots: CVD ΔE 8.4, normal-vision ΔE 19.3, PASS
+* all-pairs: only the first three slots clear the floors in both modes
 
 Because a bump chart's lines cross, any two series can end up adjacent, so it is
 an all-pairs form. Series are therefore capped at eight and every line carries a
@@ -35,7 +35,7 @@ import pandas as pd
 from matplotlib.figure import Figure
 
 MAX_SERIES = 8
-"""Hard cap. A ninth series is never a generated hue — fold it or facet."""
+"""Hard cap. A ninth series is never a generated hue. Fold it or facet."""
 
 DOTS_SUBTITLE = "Bars are 95% bootstrap intervals. Where they overlap, the order is not resolved."
 
@@ -199,7 +199,7 @@ def bell(
 
     Overlays the normal curve implied by the data's own mean and standard
     deviation. Where the histogram sits above that curve in the right tail, the
-    distribution has more extreme performers than a normal would produce — which
+    distribution has more extreme performers than a normal would produce, which
     is the interesting claim about football, not a defect of the chart.
 
     Parameters

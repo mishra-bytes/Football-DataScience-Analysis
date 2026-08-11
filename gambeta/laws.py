@@ -1,4 +1,4 @@
-"""pandera schemas — the contract between pipeline layers.
+"""pandera schemas: the contract between pipeline layers.
 
 Every Parquet write validates against a schema here, and every read validates
 again. An identity-resolution bug therefore surfaces as a loud failure at the
@@ -164,7 +164,7 @@ AWARDS = DataFrameSchema(
 
 Not unique on ``qid``: winning twice is the interesting case. This is the only
 table in the project that carries an outside opinion, which is exactly what
-makes it worth having — every other check the project runs is internal.
+makes it worth having, because every other check the project runs is internal.
 """
 
 ELO = DataFrameSchema(

@@ -5,7 +5,7 @@ Phase 1 implements one lens, ``peak5``. Later phases add ``career``, ``per90``,
 under a reader-controlled weight vector.
 
 A lens answers one clearly-stated question. It does not pretend to answer
-"who was best" — that is a choice about which lens matters, and the project
+"who was best". That is a choice about which lens matters, and the project
 makes the reader make it.
 """
 
@@ -38,7 +38,7 @@ def _best_window(scores: np.ndarray, positions: np.ndarray, window: int) -> tupl
 
     Maximising the mean alone would be wrong. A single 6.0 season would beat two
     seasons averaging 5.0, so every player's "peak" would collapse to their one
-    best year and the lens would stop measuring sustained excellence — which is
+    best year and the lens would stop measuring sustained excellence, which is
     the entire thing it exists to measure. Length dominates; the mean only
     separates windows of equal length.
 
@@ -67,7 +67,7 @@ def peak5(df: pd.DataFrame, cfg: Config, window: int = 5) -> pd.DataFrame:
       data this let a single outstanding campaign outrank five-season windows
       from Rooney and Ronaldo, which is not what the lens claims to measure.
     * Bootstrapping a single observation returns a zero-width interval. That is
-      arithmetically correct — one point has no resampling spread — but it
+      arithmetically correct, since one point has no resampling spread, but it
       renders as *perfect confidence* on the shakiest estimate in the table.
 
     Parameters

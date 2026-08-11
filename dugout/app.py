@@ -75,7 +75,7 @@ def reweight(
 
     The published ranking already carries one standardised column per
     requirement, which is the whole input :func:`gambeta.gate.qualify_and_rank`
-    needs — so the reader can change the weights and see the answer move without
+    needs, so the reader can change the weights and see the answer move without
     the pipeline, the scrape or the z-scoring being touched.
 
     Weights cannot move the gate. Requalifying is the *percentile's* job, and it
@@ -125,7 +125,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
         st.header("Make your own argument")
         st.caption(
             "Every requirement counts equally by default. That is a choice, not a "
-            "fact — change it and watch the order move."
+            "fact. Change it and watch the order move."
         )
         argument = st.selectbox("Start from", list(needs.ARGUMENTS))
         preset = needs.ARGUMENTS[argument]
@@ -194,7 +194,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
         st.caption(
             "Pick two players. Their seasons are pooled and dealt back out at random "
             "ten thousand times; the p-value is how often chance alone opens a gap as "
-            "large as the real one. No distribution is assumed — a career is a dozen "
+            "large as the real one. No distribution is assumed, because a career is a dozen "
             "numbers, which is far too few to take a bell curve on trust. The test is "
             "two-sided, because these lists are in rank order and so the direction of "
             "any difference was chosen by the ranking rather than by you."
@@ -215,10 +215,10 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
                 diff, p = result
                 st.metric(f"{a} minus {b}, per season", f"{diff:+.3f}")
                 if p < 0.05:
-                    st.success(f"p = {p:.4f} — the gap is larger than chance comfortably explains.")
+                    st.success(f"p = {p:.4f}. The gap is larger than chance comfortably explains.")
                 else:
                     st.info(
-                        f"p = {p:.3f} — on this evidence these two are **not separable**. "
+                        f"p = {p:.3f}. On this evidence these two are **not separable**. "
                         "That is a finding, not a failure: it says the argument about who "
                         "is better cannot be settled by these numbers."
                     )
@@ -234,7 +234,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
         st.pyplot(tifo.bell(everyone["score"], highlight=marks))
         st.caption(
             "The right tail is fatter than a normal distribution allows. Sigma here is a ruler "
-            "for comparison, not a probability — under a normal curve the best player would be "
+            "for comparison, not a probability. Under a normal curve the best player would be "
             "a one-in-six-hundred-million event in a population of five and a half thousand."
         )
 
@@ -242,7 +242,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
         keepers = load_keepers()
         kq = keepers[keepers["qualified"]] if qualified_only else keepers
         st.caption(
-            "Judged on their own eight requirements — save percentage, clean sheets, goals "
+            "Judged on their own eight requirements: save percentage, clean sheets, goals "
             "conceded. Not comparable with outfield players; the data cannot support that."
         )
         st.dataframe(
@@ -275,7 +275,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
         )
         st.caption(
             f"At the {gate_percentile:.0f}th percentile every requirement eliminates the same "
-            "share of the population by construction — that is what a percentile floor does. "
+            "share of the population by construction. That is what a percentile floor does. "
             "The interesting column is *which* players, above."
         )
 

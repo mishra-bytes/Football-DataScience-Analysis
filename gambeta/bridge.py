@@ -115,7 +115,7 @@ def solve_offsets(
     little.
 
     The reference league's blocks are dropped from the design matrix, pinning them
-    at zero — offsets are only ever identified up to a constant.
+    at zero, because offsets are only ever identified up to a constant.
 
     Parameters
     ----------
@@ -125,8 +125,8 @@ def solve_offsets(
         Supplies the season range and the preferred reference league.
     leagues
         Leagues to solve for. Defaults to ``cfg.leagues``. Callers should pass the
-        leagues actually present in the data, so a partial dataset — say four of
-        the Big 5 — produces offsets for what exists rather than empty rows for a
+        leagues actually present in the data, so a partial dataset (say four of
+        the Big 5) produces offsets for what exists rather than empty rows for a
         league nobody has scraped yet.
 
     Returns

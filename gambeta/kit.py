@@ -15,7 +15,7 @@ ACTIVE_LEAGUES: tuple[str, ...] = (
     "GER-Bundesliga",
     "FRA-Ligue 1",
 )
-"""Leagues with data collected — the full Big 5.
+"""Leagues with data collected: the full Big 5.
 
 Nothing else hard-codes a league count: the bridge solves for whichever leagues
 appear in the data. See PENDING.md.
