@@ -57,6 +57,12 @@ LIGHT: dict[str, Any] = {
         "#4a3aa7",
         "#e34948",
     ),
+    # One hue, light to dark, for magnitude. Lightness is monotonic by
+    # construction (OKLab L 0.96 down to 0.35) and asserted in the tests.
+    "sequential": ("#eaf2fb", "#c6dcf4", "#95c0ea", "#5f9fdd", "#2a78d6", "#1c56a0", "#123a6d"),
+    # Two hues with a neutral midpoint, for polarity. Each arm is monotonic
+    # toward the centre, which is the lightest step on a light surface.
+    "diverging": ("#8c3d12", "#c86a35", "#eb9e6f", "#e6e5df", "#7fb0e4", "#3a7fd0", "#1b4d8f"),
 }
 
 DARK: dict[str, Any] = {
@@ -77,7 +83,123 @@ DARK: dict[str, Any] = {
         "#9085e9",
         "#e66767",
     ),
+    # Selected for the dark surface, not inverted from the light steps: the
+    # ramp climbs away from the surface (L 0.27 to 0.81) rather than toward it.
+    "sequential": ("#16273c", "#1d3b5f", "#245285", "#2a6bad", "#3987e5", "#6ba7ee", "#9dc6f5"),
+    # The neutral midpoint is the *darkest* step here, so "no signal" recedes
+    # into the surface instead of glowing out of it.
+    "diverging": ("#e08a5a", "#d9703a", "#a85428", "#3a3a38", "#2d6bb0", "#3987e5", "#79b0ef"),
 }
+
+
+def matrix(
+    frame: pd.DataFrame,
+    *,
+    title: str,
+    subtitle: str | None = None,
+    diverging: bool = False,
+    fmt: str = "{:.2f}",
+    label_if: float | None = None,
+    scale: tuple[float, float] | None = None,
+    dark: bool = False,
+) -> Figure:
+    """Heatmap of a small labelled table: a correlation matrix, a coverage grid.
+
+    The form is right when every cell is a comparable magnitude and the reader
+    needs to find blocks rather than read individual numbers. Below roughly a
+    hundred cells the values are worth printing on top, which is why this labels
+    selectively rather than relying on colour alone.
+
+    Parameters
+    ----------
+    frame
+        Rows and columns are the axes; values are the magnitude.
+    diverging
+        ``True`` when the value has a sign and zero means something, which picks
+        the two-hue ramp with a neutral midpoint and centres the scale on zero.
+        ``False`` picks the single-hue ramp for a plain magnitude.
+    fmt
+        Format for the printed cell values.
+    label_if
+        Print a value only when ``abs(value)`` reaches this, so a dense grid
+        stays readable. ``None`` labels every cell.
+    scale
+        ``(low, high)`` limits. Defaults to the data's range, or to a symmetric
+        range about zero when ``diverging``.
+    """
+    from matplotlib.colors import LinearSegmentedColormap, Normalize
+
+    colours = palette(dark)
+    steps = colours["diverging" if diverging else "sequential"]
+    cmap = LinearSegmentedColormap.from_list("gambeta", list(steps))
+
+    values = frame.to_numpy(dtype=float)
+    if scale is not None:
+        low, high = scale
+    elif diverging:
+        edge = float(np.nanmax(np.abs(values)))
+        low, high = -edge, edge
+    else:
+        low, high = float(np.nanmin(values)), float(np.nanmax(values))
+    norm = Normalize(vmin=low, vmax=high)
+
+    height = max(3.0, 0.42 * len(frame) + 2.2)
+    fig, ax = plt.subplots(figsize=(min(12.0, 0.75 * len(frame.columns) + 4.5), height))
+    fig.patch.set_facecolor(colours["surface"])
+    ax.set_facecolor(colours["surface"])
+
+    # A 2px surface gap between cells, so adjacent blocks read as separate marks.
+    ax.pcolormesh(values, cmap=cmap, norm=norm, edgecolors=colours["surface"], linewidth=2.0)
+    ax.invert_yaxis()
+    ax.set_aspect("equal" if len(frame) == len(frame.columns) else "auto")
+
+    for row in range(values.shape[0]):
+        for col in range(values.shape[1]):
+            value = values[row, col]
+            if np.isnan(value) or (label_if is not None and abs(value) < label_if):
+                continue
+            # Text is ink, never the series colour: pick whichever of the two
+            # inks the cell can carry.
+            shade = norm(value)
+            far = shade > 0.72 or (diverging and shade < 0.28)
+            ax.text(
+                col + 0.5,
+                row + 0.5,
+                fmt.format(value),
+                ha="center",
+                va="center",
+                fontsize=8,
+                color=colours["surface"] if far else colours["primary"],
+            )
+
+    ax.set_xticks(np.arange(len(frame.columns)) + 0.5)
+    ax.set_xticklabels(frame.columns, rotation=45, ha="right", fontsize=9)
+    ax.set_yticks(np.arange(len(frame)) + 0.5)
+    ax.set_yticklabels(frame.index, fontsize=9)
+    ax.tick_params(length=0, colors=colours["secondary"])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    bar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, fraction=0.03, pad=0.02)
+    bar.outline.set_visible(False)
+    bar.ax.tick_params(length=0, colors=colours["secondary"], labelsize=8)
+
+    # The subtitle is offset in points, not axes fractions: a short wide figure
+    # makes an axes-relative offset tiny and the two lines collide.
+    ax.set_title(title, color=colours["primary"], fontsize=13, loc="left", pad=30)
+    if subtitle:
+        ax.annotate(
+            subtitle,
+            xy=(0, 1),
+            xycoords="axes fraction",
+            xytext=(0, 8),
+            textcoords="offset points",
+            color=colours["secondary"],
+            fontsize=9,
+            va="bottom",
+        )
+    fig.tight_layout()
+    return fig
 
 
 def palette(dark: bool = False) -> dict[str, Any]:

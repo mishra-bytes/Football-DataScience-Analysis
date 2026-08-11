@@ -2,7 +2,9 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 
 from gambeta import tifo  # noqa: E402
@@ -127,3 +129,51 @@ def test_bell_survives_non_finite_values() -> None:
 def test_apply_theme_is_idempotent() -> None:
     tifo.apply_theme()
     tifo.apply_theme()
+
+
+def _oklab_lightness(hex_colour: str) -> float:
+    """OKLab L for a hex colour, so ramp claims are checked not asserted."""
+    channels = [int(hex_colour[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+    linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    r, g, b = linear
+    long_ = np.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+    medium = np.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+    short = np.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+    return float(0.2104542553 * long_ + 0.7936177850 * medium - 0.0040720468 * short)
+
+
+@pytest.mark.parametrize("dark", [False, True])
+def test_sequential_ramp_is_monotonic_in_lightness(dark: bool) -> None:
+    """A magnitude ramp that doubles back reads as two different magnitudes."""
+    steps = [_oklab_lightness(c) for c in tifo.palette(dark)["sequential"]]
+    assert steps == sorted(steps) or steps == sorted(steps, reverse=True)
+
+
+@pytest.mark.parametrize("dark", [False, True])
+def test_diverging_ramp_turns_once_at_the_middle(dark: bool) -> None:
+    """Each arm runs one way, and the turn is the neutral midpoint."""
+    steps = [_oklab_lightness(c) for c in tifo.palette(dark)["diverging"]]
+    middle = len(steps) // 2
+    left, right = steps[: middle + 1], steps[middle:]
+    assert left == sorted(left) or left == sorted(left, reverse=True)
+    assert right == sorted(right) or right == sorted(right, reverse=True)
+    # The turn is at the centre, not somewhere along an arm.
+    assert steps[middle] == max(steps) or steps[middle] == min(steps)
+
+
+def test_matrix_labels_only_what_it_is_asked_to() -> None:
+    """A dense grid stays readable because small cells go unlabelled."""
+    frame = pd.DataFrame([[1.0, 0.05], [0.05, 1.0]], index=["a", "b"], columns=["a", "b"])
+    fig = tifo.matrix(frame, title="t", diverging=True, label_if=0.5)
+    printed = {text.get_text() for ax in fig.axes for text in ax.texts}
+    assert "1.00" in printed
+    assert "0.05" not in printed
+
+
+def test_matrix_centres_a_diverging_scale_on_zero() -> None:
+    """Otherwise an all-positive matrix would paint zero as the extreme."""
+    frame = pd.DataFrame([[0.2, 0.8]], index=["a"], columns=["x", "y"])
+    fig = tifo.matrix(frame, title="t", diverging=True)
+    bar = fig.axes[-1]
+    low, high = bar.get_ylim()
+    assert low == pytest.approx(-high)
