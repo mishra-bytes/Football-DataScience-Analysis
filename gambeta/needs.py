@@ -62,6 +62,25 @@ averaging it in changes no ordering. A requirement that cannot discriminate is
 not a requirement."""
 
 
+ARGUMENTS: dict[str, dict[str, float]] = {
+    "Equal weight": {},
+    "The volume argument": {"scoring": 3.0, "creation": 3.0, "threat": 2.0, "team_share": 2.0},
+    "The efficiency argument": {"finishing": 3.0, "scoring": 2.0, "above_team": 2.0},
+    "The longevity argument": {"longevity": 4.0, "availability": 2.0, "consistency": 2.0},
+    "The team-carrier argument": {"team_share": 4.0, "above_team": 3.0},
+    "The professional argument": {"discipline": 3.0, "availability": 3.0, "reliability": 2.0},
+}
+"""Named weight vectors — the arguments people actually have about greatness.
+
+Sparse by design: a requirement left out counts 1.0, so each vector states only
+what its argument emphasises. Weights order the qualifiers and nothing else —
+the gate is a floor per requirement and no weighting moves it, which is what
+makes it safe to hand these to a reader with sliders.
+
+An "Equal weight" entry that is literally empty is the honest spelling of the
+default: it emphasises nothing."""
+
+
 def season_keys(reqs: tuple[Requirement, ...]) -> list[str]:
     """Requirement keys computed per season."""
     return [r.key for r in reqs if r.kind == "season"]

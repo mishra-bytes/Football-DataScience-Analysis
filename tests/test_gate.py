@@ -167,3 +167,72 @@ def test_failure_summary_counts_eliminations() -> None:
     summary = gate.failure_summary(_ranked(), needs.OUTFIELD)
     assert set(summary["requirement"]) == set(KEYS)
     assert summary["eliminated"].sum() > 0
+
+
+def _lopsided_population() -> pd.DataFrame:
+    """Ten players who are each good at different things.
+
+    ``_population`` gives every player the same value on all eleven requirements,
+    so no weighting can reorder it — useless for testing weights.
+    """
+    frames = []
+    for i in range(10):
+        career = _career(f"v{i}", level=float(i), n=6)
+        for j, key in enumerate(SEASON_KEYS):
+            career[key] = float(i) + ((i + 2 * j) % 5) - 2.0
+        frames.append(career)
+    return pd.concat(frames)
+
+
+def _profile() -> pd.DataFrame:
+    return gate.standardise(
+        gate.career_profile(_lopsided_population(), needs.OUTFIELD, CFG), needs.OUTFIELD
+    )
+
+
+def test_partial_weights_leave_the_rest_at_one() -> None:
+    """A caller naming one requirement must not have to spell out the other ten.
+
+    Sliders and named arguments both produce sparse dicts; requiring a complete
+    one turned a missing key into a KeyError deep inside the ranking.
+    """
+    ranked = gate.qualify_and_rank(_profile(), needs.OUTFIELD, CFG, weights={"scoring": 3.0})
+    assert ranked["score"].notna().all()
+
+
+def test_weights_do_not_change_who_qualifies() -> None:
+    """The gate is a floor per requirement; weights only order the survivors.
+
+    This is the project's central claim — 'gate, then rank' means no weighting
+    can smuggle a player past a requirement they failed.
+    """
+    equal = gate.qualify_and_rank(_profile(), needs.OUTFIELD, CFG)
+    tilted = gate.qualify_and_rank(
+        _profile(), needs.OUTFIELD, CFG, weights={"scoring": 50.0, "discipline": 0.0}
+    )
+    assert (
+        equal.set_index("player_id")["qualified"]
+        .sort_index()
+        .equals(tilted.set_index("player_id")["qualified"].sort_index())
+    )
+
+
+def test_named_arguments_use_real_requirement_keys() -> None:
+    """A typo in a preset would silently weight nothing."""
+    for name, vector in needs.ARGUMENTS.items():
+        unknown = set(vector) - set(KEYS)
+        assert not unknown, f"{name} names requirements that do not exist: {unknown}"
+
+
+def test_named_arguments_produce_different_answers() -> None:
+    """If two arguments rank identically, one of them is not an argument."""
+    scores = {
+        name: tuple(
+            gate.qualify_and_rank(_profile(), needs.OUTFIELD, CFG, weights=vector)
+            .set_index("player_id")["score"]
+            .sort_index()
+            .round(6)
+        )
+        for name, vector in needs.ARGUMENTS.items()
+    }
+    assert len(set(scores.values())) == len(scores), "some named arguments are duplicates"

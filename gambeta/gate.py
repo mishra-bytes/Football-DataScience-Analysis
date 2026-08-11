@@ -118,7 +118,9 @@ def qualify_and_rank(
     cfg
         Supplies ``gate_percentile``.
     weights
-        Per-requirement weights for the ranking. Defaults to equal weighting.
+        Per-requirement weights for the ranking. Sparse: any requirement left
+        out counts 1.0, so naming the one you care about is enough. Defaults to
+        equal weighting.
 
     Returns
     -------
@@ -128,7 +130,7 @@ def qualify_and_rank(
         ``qualified=False`` and the requirements they missed listed in ``failed``.
     """
     keys = [r.key for r in reqs]
-    w = weights or dict.fromkeys(keys, 1.0)
+    w = {k: float((weights or {}).get(k, 1.0)) for k in keys}
     floors = {
         k: float(np.percentile(profile[k].to_numpy(dtype=float), cfg.gate_percentile)) for k in keys
     }
