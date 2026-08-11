@@ -171,6 +171,50 @@ def test_ask_gives_up_quietly_rather_than_aborting(monkeypatch: pytest.MonkeyPat
     assert ask("SELECT * WHERE {}", "test") == []
 
 
+def test_a_cached_year_costs_no_request(
+    tmp_path: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fetch was all or nothing: one failed cohort meant redoing all 41."""
+    calls: list[str] = []
+
+    def fake_get(url: str, params: dict[str, str], **kwargs: object) -> _Response:
+        calls.append(params["query"])
+        return _Response(
+            '{"results": {"bindings": [{"p": {"value": "http://www.wikidata.org/entity/Q1"},'
+            ' "pLabel": {"value": "Someone"}, "dob": {"value": "1985-01-01T00:00:00Z"}}]}}'
+        )
+
+    monkeypatch.setattr(wikidata.requests, "get", fake_get)
+    scout = wikidata.WikidataScout(cache_dir=tmp_path)  # type: ignore[arg-type]
+
+    first = scout.year(1985)
+    assert len(first) == 1
+    assert len(calls) == 1
+
+    second = scout.year(1985)
+    assert len(second) == 1
+    assert len(calls) == 1, "a cached year must not hit the network again"
+
+
+def test_an_empty_year_is_not_cached(
+    tmp_path: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failure is something to retry, not an answer to remember."""
+    monkeypatch.setattr(wikidata.requests, "get", lambda *a, **k: _Response(_TRUNCATED))
+    monkeypatch.setattr(wikidata, "_BACKOFF", 0.0)
+    scout = wikidata.WikidataScout(cache_dir=tmp_path)  # type: ignore[arg-type]
+    assert len(scout.year(1985)) == 0
+    assert not list(tmp_path.iterdir())  # type: ignore[attr-defined]
+
+
+def test_changing_the_query_invalidates_the_cache() -> None:
+    """A cached answer to a different question is a wrong answer, not a saving."""
+    before = wikidata.query_fingerprint()
+    monkey = wikidata.QUERY + "\n# a different question\n"
+    after = __import__("hashlib").sha1(monkey.encode()).hexdigest()[:8]
+    assert before != after
+
+
 def test_parse_tolerates_a_missing_fbref_id() -> None:
     """P5750 is optional now; most footballers on Wikidata do not carry one."""
     out = parse_bindings(

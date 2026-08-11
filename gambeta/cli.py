@@ -83,7 +83,10 @@ def scrape(
         locker.write(EloScout(seasons).fetch(), cfg.raw / RAW_ELO, laws.ELO, source="clubelo")
     if not (cache_only and (cfg.raw / RAW_CROSSWALK).exists()):
         locker.write(
-            WikidataScout().fetch(), cfg.raw / RAW_CROSSWALK, laws.CROSSWALK, source="wikidata"
+            WikidataScout(cache_dir=cfg.raw / "wikidata").fetch(),
+            cfg.raw / RAW_CROSSWALK,
+            laws.CROSSWALK,
+            source="wikidata",
         )
     if not (cache_only and (cfg.raw / RAW_AWARDS).exists()):
         locker.write(

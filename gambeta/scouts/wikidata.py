@@ -26,10 +26,12 @@ service caps at 60 s and the whole population needs roughly 40 s per year.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
 import time
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -230,10 +232,38 @@ class AwardsScout:
         return out
 
 
+def query_fingerprint() -> str:
+    """Short hash of the query text, used as part of the cache key.
+
+    Change what you ask for and every cached page stops matching, which is the
+    behaviour you want: a cached answer to a different question is a wrong
+    answer, not a saving.
+    """
+    return hashlib.sha1(QUERY.encode()).hexdigest()[:8]
+
+
 class WikidataScout:
-    """Fetch the footballer identity crosswalk from Wikidata."""
+    """Fetch the footballer identity crosswalk from Wikidata.
+
+    **One birth year per file on disk, exactly as the FBref scout caches one
+    HTML page per league-season-table.** Without it the fetch was all or
+    nothing: 41 requests and roughly 35 minutes, repeated in full whenever a
+    single cohort failed or the run was interrupted. Two of 41 years came back
+    empty on one run and repairing them cost another complete pass.
+
+    The cache key includes a fingerprint of the query, so editing the question
+    invalidates the answers rather than silently mixing them.
+    """
 
     name = "wikidata"
+
+    def __init__(self, cache_dir: Path | None = None) -> None:
+        self.cache_dir = cache_dir
+
+    def _cached(self, year: int) -> Path | None:
+        if self.cache_dir is None:
+            return None
+        return self.cache_dir / f"crosswalk_{query_fingerprint()}_{year}.parquet"
 
     def _page(self, year: int) -> list[dict[str, Any]]:
         """One birth year, split in half if it will not come back whole.
@@ -259,8 +289,29 @@ class WikidataScout:
             split.extend(ask(query_for(year, months), f"{year} months {months[0]}-{months[1]}"))
         return split
 
+    def year(self, year: int) -> pd.DataFrame:
+        """One birth year, read from disk when it is already there.
+
+        A cached year costs no request, so a repair run fetches only the cohorts
+        that actually failed and an interrupted run resumes where it stopped.
+        Nothing is written for an empty result: that is a failure to retry next
+        time, not an answer to remember.
+        """
+        path = self._cached(year)
+        if path is not None and path.exists():
+            cached: pd.DataFrame = pd.read_parquet(path)
+            log.info("wikidata %d: %d people (cached)", year, len(cached))
+            return cached
+
+        page = parse_bindings(self._page(year))
+        log.info("wikidata %d: %d people", year, len(page))
+        if path is not None and len(page):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            page.to_parquet(path, index=False)
+        return page
+
     def fetch(self) -> pd.DataFrame:
-        """One request per birth year, roughly 260,000 footballers in total.
+        """One request per uncached birth year, roughly 260,000 footballers.
 
         A year that fails every retry is logged and skipped rather than aborting
         the run: a crosswalk missing one cohort still resolves everyone else, and
@@ -269,8 +320,7 @@ class WikidataScout:
         parts: list[pd.DataFrame] = []
         empty: list[int] = []
         for year in BIRTH_YEARS:
-            page = parse_bindings(self._page(year))
-            log.info("wikidata %d: %d people", year, len(page))
+            page = self.year(year)
             if len(page):
                 parts.append(page)
             else:
