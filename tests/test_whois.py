@@ -9,7 +9,7 @@ def test_normalize_folds_accents_and_case() -> None:
 
 
 def test_normalize_collapses_whitespace() -> None:
-    assert whois.normalize("  N'Golo   Kanté ") == "n'golo kante"
+    assert whois.normalize("  N'Golo   Kanté ") == "ngolo kante"
 
 
 def test_player_id_is_stable_across_spelling_noise() -> None:
@@ -90,3 +90,153 @@ def test_resolve_reports_each_unresolved_player_once() -> None:
     raw = pd.concat([_raw(), _raw()], ignore_index=True)
     _, unresolved = whois.resolve(raw, _crosswalk())
     assert len(unresolved) == 1
+
+
+# --------------------------------------------------------------------------
+# Fallback matching. FBref and Wikidata render the same person differently far
+# more often than they disagree about who exists: 90% of unmatched players had
+# a name absent from the crosswalk under its exact spelling, and most of those
+# were present under another. Every tier below is gated on the birth year and
+# on the candidate being unique — a fallback that guesses is worse than none.
+
+
+def test_normalize_strips_punctuation() -> None:
+    """FBref writes M'Boma; Wikidata writes Mboma."""
+    assert whois.normalize("Patrick M'Boma") == whois.normalize("Patrick Mboma")
+    assert whois.normalize("Jean-Pierre Papin") == whois.normalize("Jean Pierre Papin")
+
+
+def test_resolve_matches_when_wikidata_carries_an_extra_surname() -> None:
+    """Iván Kaviedes on FBref is Iván Kaviedes Toaquiza on Wikidata."""
+    raw = pd.DataFrame({"player": ["Iván Kaviedes"], "born": [1977.0]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q1"],
+            "fbref_id": ["a"],
+            "label": ["Iván Kaviedes Toaquiza"],
+            "birth_year": pd.array([1977], dtype="Int64"),
+        }
+    )
+    labelled, _ = whois.resolve(raw, cw)
+    assert labelled["qid"].iloc[0] == "Q1"
+
+
+def test_resolve_matches_when_fbref_carries_the_extra_name() -> None:
+    """Containment has to work in both directions: Yakubu Aiyegbeni is Yakubu."""
+    raw = pd.DataFrame({"player": ["Yakubu Aiyegbeni"], "born": [1982.0]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q2"],
+            "fbref_id": ["b"],
+            "label": ["Yakubu"],
+            "birth_year": pd.array([1982], dtype="Int64"),
+        }
+    )
+    labelled, _ = whois.resolve(raw, cw)
+    assert labelled["qid"].iloc[0] == "Q2"
+
+
+def test_resolve_matches_a_shortened_forename() -> None:
+    """Matt Upson is Matthew Upson: same surname, same year, same initial."""
+    raw = pd.DataFrame({"player": ["Matt Upson"], "born": [1979.0]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q3"],
+            "fbref_id": ["c"],
+            "label": ["Matthew Upson"],
+            "birth_year": pd.array([1979], dtype="Int64"),
+        }
+    )
+    labelled, _ = whois.resolve(raw, cw)
+    assert labelled["qid"].iloc[0] == "Q3"
+
+
+def test_resolve_refuses_an_ambiguous_containment_match() -> None:
+    """Two candidates in the same birth year means no match, not a coin flip."""
+    raw = pd.DataFrame({"player": ["Danny Ward"], "born": [1991.0]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q4", "Q5"],
+            "fbref_id": ["d", "e"],
+            "label": ["Danny Ward Senior", "Danny Ward Junior"],
+            "birth_year": pd.array([1991, 1991], dtype="Int64"),
+        }
+    )
+    labelled, unresolved = whois.resolve(raw, cw)
+    assert labelled["qid"].isna().all()
+    assert len(unresolved) == 1
+
+
+def test_resolve_refuses_an_ambiguous_initial_match() -> None:
+    """Two Wards born the same year, both 'D' — the initial tier must decline."""
+    raw = pd.DataFrame({"player": ["Danny Ward"], "born": [1991.0]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q4", "Q5"],
+            "fbref_id": ["d", "e"],
+            "label": ["Daniel Ward", "Dominic Ward"],
+            "birth_year": pd.array([1991, 1991], dtype="Int64"),
+        }
+    )
+    labelled, _ = whois.resolve(raw, cw)
+    assert labelled["qid"].isna().all()
+
+
+def test_fallback_never_crosses_a_birth_year() -> None:
+    """The year is the only hard evidence there is; a fallback may not relax it."""
+    raw = pd.DataFrame({"player": ["Matt Upson"], "born": [1979.0]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q6"],
+            "fbref_id": ["f"],
+            "label": ["Matthew Upson"],
+            "birth_year": pd.array([1988], dtype="Int64"),
+        }
+    )
+    labelled, _ = whois.resolve(raw, cw)
+    assert labelled["qid"].isna().all()
+
+
+def test_exact_match_wins_over_a_fallback_candidate() -> None:
+    raw = pd.DataFrame({"player": ["Ronaldo"], "born": [1976.0]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q7", "Q8"],
+            "fbref_id": ["g", "h"],
+            "label": ["Ronaldo", "Ronaldo Luís Nazário de Lima"],
+            "birth_year": pd.array([1976, 1976], dtype="Int64"),
+        }
+    )
+    labelled, _ = whois.resolve(raw, cw)
+    assert labelled["qid"].iloc[0] == "Q7"
+
+
+def test_fallback_does_not_fire_without_a_birth_year() -> None:
+    raw = pd.DataFrame({"player": ["Matt Upson"], "born": [float("nan")]})
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q9"],
+            "fbref_id": ["i"],
+            "label": ["Matthew Upson"],
+            "birth_year": pd.array([1979], dtype="Int64"),
+        }
+    )
+    labelled, _ = whois.resolve(raw, cw)
+    assert labelled["qid"].isna().all()
+
+
+def test_fallback_keeps_the_output_the_same_length() -> None:
+    raw = pd.DataFrame(
+        {"player": ["Iván Kaviedes", "Iván Kaviedes", "Nobody"], "born": [1977.0, 1977.0, 1990.0]}
+    )
+    cw = pd.DataFrame(
+        {
+            "qid": ["Q1"],
+            "fbref_id": ["a"],
+            "label": ["Iván Kaviedes Toaquiza"],
+            "birth_year": pd.array([1977], dtype="Int64"),
+        }
+    )
+    labelled, unresolved = whois.resolve(raw, cw)
+    assert len(labelled) == 3
+    assert list(unresolved["player"]) == ["Nobody"]
