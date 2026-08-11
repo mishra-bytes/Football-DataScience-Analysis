@@ -34,7 +34,12 @@ rebuilt, and three long-pending analysis features shipped.
   offset-adjusted per-season composite. Published alongside the raw values, not
   instead of them.
 - Per-birth-year Wikidata cache under `vault/raw/wikidata/`, keyed by a
-  fingerprint of the query text.
+  fingerprint of the query text. A full pipeline run went from ~35 minutes to
+  **5**, and a repair now costs one request per changed year instead of 41.
+- **Four statistics chapters**, each following the six-part method template:
+  normalisation and shrinkage (05), the bootstrap (06), testing without a
+  distribution (07), selection bias and Simpson's paradox (08). Book is now ten
+  pages.
 
 ### Changed
 
@@ -49,6 +54,8 @@ rebuilt, and three long-pending analysis features shipped.
   | France | — | **−0.300** |
 
 - **Ranking population** 4,424 → 5,508; **qualifiers** 239 → 326.
+- Identity resolution **83.9% → 93.8%** of 67,825 rows; unresolved players
+  3,480 → 1,240. Crosswalk 114,084 → 253,241 people.
 - Mbappé enters at 3rd. Messi's career becomes 18 seasons across two countries
   rather than 16 in one; his lead narrows from +6.1σ to +5.9σ.
 - Goalkeeper board turns over with La Liga keepers present: Cañizares, Valdés,
@@ -92,18 +99,26 @@ rebuilt, and three long-pending analysis features shipped.
   recipients on Wikidata, so Birgit Prinz, Carli Lloyd and Aitana Bonmatí
   arrived counted as winners the data had failed to find, when their absence is
   correct — women's football is a declared non-goal. Query now filters on `P21`.
-- Identity resolution **83.9% → 89.3%** of 67,825 rows.
 - Book preface still claimed Premier League–only coverage, which was Phase 1 text
   that survived Phase 2. Chapter prose and dashboard captions realigned to five
   leagues and the recomputed figures.
+- Two demonstrations in the new chapters were rewritten because their output
+  contradicted their own captions: an effect-size example whose gap never became
+  significant at any sample size shown, and a Simpson's paradox that did not
+  reverse. Now p → 0.0010 as n grows, and the correlation flips +0.96 → −0.96.
 
 ### Known issues
 
-- Identity resolution is **89.3%**, against a 95% target. Remaining failures are
-  players genuinely absent from Wikidata, plus transliteration variance
-  (`Serhiy`/`Serhii`, `Alexander`/`Aliaksandr`). Modrić resolves only via the
-  crosswalk; his sole non-English Wikidata label is Cyrillic and cannot be folded
-  onto FBref's Latin spelling.
+- Identity resolution is **93.8%**, against a 95% target. What remains is
+  transliteration (`Serhiy`/`Serhii`, `Alexander`/`Aliaksandr`), non-Latin
+  labels — Modrić's only non-English Wikidata label is Cyrillic and cannot be
+  folded onto FBref's Latin spelling — and players genuinely absent from
+  Wikidata. Every further loosening trades a missing match for the risk of a
+  wrong one, which is the worse error.
+- **The top ten is not an ordering.** 42 of its 45 pairs have overlapping
+  bootstrap intervals and only 5 of 28 pairwise claims among the top eight reach
+  p < 0.05. More data did not fix this and more seasons will not; it needs more
+  signal per season.
 - `failure_summary` is near information-free by construction: a percentile gate
   eliminates exactly that share of the population on every requirement.
 - Defenders remain unmeasurable. Top 50 qualifiers are 96% forwards, 4%

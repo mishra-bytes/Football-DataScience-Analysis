@@ -14,62 +14,61 @@ instead of breaking. Enforced by tests, not by hope — see
 
 # Part 1 — Data gaps
 
-## 1.1 Ligue 1 — not collected
+## 1.1–1.3 Closed on 2026-08-11
 
-**Status:** no data. Four leagues are collected: Premier League, La Liga,
-Serie A, Bundesliga.
+Every FBref table the project reads is now complete: **5 leagues × 5 tables ×
+25 seasons = 625 pages**, no partial table anywhere.
 
-**Why:** scraping is the bottleneck. FBref forces soccerdata to drive a real
-browser per page, so 25 seasons of one stat table takes ~10 minutes and cannot
-be parallelised on a 16 GB machine — two concurrent lanes drove free memory to
-0.5 GB and slowed each fetch from ~10 to ~28 minutes.
+| Was missing | Now |
+|---|---|
+| Ligue 1 — no data at all | all five tables, 25 seasons |
+| La Liga goalkeepers — 8 of 25 seasons | 25 of 25 |
+| `misc` for Bundesliga — 5 of 25 seasons | 25 of 25, and Ligue 1 too |
 
-```bash
-python scripts/warm_cache.py "FRA-Ligue 1" standard,shooting,playing_time,keeper
-# then add "FRA-Ligue 1" to ACTIVE_LEAGUES in gambeta/kit.py
-uv run gambeta all --cache-only
-```
+Two consequences worth stating, because both moved the answer:
 
-**Cost:** ~40 minutes. **Effect:** French players enter the ranking, and *every
-league offset is re-estimated* — Ligue 1 transfers add constraints that shift the
-whole solution. Expect the existing ranking to move slightly. That is the bridge
-working, not a bug.
+- **Discipline is no longer coarse.** Second yellows and fouls are present for
+  every league-season, so the requirement is measured the same way everywhere
+  instead of degrading to reds-and-yellows where `misc` was absent.
+- **Every league offset was re-estimated.** Ligue 1 transfers add constraints
+  that shift the whole solution, exactly as predicted. England stays pinned at
+  0; Spain moved −0.143 → −0.163, Italy −0.212 → −0.213, Germany −0.219 →
+  −0.227, and France entered at **−0.300**, the weakest of the five. The
+  ranking moved with it: Mbappé enters at 3rd, Messi's career becomes 18
+  seasons rather than 16, and the Spanish keepers turn the goalkeeper board
+  over almost completely.
 
-## 1.2 La Liga goalkeepers — not collected
+  Part of that shift was not Ligue 1 at all. Fixing the age misalignment
+  (`DEVIATIONS.md`, 2026-08-11) moved every offset again, because age is a
+  control in the transfer regression and 94% of rows carried the wrong one.
 
-Spain has 8 of 25 keeper seasons, so it is treated as absent and Spanish keepers
-are missing from the goalkeeper leaderboard. Outfield players are unaffected.
+Scrape cost, measured: **95 minutes** for the 162 missing pages, sequential, one
+browser session per table. The pipeline itself then runs offline in ~5 minutes.
 
-```bash
-python scripts/warm_cache.py "ESP-La Liga" keeper
-uv run gambeta all --cache-only
-```
+## 1.4 Identity resolution — 93.8%, against a 95% target
 
-**Cost:** ~10 minutes.
+**1,240 players unresolved**, listed in `vault/clean/unresolved.csv`. Up from
+83.9%; the remaining 1.2 points are the hard tail.
 
-## 1.3 The `misc` table — partially collected
+The original diagnosis was wrong and worth recording. This looked like a name
+normalisation problem, and it was mostly a **query** problem: the crosswalk
+selected people carrying Wikidata's FBref-ID property, which the matcher has
+never joined on, and that alone discarded more than half the candidate pool.
+Occupation is the correct anchor. Tiered name matching added the rest.
 
-Present for England, Spain and Italy; 5 of 25 seasons for Germany. It supplies
-second yellows and fouls, so **discipline is currently reds and yellows only**,
-and measured slightly inconsistently across leagues. That inconsistency is the
-strongest reason to finish this.
+What is left is genuinely hard rather than merely unfinished:
 
-```bash
-python scripts/warm_cache.py "GER-Bundesliga" misc
-uv run gambeta all --cache-only
-```
+- **Transliteration.** `Serhiy` against `Serhii`, `Alexander` against
+  `Aliaksandr`. No fold gets these; it needs a phonetic or edit-distance tier,
+  and every loosening risks a wrong match, which is worse than a missing one.
+- **Non-Latin labels.** Modrić's only non-English Wikidata label is Cyrillic and
+  cannot be folded onto FBref's Latin spelling. He resolves via the crosswalk's
+  other rows, but the general case does not.
+- **Players simply absent from Wikidata.** No amount of matching invents them.
 
-**Cost:** ~10 minutes per league.
-
-## 1.4 Identity resolution is below target
-
-**96.8%** on the Premier League alone; **85.1%** across four leagues, with
-**2,566 players unresolved** and listed in `vault/clean/unresolved.csv`.
-
-Non-English names carry more diacritic and transliteration variance, and
-Wikidata's FBref-ID coverage is thinner outside England. The Phase 1 spec set a
-95% gate; four leagues miss it. Worth an hour reading `unresolved.csv` for
-systematic patterns — a single normalisation rule may recover hundreds.
+Diminishing returns from here. The awards check is now the better instrument for
+catching identity failures that matter, because it names them: it caught
+Cristiano Ronaldo being unresolved within minutes of first running.
 
 ---
 
@@ -95,15 +94,16 @@ follows is what those specs promised and this codebase does not yet have.
 Each is a pure function `(player_seasons, cfg) -> DataFrame`. `peak5` is the
 worked example to copy.
 
-### 3.2 `blend.py` — the weight-tunable composite *(decision D2)*
+### 3.2 ~~`blend.py` — the weight-tunable composite~~ — **done, 2026-08-11**
 
-The original definition promised **several named weight vectors** — "the volume
-argument", "the efficiency argument", "the longevity argument" — so a reader
-could see who wins under each.
+Six named vectors live in `needs.ARGUMENTS`, exposed through the dashboard. Not
+a `blend.py` module: a module holding one dict earns nothing, and weights belong
+beside the requirements they weight.
 
-`gate.qualify_and_rank` already accepts a `weights` dict; nothing calls it with
-anything but equal weights, and nothing exposes it. The missing piece is a module
-that names and stores weight vectors, plus dashboard sliders (4.2).
+The result was worth having. **Messi tops every one of the six arguments** —
+volume, efficiency, longevity, team-carrying, professionalism and equal weight.
+The sliders were built expecting some weighting to dethrone him; none does, and
+that is a stronger claim than the headline ranking makes.
 
 ### 3.3 `bayes.py` — the hierarchical era model *(spec §6.2)*
 
@@ -121,29 +121,36 @@ times". This is the piece that would let the project say how much of a ranking
 gap is real and how much is variance. `doubt.bootstrap` is the pattern to follow
 and already dispatches to the GPU above a size threshold.
 
-### 3.5 Permutation tests *(spec §6.5)*
+### 3.5 ~~Permutation tests~~ — **done, 2026-08-11**
 
-For claims of the form "A is better than B", report a p-value. Currently the
-project reports point scores with no significance testing at all, which is the
-weakest part of its statistical story.
+`doubt.permutation_test`, with an "A vs B" dashboard tab and notebook 07.
+
+The finding is uncomfortable and belongs in the open: **only 5 of 28 pairwise
+claims among the top eight reach p < 0.05**, and running 28 tests at that
+threshold is itself the multiple-comparisons trap the chapter demonstrates. The
+ranking's ordering is far weaker evidence than a sorted table implies.
 
 ## Phase 4 — Presentation
 
 ### 4.1 Champions League and internationals *(decision D3)*
 
-The original scope was Big 5 **plus UCL plus internationals**. Neither exists.
+The original scope was Big 5 **plus UCL plus internationals**. The Big 5 is now
+complete; neither of the other two exists.
 
 FBref's reader exposes **no Champions League at all** (`DEVIATIONS.md` #2), so
 this needs a custom `league_dict.json` for soccerdata. `INT-World Cup` and
 `INT-European Championship` *are* available and would be much easier — a
 reasonable first step, and the only route to a `biggame` lens.
 
-### 4.2 Dashboard weight sliders
+### 4.2 ~~Dashboard weight sliders~~ — **done, 2026-08-11**
 
-The dashboard has filters, a distribution tab, a keeper board and a failure
-tab — but the weights are fixed. Sliders wired to `qualify_and_rank(weights=…)`
-are the single highest-value addition, because they turn a decreed answer into
-one the reader can argue with numerically.
+An argument selector, eleven weight sliders, a gate-percentile slider and an
+"A vs B" significance tab. The page says so when the reader's argument changes
+who comes first.
+
+The gate slider is separate on purpose, and the separation is the teaching
+point: **weights reorder qualifiers and cannot requalify anybody.** Only the
+percentile moves the gate.
 
 ### 4.3 The advanced metric tier *(decision D1)*
 
@@ -155,13 +162,30 @@ endpoint with its labelling repaired.
 
 ## Phase 5 — The book
 
-### 5.1 Awards validation *(spec §10.6)*
+### 5.1 ~~Awards validation~~ — **done, 2026-08-11**
 
-**The strongest available defence of the methodology, and it needs no new
-scraping.** Correlate the ranking against Ballon d'Or and UEFA Player of the Year
-voting, both already in Wikidata. "Does this agree with contemporaneous expert
-consensus, and where it disagrees, why?" is a far better argument than any
-internal consistency check.
+`gambeta.verdict`, against five award bodies. Of 18 men's winners in the window,
+16 are in our data, 10 clear all eleven requirements, and the median winner ranks
+61st of 5,508.
+
+The disagreements are the output worth reading:
+
+| Winner | Our rank | Why |
+|---|---|---|
+| Zidane | 104 | qualified |
+| Nedvěd, Figo, Rodri | 704-1171 | failed **discipline** alone |
+| Van Dijk | 1036 | failed creation |
+| **Cannavaro** | **2707** | failed 8 of 11 |
+
+Cannavaro is the honest headline: a centre-back won the 2006 Ballon d'Or and this
+definition ranks him below two and a half thousand players. That is the
+attacking-contribution limitation stated as a number instead of a caveat. Three
+winners failing on discipline alone also sharpens the open question in Part 3
+about whether fouls are weighted like unavailability.
+
+It earned its keep immediately by catching two bugs in the checker itself —
+Cristiano Ronaldo reported as "never seen" because a birth cohort failed to
+fetch, and three women's winners counted as data we were missing.
 
 ### 5.2 quartodoc API reference *(spec §11)*
 
@@ -169,11 +193,15 @@ Planned so library docs and teaching material would be one artifact. **Never
 wired up** — `_quarto.yml` has no `quartodoc` block. The dependency is declared
 in the `docs` group and unused.
 
-### 5.3 More method chapters
+### 5.3 More method chapters — **four added, 2026-08-11**
 
-Four notebooks exist. `tome/method-template.qmd` documents the six-part structure
-for adding more: normalization and shrinkage, the bootstrap, the identity
-crosswalk, and the gate calibration all deserve chapters.
+Eight notebooks now. Added: normalisation and shrinkage (05), the bootstrap (06),
+testing without a distribution (07), selection bias and Simpson's paradox (08).
+
+Still unwritten, and still deserving chapters: **the identity crosswalk** — now
+much the richer story, since the fix was a query bug wearing a normalisation
+costume — and **gate calibration**, which has no principled answer and would be
+an honest chapter about a judgement call rather than a method.
 
 ---
 
@@ -183,8 +211,8 @@ Not bugs. Decisions that need a person.
 
 | Question | Current answer | Why it is arguable |
 |---|---|---|
-| How high should the gate be? | 40th percentile on all eleven | 239 of 4,424 qualify. At 50 the list tightens sharply; at 30 it loosens. There is no principled value. |
-| How much should fouls count? | Reds + yellows, equal weight with everything else | Totti and Zlatan fail on discipline *alone*. Defensible, or an artefact of weighting aggression like unavailability. |
+| How high should the gate be? | 40th percentile on all eleven | 326 of 5,508 qualify. At 50 only 132 do; at 30, 824. There is no principled value — the dashboard slider now lets a reader pick their own and watch the field change. |
+| How much should fouls count? | Reds + second yellows + fouls per 90, equal weight with everything else | Totti, Zlatan and Neymar fail on discipline *alone*. Defensible, or an artefact of weighting aggression like unavailability. Now that `misc` is complete this requirement bites harder than it did. |
 | Is `starts / appearances` right for reliability? | Yes, after the fix | Better than completed-matches-per-start, which measured being a forward. Still says nothing about missing matches through injury — that is `availability`'s job, and the two may overlap. |
 | Should keepers and outfielders ever be compared? | No — two leaderboards | The honest choice. But the project's headline question implies one answer, and this declines to give one for keepers. |
 
@@ -208,7 +236,10 @@ Not bugs. Decisions that need a person.
 **Outfield defenders cannot be measured defensively.** FBref records no
 per-player defensive action before 2017-18 — no interceptions, no tackles, no
 clearances — so two thirds of the window has nothing to measure a centre-back
-with. Ligue 1 does not help. `misc` does not help.
+with. Ligue 1 did not help. `misc` did not help. Both are now collected in full,
+and on the complete Big 5 the top 50 qualifiers are **96% forwards, 4%
+midfielders, 0% defenders** — defenders are 41% of the ranked population and the
+best of them sits 122nd.
 
 The rating is therefore named for what it measures: **attacking contribution**.
 

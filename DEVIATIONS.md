@@ -122,6 +122,77 @@ signal per season — more metrics, not more seasons.
 
 ---
 
+# Gate results — complete Big 5, 2026-08-11
+
+The three data gaps in `PENDING.md` Part 1 were filled (Ligue 1 in full, La Liga
+keepers, Bundesliga `misc`) and the whole pipeline re-run from the cache.
+
+| Definition-of-done item | Target | Measured | Result |
+|---|---|---|---|
+| 1. FBref cache complete | 5 × 5 × 25 | 625 of 625 pages, no partial table | **PASS** |
+| 2. Identity resolution | ≥ 95% | **93.8%** (1,240 players unresolved, all listed) | **FAIL** |
+| 3. Ranking | — | 5,508 ranked, 326 qualified, 39,883 player-seasons | **PASS** |
+| 4. Notebooks execute; book builds | — | 8 notebooks, 0 errors, 10 pages rendered | **PASS** |
+| 5. Streamlit runs against the sample | — | health `ok`, main page HTTP 200 | **PASS** |
+| 6. pytest / ruff / mypy --strict | all clean | 231 passed, 90.6% cov; ruff clean; mypy clean | **PASS** |
+| 7. External validation | — | 16 of 18 award winners located, 10 qualify | **new** |
+
+Scrape wall-clock: 95 minutes for the 162 missing FBref pages. The Wikidata
+crosswalk took roughly 40 minutes on a cold cache and now costs nothing, being
+stored one Parquet per birth year.
+
+**Item 2 still fails, and the route there is worth recording.** It first got
+*worse* — four leagues resolved 85.1%, five resolved 83.9% — which read as Ligue 1
+adding harder names. That reading was wrong. The real cause was the crosswalk
+query anchoring on Wikidata's FBref-ID property, which the matcher never joined
+on and which excluded more than half the candidate pool. Fixing the anchor and
+adding tiered name matching took it to 93.8%.
+
+The remaining 1.2 points are transliteration (`Serhiy`/`Serhii`), non-Latin
+labels, and players genuinely absent from Wikidata. Every further loosening
+trades a missing match for a risk of a wrong one, and a wrong QID is worse,
+because a missing one is reported and a wrong one is not.
+
+## What adding Ligue 1 did to the answer
+
+Recorded because the effect was predicted in `PENDING.md` before it was measured,
+which makes it worth checking against.
+
+- **Every offset moved.** England pinned at 0; Spain −0.143 → −0.153, Italy
+  −0.212 → −0.205, Germany −0.219 → −0.218. France entered at **−0.283**, the
+  weakest of the five, backed by 3,715 moves.
+- **The top of the ranking changed less than expected.** Mbappé enters at 3rd
+  and pushes everyone below him down one; Ronaldo (the Brazilian) drops out of
+  the top ten to 11th. Nobody else moved rank. Two careers grew a French
+  prefix or suffix: Messi is now 18 seasons across Spain and France rather than
+  16 in Spain, Benzema 17 rather than 14. Messi's lead narrows from +6.1σ to
+  +5.9σ.
+- **The goalkeeper board turned over almost completely.** With La Liga keepers
+  present, Cañizares (2nd), Valdés (3rd), ter Stegen (4th) and Casillas (6th)
+  displace Kahn, Ederson, Čech and Buffon from the top five. Neuer still leads.
+  Qualifiers went from 56 of 232 to 75 of 395.
+
+## An honest finding, restated with better tools
+
+Phase 1 reported that 44 of 45 pairs in the top ten had overlapping bootstrap
+intervals. On the complete Big 5, with a permutation test as well as an interval,
+the picture is the same and now has two independent measurements: **42 of 45
+pairs overlap, and only 5 of 28 pairwise claims among the top eight reach
+p < 0.05.**
+
+More data did not resolve the top of the table, and that is the correct outcome
+to report rather than a disappointment. Narrowing those bands needs more signal
+per season — more metrics — not more seasons. Notebooks 06 and 07 make the
+argument in full.
+- **Discipline bites harder.** Complete `misc` means second yellows and fouls
+  per 90 are measured the same way in every league instead of degrading to
+  reds-and-yellows where the table was missing.
+
+The gate itself is unchanged: 321 of 5,508 qualify at the 40th percentile, 5.8%,
+against 0.36% if the eleven requirements were independent.
+
+---
+
 # Benchmarks
 
 Spec §7 forbids GPU code without a measurement. Bootstrap, 10,000 resamples,

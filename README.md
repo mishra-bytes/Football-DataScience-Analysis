@@ -9,19 +9,25 @@ and a worked textbook on the statistics behind it.
 ## The answer
 
 A player must clear a floor on **all eleven requirements** to qualify at all.
-239 of 4,424 players do. Ranked among them:
+326 of 5,508 players do. Ranked among them:
 
 | # | Player | Score | σ above mean | Seasons | Leagues |
 |---|---|---|---|---|---|
-| 1 | **Lionel Messi** | 3.44 | **+6.1** | 16 | Spain |
-| 2 | **Cristiano Ronaldo** | 2.90 | +5.2 | 19 | England, Spain, Italy |
-| 3 | Erling Haaland | 2.63 | +4.7 | 6 | England, Germany |
-| 4 | Harry Kane | 2.58 | +4.6 | 11 | England, Germany |
-| 5 | Thierry Henry | 2.55 | +4.5 | 10 | England, Spain |
+| 1 | **Lionel Messi** | 3.32 | **+5.9** | 18 | Spain, France |
+| 2 | **Cristiano Ronaldo** | 2.94 | +5.2 | 19 | England, Spain, Italy |
+| 3 | Kylian Mbappé | 2.81 | +5.0 | 9 | Spain, France |
+| 4 | Erling Haaland | 2.71 | +4.8 | 6 | England, Germany |
+| 5 | Harry Kane | 2.65 | +4.7 | 11 | England, Germany |
+
+**The bootstrap cannot separate most of them.** 42 of the 45 pairs in the top ten
+have overlapping confidence intervals, and only five of 28 pairwise claims reach
+p < 0.05 under a permutation test. That is the honest reading, and notebooks 06
+and 07 make the argument rather than burying it.
 
 **Goalkeepers** are ranked separately on their own eight requirements — Neuer,
-Ederson, Čech, van der Sar, Alisson — because save percentage and goals per 90
-are not comparable quantities and pretending otherwise would be dishonest.
+Cañizares, Valdés, ter Stegen, Weidenfeller — because save percentage and goals
+per 90 are not comparable quantities and pretending otherwise would be
+dishonest.
 
 ## What "best" means here
 
@@ -57,10 +63,11 @@ the gap between those leagues. Solved across thousands of moves:
 
 | League | Strength (England = 0) | Backed by |
 |---|---|---|
-| England | 0.000 | 3,365 moves |
-| Spain | −0.143 | 3,005 |
-| Italy | −0.212 | 2,640 |
-| Germany | −0.219 | 1,880 |
+| England | 0.000 | 4,835 moves |
+| Spain | −0.163 | 3,940 |
+| Italy | −0.213 | 3,420 |
+| Germany | −0.227 | 2,480 |
+| France | −0.300 | 3,715 |
 
 The gaps are small in 2000-04 and widen from 2005 — the Premier League's
 financial ascent, recovered purely from players moving. Nothing about money is
@@ -75,7 +82,7 @@ uv run streamlit run dugout/app.py
 quarto render                 # builds the book into tome/_book
 ```
 
-Everything runs against `data/sample/` — 2 MB of derived aggregates — so every
+Everything runs against `data/sample/` — 3 MB of derived aggregates — so every
 figure reproduces without scraping a page.
 
 ### Running the notebooks
@@ -107,6 +114,10 @@ bulk redistribution, which is why only derived aggregates are published here.
 | `02-how-far-ahead-is-the-best` | The distribution, and why "6 sigma" is a ruler and not a probability |
 | `03-method-requirements-and-gates` | Gating vs averaging, and a metric that rewarded mediocrity |
 | `04-method-league-strength` | Estimating league strength from transfers, and when it fails |
+| `05-method-normalisation-and-shrinkage` | Z-scores, regression to the mean, and believing a season in proportion to its size |
+| `06-method-the-bootstrap` | Resampling, intervals, and why the top ten cannot be ordered |
+| `07-method-testing-without-a-distribution` | Permutation tests, p-values, and the multiple-comparisons trap |
+| `08-method-selection-bias` | Why transfers are not a random sample, and Simpson's paradox |
 
 Method chapters follow one structure: **Question → Intuition → Math → Code →
 Assumptions → How it breaks.** The last section is the one most tutorials skip.
@@ -116,12 +127,13 @@ Assumptions → How it breaks.** The last section is the one most tutorials skip
 - **Attacking contribution only.** FBref records no per-player defensive action
   before 2017-18, so a centre-back is invisible to six of the eleven
   requirements. The rating is named for what it measures.
-- **Four leagues, not five.** Ligue 1 was never collected — see
-  [PENDING.md](PENDING.md).
 - **No Champions League, no internationals.** A career here means a Big-5
   domestic league career.
-- **Identity is probabilistic.** 85% of player-seasons resolve to a Wikidata
-  entity; the rest are listed, never dropped.
+- **Identity is probabilistic.** 94% of player-seasons resolve to a Wikidata
+  entity; the other 1,240 players are listed, never dropped.
+- **The top ten is not an ordering.** Confidence intervals overlap for 42 of its
+  45 pairs. The ranking prints an order because a table has to; the statistics
+  support "this group, clear of the rest" and not much more.
 
 Two bugs worth reading about, both caught by looking at output rather than by
 tests: `consistency` was measured as variance, which rewarded mediocrity and
@@ -134,9 +146,10 @@ matches per start, which measured *being a forward*. Both are written up in
 | Phase | Status |
 |---|---|
 | 1 — Premier League, peak-5 lens | done |
-| 2 — Four leagues, eleven requirements, league bridge, keepers | **done** |
+| 2 — Eleven requirements, league bridge, keepers | done |
+| 2b — Big 5 complete: Ligue 1, all keepers, full `misc` | **done** |
 | 3 — Bayesian era model, Monte Carlo replay, weight sliders | next |
-| 4 — Ligue 1, Champions League, internationals | see PENDING.md |
+| 4 — Champions League, internationals | see PENDING.md |
 
 ## Licence
 
