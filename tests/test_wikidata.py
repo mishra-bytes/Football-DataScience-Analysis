@@ -94,6 +94,18 @@ def test_query_for_pins_one_birth_year() -> None:
     assert "YEAR(?dob) = 1986" in query_for(1986)
 
 
+def test_query_for_can_narrow_to_half_a_year() -> None:
+    """The biggest cohorts run 36-41s against a 60s cap and tip over under load.
+
+    1985 was lost on two consecutive runs, and 1985 is when Cristiano Ronaldo
+    and Luka Modric were born.
+    """
+    half = query_for(1985, (1, 6))
+    assert "MONTH(?dob) >= 1" in half
+    assert "MONTH(?dob) <= 6" in half
+    assert "MONTH" not in query_for(1985)
+
+
 def test_birth_years_cover_everyone_who_could_have_played() -> None:
     """2000-01 to 2024-25 — nobody younger than 15 or older than 45 plays."""
     assert min(BIRTH_YEARS) <= 1965

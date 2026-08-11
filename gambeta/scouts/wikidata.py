@@ -51,23 +51,35 @@ _LANGS = (
 
 _YEAR = "__YEAR__"
 
+_MONTHS = "__MONTHS__"
+
 QUERY = f"""
 SELECT ?p ?pLabel ?fbref ?dob WHERE {{
   ?p wdt:P106 wd:Q937857 ; wdt:P569 ?dob .
   OPTIONAL {{ ?p wdt:P5750 ?fbref }}
-  FILTER(YEAR(?dob) = {_YEAR})
+  FILTER(YEAR(?dob) = {_YEAR}{_MONTHS})
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "{_LANGS}". }}
 }}
 """
+
+HALVES: tuple[tuple[int, int], ...] = ((1, 6), (7, 12))
+"""Birth-month ranges used to halve a year that will not come back whole."""
 
 _BARE_QID = re.compile(r"^Q\d+$")
 _ATTEMPTS = 3
 _BACKOFF = 5.0
 
 
-def query_for(year: int) -> str:
-    """Return the SPARQL query for footballers born in ``year``."""
-    return QUERY.replace(_YEAR, str(year))
+def query_for(year: int, months: tuple[int, int] | None = None) -> str:
+    """Return the SPARQL query for footballers born in ``year``.
+
+    ``months`` narrows it to a range of birth months, halving the payload for a
+    cohort too large to come back inside the service's time limit.
+    """
+    clause = (
+        "" if months is None else f" && MONTH(?dob) >= {months[0]} && MONTH(?dob) <= {months[1]}"
+    )
+    return QUERY.replace(_YEAR, str(year)).replace(_MONTHS, clause)
 
 
 def parse_bindings(bindings: list[dict[str, Any]]) -> pd.DataFrame:
@@ -164,10 +176,18 @@ bodies disagreed in the same year that disagreement is itself evidence.
 AWARDS_QUERY = """
 SELECT ?p ?award ?when WHERE {
   VALUES ?award { __AWARDS__ }
-  ?p p:P166 ?statement .
+  ?p p:P166 ?statement ; wdt:P21 wd:Q6581097 .
   ?statement ps:P166 ?award .
   OPTIONAL { ?statement pq:P585 ?when }
 }
+"""
+"""Winners of the tracked awards, restricted to men's football.
+
+The P21 filter matches the project's declared scope — the Big 5 men's domestic
+leagues — and without it the check misreports itself. Wikidata attaches several
+of these award items to women's winners too, so Birgit Prinz, Carli Lloyd and
+Aitana Bonmatí arrived counted as "winners our data is missing" when their
+absence is correct and by design.
 """
 
 
@@ -216,7 +236,28 @@ class WikidataScout:
     name = "wikidata"
 
     def _page(self, year: int) -> list[dict[str, Any]]:
-        return ask(query_for(year), str(year))
+        """One birth year, split in half if it will not come back whole.
+
+        Cache-busting rescues a year whose cached response was corrupt, but not
+        one whose result set genuinely takes longer than the service allows: the
+        biggest cohorts run 36-41 s against a 60 s cap, so under load they tip
+        over however many times they are asked. Halving by birth month puts each
+        request comfortably inside the limit.
+
+        This is not hypothetical. 1985 was lost on two consecutive full runs, and
+        1985 is when Cristiano Ronaldo and Luka Modrić were born — so the cost of
+        skipping the fallback was the second name in our own ranking going
+        unresolved.
+        """
+        whole = ask(query_for(year), str(year))
+        if whole:
+            return whole
+
+        log.warning("wikidata %d: retrying in halves", year)
+        split: list[dict[str, Any]] = []
+        for months in HALVES:
+            split.extend(ask(query_for(year, months), f"{year} months {months[0]}-{months[1]}"))
+        return split
 
     def fetch(self) -> pd.DataFrame:
         """One request per birth year, roughly 260,000 footballers in total.

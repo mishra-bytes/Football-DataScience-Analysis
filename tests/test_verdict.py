@@ -56,6 +56,16 @@ def test_awards_query_names_every_tracked_award() -> None:
         assert f"wd:{qid}" in filled
 
 
+def test_awards_query_is_scoped_to_mens_football() -> None:
+    """Several of these award items are attached to women's winners too.
+
+    The project covers the Big 5 men's leagues, so without this filter Birgit
+    Prinz, Carli Lloyd and Aitana Bonmati arrived counted as winners our data
+    had failed to find, when their absence is correct.
+    """
+    assert "wdt:P21 wd:Q6581097" in AWARDS_QUERY
+
+
 def test_awards_span_the_whole_window() -> None:
     """No single award covers 2000-2025; the set has to, or the check has holes."""
     assert "Ballon d'Or" in AWARDS.values()
