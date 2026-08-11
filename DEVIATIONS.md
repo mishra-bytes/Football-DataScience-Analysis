@@ -142,12 +142,19 @@ any other.
 **Substitute:** `min_count=1` on the aggregation, so an entirely missing group stays missing, and
 a `FOUL_COVERAGE` floor below which the fouls term is dropped rather than filled.
 
-**Impact:** honest, and smaller than expected. Because scores are z-scored within
-`(league, season)`, a fill covering an entire group cancels out, and all twelve affected
-league-seasons are exactly that shape. The coverage guard therefore changes **zero rows**. The
-610 rows that are genuinely distorted sit in league-seasons at 95 to 99% coverage, above the
-floor, and remain zero-filled. Chapter 03 measures this and says so, including that the guard
-guards the wrong regime.
+**Impact on fouls: none.** Because scores are z-scored within `(league, season)`, a fill
+covering an entire group cancels out, and all twelve affected league-seasons are exactly that
+shape. The coverage guard changes **zero fouls rows**. Of the 610 rows distorted in
+partly-covered league-seasons, only **48 clear the 900-minute floor** and reach the ranking, at
+a median of 32 minutes each. Group-mean imputation was considered and rejected on that
+measurement rather than on principle.
+
+**Impact on second yellows: the reason the guard exists.** The same guard extended to
+`second_yellow` changes **1,799 rows**. That column runs at 10 to 16% coverage until 2015 and
+100% from 2016, so for fifteen seasons a player who picked up a second yellow was penalised
+while nine in ten of his peers' second yellows were never recorded at all. The guard was
+reasoned out for fouls, where it does nothing, and turned out to matter for the column that was
+never examined. Chapter 03 says so in those terms.
 
 ---
 
@@ -209,7 +216,7 @@ keepers, Bundesliga `misc`) and the whole pipeline re-run from the cache.
 |---|---|---|---|
 | 1. FBref cache complete | 5 × 5 × 25 | 625 of 625 pages, no partial table | **PASS** |
 | 2. Identity resolution | ≥ 95% | **93.8%** (1,240 players unresolved, all listed) | **FAIL** |
-| 3. Ranking | - | 5,508 ranked, 345 qualified, 39,877 player-seasons | **PASS** |
+| 3. Ranking | - | 5,508 ranked, 342 qualified, 39,877 player-seasons | **PASS** |
 | 4. Notebooks execute; book builds | - | 8 notebooks, 0 errors, 10 pages rendered | **PASS** |
 | 5. Streamlit runs against the sample | - | health `ok`, main page HTTP 200 | **PASS** |
 | 6. pytest / ruff / mypy --strict | all clean | 231 passed, 90.6% cov; ruff clean; mypy clean | **PASS** |

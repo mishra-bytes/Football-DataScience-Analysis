@@ -9,7 +9,7 @@ and a worked textbook on the statistics behind it.
 ## The answer
 
 A player must clear a floor on **all eleven requirements** to qualify at all.
-345 of 5,508 players do. Ranked among them:
+342 of 5,508 players do. Ranked among them:
 
 | # | Player | Score | σ above mean | Seasons | Leagues |
 |---|---|---|---|---|---|

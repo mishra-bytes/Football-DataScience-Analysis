@@ -110,30 +110,44 @@ def _column(df: pd.DataFrame, name: str, default: float = 0.0) -> pd.Series:
     return df[name].fillna(default).astype("float64")
 
 
-FOUL_COVERAGE = 0.8
-"""Share of a league-season that must carry a fouls figure for the term to count.
+MISC_COVERAGE = 0.8
+"""Share of a league-season that must carry a figure for a `misc` term to count.
 
-FBref recorded no fouls for most of 2000-04: 43.5% of those player-seasons have
-none, against 4.4% after 2020. The table is fetched and the source simply has no
-data, so no amount of scraping fixes it.
+Both columns discipline draws from the `misc` table have an era where the source
+simply does not have the data, and each has a different shape.
 
-Filling the gap with zero says the player fouled nobody, which flatters an entire
-era in the requirement that eliminates the most players. Filling it with the
-group mean shrinks that season's spread instead, inflating the z-score of
-everyone who *does* carry a figure. Below this floor the term is dropped, so
-discipline degrades to cards only, the same degradation the requirement already
-accepts when the `misc` table is absent outright.
+**Fouls** are absent from twelve whole league-seasons: Ligue 1 and the
+Bundesliga record none at all before 2006, while England, Spain and Italy record
+them from 2000. **Second yellows** run at 10 to 16% coverage until 2015 and jump
+to 100% from 2016, so for most of the window a blank cannot be told apart from a
+zero.
+
+Filling either with zero claims the player was clean when the truth is that
+nobody wrote it down, and this is the requirement that eliminates the most
+players. Below this floor the term is dropped instead, so discipline degrades to
+the cards it does have, which is the same degradation the requirement already
+accepts when the `misc` table is missing outright.
+
+Nothing is imputed. A group mean would shrink that season's spread and inflate
+the z-score of everyone who *does* carry a figure, which trades a visible gap for
+an invisible distortion.
 """
 
 
-def _foul_rate(df: pd.DataFrame, minutes: pd.Series) -> np.ndarray:
-    """Fouls per 90, dropped in league-seasons the source barely recorded."""
-    if "fouls" not in df.columns:
+def _misc_term(df: pd.DataFrame, column: str, minutes: pd.Series | None = None) -> np.ndarray:
+    """A `misc` column, zeroed out in league-seasons the source barely recorded.
+
+    Passing ``minutes`` turns the column into a per-90 rate; leaving it out keeps
+    the raw count, which is what a card tally wants.
+    """
+    if column not in df.columns:
         return np.zeros(len(df), dtype=float)
-    recorded = df["fouls"].notna()
+    recorded = df[column].notna()
     covered = recorded.groupby([df["league"], df["season"]]).transform("mean")
-    usable = (recorded & (covered >= FOUL_COVERAGE)).to_numpy()
-    return np.where(usable, _rate(df["fouls"].fillna(0.0), minutes), 0.0)
+    usable = (recorded & (covered >= MISC_COVERAGE)).to_numpy()
+    values = df[column].fillna(0.0)
+    present = _rate(values, minutes) if minutes is not None else values.to_numpy(dtype=float)
+    return np.where(usable, present, 0.0)
 
 
 def _ratio(numerator: pd.Series, denominator: pd.Series) -> np.ndarray:
@@ -180,14 +194,15 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
 
     # Negated so higher is better, like every other requirement.
     #
-    # Second yellows and fouls come from FBref's `misc` table, which is optional:
-    # the run can skip it to save five scrapes and add it later. Without it
-    # discipline is coarser, red and yellow cards only, but still meaningful,
-    # so a missing table degrades the requirement rather than breaking the run.
+    # Second yellows and fouls come from FBref's `misc` table. A run can skip it
+    # to save five scrapes and backfill later, and the source itself has eras it
+    # never recorded, so both terms drop out where coverage is too thin rather
+    # than reading as a clean record. Red cards are present throughout, which is
+    # what discipline falls back to. See MISC_COVERAGE.
     cost = (
         out["red"].to_numpy(dtype=float)
-        + _column(out, "second_yellow").to_numpy(dtype=float)
-        + _foul_rate(out, minutes)
+        + _misc_term(out, "second_yellow")
+        + _misc_term(out, "fouls", minutes)
     )
     out["discipline"] = -cost
     return out
