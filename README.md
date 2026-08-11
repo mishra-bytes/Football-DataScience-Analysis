@@ -154,6 +154,7 @@ One arc, running from a raw HTML page through to the answer and then back at it.
 | `12-who-is-missing-from-this-data` | Why transfers are not a random sample, and Simpson's paradox |
 | `13-does-it-agree-with-the-voters` | The one outside opinion, and where it disagrees |
 | `14-does-the-answer-depend-on-my-choices` | Sensitivity to the four constants, and the one that turned out to do nothing |
+| `15-how-many-things-is-this-measuring` | Correlation between the requirements, and how many the gate really tests |
 
 Method chapters follow one structure: **Question, Intuition, Math, Code,
 Assumptions, How it breaks.** The last section is the one most tutorials skip.
@@ -167,6 +168,9 @@ Assumptions, How it breaks.** The last section is the one most tutorials skip.
   domestic league career.
 - **Identity is probabilistic.** 93.9% of player-seasons resolve to a Wikidata
   entity. The other 1,240 players are listed, never dropped.
+- **Eleven requirements are not eleven independent tests.** They behave like
+  about 5.4, and two of them overlap badly: `above_team` correlates 0.9999 with
+  `scoring`, and `reliability` 0.72 with `availability`. Chapter 15 measures it.
 - **The top ten is not an ordering.** Only 1 of 28 pairs among the top eight is
   separable at p < 0.05, and none after correcting for the number of tests. The
   ranking prints an order because a table has to. The statistics support "this

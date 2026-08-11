@@ -20,6 +20,7 @@ project:
     - labs/12-who-is-missing-from-this-data.ipynb
     - labs/13-does-it-agree-with-the-voters.ipynb
     - labs/14-does-the-answer-depend-on-my-choices.ipynb
+    - labs/15-how-many-things-is-this-measuring.ipynb
     - tome/method-template.qmd
 
 book:
@@ -54,6 +55,7 @@ book:
         - labs/12-who-is-missing-from-this-data.ipynb
         - labs/13-does-it-agree-with-the-voters.ipynb
         - labs/14-does-the-answer-depend-on-my-choices.ipynb
+        - labs/15-how-many-things-is-this-measuring.ipynb
         - tome/method-template.qmd
 
 format:
