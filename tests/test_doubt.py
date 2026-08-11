@@ -49,6 +49,59 @@ def test_bootstrap_groups_returns_one_row_per_group() -> None:
     assert (out["est"] <= out["hi"]).all()
 
 
+def test_permutation_finds_no_difference_between_equals() -> None:
+    """Two draws from the same distribution must not look separable."""
+    rng = np.random.default_rng(0)
+    _, p = doubt.permutation_test(rng.normal(0, 1, 12), rng.normal(0, 1, 12), n=2000, seed=1)
+    assert p > 0.05
+
+
+def test_permutation_detects_a_real_gap() -> None:
+    better = np.array([3.0, 3.5, 3.2, 3.8, 3.1, 3.6, 3.4])
+    worse = np.array([0.1, 0.3, -0.2, 0.0, 0.4, 0.2, -0.1])
+    diff, p = doubt.permutation_test(better, worse, n=2000, seed=1)
+    assert diff > 0
+    assert p < 0.01
+
+
+def test_permutation_reports_the_observed_gap() -> None:
+    a = np.array([2.0, 4.0])
+    b = np.array([1.0, 1.0])
+    diff, _ = doubt.permutation_test(a, b, n=100, seed=1)
+    assert diff == pytest.approx(2.0)
+
+
+def test_permutation_is_one_sided() -> None:
+    """The claim is directional, so reversing it must flip the verdict."""
+    better = np.array([3.0, 3.5, 3.2, 3.8, 3.1, 3.6])
+    worse = np.array([0.1, 0.3, -0.2, 0.0, 0.4, 0.2])
+    _, forwards = doubt.permutation_test(better, worse, n=2000, seed=1)
+    _, backwards = doubt.permutation_test(worse, better, n=2000, seed=1)
+    assert forwards < 0.01
+    assert backwards > 0.99
+
+
+def test_permutation_never_reports_zero() -> None:
+    """10,000 shuffles cannot tell 'impossible' from 'rarer than 1 in 10,000'."""
+    better = np.arange(50.0) + 100.0
+    worse = np.arange(50.0)
+    _, p = doubt.permutation_test(better, worse, n=1000, seed=1)
+    assert p > 0
+    assert p == pytest.approx(1 / 1001)
+
+
+def test_permutation_is_reproducible_for_a_fixed_seed() -> None:
+    a, b = np.arange(10.0), np.arange(10.0) + 0.5
+    once = doubt.permutation_test(a, b, n=500, seed=4)
+    assert once == doubt.permutation_test(a, b, n=500, seed=4)
+
+
+def test_permutation_refuses_a_career_of_one_season() -> None:
+    """One number carries no evidence about its own variability."""
+    diff, p = doubt.permutation_test(np.array([5.0]), np.arange(10.0), n=100, seed=1)
+    assert np.isnan(diff) and np.isnan(p)
+
+
 @pytest.mark.skipif(not gpu.HAS_GPU, reason="no CUDA GPU available")
 def test_cupy_and_numpy_agree() -> None:
     """Spec section 7: parity is asserted, not assumed."""
