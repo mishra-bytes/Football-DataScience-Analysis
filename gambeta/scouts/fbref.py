@@ -85,6 +85,39 @@ _RENAME_KEEPER: dict[tuple[str, str], str] = {
     ("Performance", "CS%"): "cs_pct",
 }
 
+UCL_LEAGUE = "UEFA-Champions League"
+"""How this project names the Champions League."""
+
+UCL_FBREF_NAME = "UEFA Champions League"
+"""How FBref's competition index names it, which is what soccerdata matches on.
+
+soccerdata ships no Champions League at all, so it has to be registered. The
+registration matches on the *display name* in FBref's index, and "Champions
+League" is not it. A wrong name returns an empty frame rather than raising,
+which is the failure mode this constant exists to prevent.
+"""
+
+
+def register_ucl() -> None:
+    """Teach soccerdata about the Champions League, idempotently.
+
+    Writes to soccerdata's own config directory, because that is the only place
+    it reads custom competitions from. Merged rather than overwritten, so a
+    reader who has registered other competitions keeps them.
+    """
+    import json
+
+    config = Path.home() / "soccerdata" / "config" / "league_dict.json"
+    config.parent.mkdir(parents=True, exist_ok=True)
+    known = json.loads(config.read_text(encoding="utf-8")) if config.exists() else {}
+    known[UCL_LEAGUE] = {
+        "FBref": UCL_FBREF_NAME,
+        "season_start": "Aug",
+        "season_end": "May",
+    }
+    config.write_text(json.dumps(known, indent=2), encoding="utf-8")
+
+
 SIDE_TABLES: dict[str, dict[tuple[str, str], str]] = {
     "shooting": _RENAME_SHOOTING,
     "playing_time": _RENAME_PLAYING_TIME,
