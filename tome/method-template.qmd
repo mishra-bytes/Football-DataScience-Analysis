@@ -15,7 +15,8 @@ explained with no equations. A reader should be able to stop here and still
 correctly describe what the method does to someone else.
 
 **3. Math.** The actual definition. Notation is introduced, not assumed. Where a
-choice was made — a denominator, an estimator, a prior — the alternatives are
+choice was made, whether a denominator, an estimator or a prior, the
+alternatives are
 named and the choice is justified.
 
 **4. Code.** The implementation, calling into `gambeta` rather than redefining
@@ -34,8 +35,8 @@ separates using it from trusting it.
 ## Why this structure
 
 The two audiences this book serves want different things from the same page. A
-beginner needs parts 1, 2 and 4 — the question, the feel, and something runnable.
-A practitioner needs parts 3, 5 and 6 — the definition, the conditions, and the
+beginner needs parts 1, 2 and 4: the question, the feel, and something runnable.
+A practitioner needs parts 3, 5 and 6: the definition, the conditions, and the
 failure modes.
 
 Writing them as one linear chapter with labelled sections lets both readers take

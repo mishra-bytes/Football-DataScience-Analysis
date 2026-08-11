@@ -6,15 +6,19 @@ project:
   output-dir: tome/_book
   render:
     - index.qmd
-    - labs/01-who-is-the-best-footballer.ipynb
-    - labs/02-how-far-ahead-is-the-best.ipynb
-    - labs/03-method-requirements-and-gates.ipynb
-    - labs/04-method-league-strength.ipynb
-    - labs/05-method-normalisation-and-shrinkage.ipynb
-    - labs/06-method-the-bootstrap.ipynb
-    - labs/07-method-testing-without-a-distribution.ipynb
-    - labs/08-method-selection-bias.ipynb
-    - labs/09-does-it-agree-with-the-voters.ipynb
+    - labs/01-where-the-data-comes-from.ipynb
+    - labs/02-who-is-this-player.ipynb
+    - labs/03-when-a-zero-is-a-lie.ipynb
+    - labs/04-four-bugs-no-test-could-catch.ipynb
+    - labs/05-what-greatness-requires.ipynb
+    - labs/06-comparing-players-across-eras.ipynb
+    - labs/07-comparing-players-across-leagues.ipynb
+    - labs/08-who-is-the-best-footballer.ipynb
+    - labs/09-how-far-ahead-is-the-best.ipynb
+    - labs/10-how-much-of-this-is-luck.ipynb
+    - labs/11-can-we-tell-them-apart.ipynb
+    - labs/12-who-is-missing-from-this-data.ipynb
+    - labs/13-does-it-agree-with-the-voters.ipynb
     - tome/method-template.qmd
 
 book:
@@ -22,21 +26,32 @@ book:
   subtitle: "Football, statistics, and the argument that never ends"
   author: "Aditya Mishra"
   search: true
+  # One arc, running from the raw HTML page to the answer and then back at it.
+  # Chapter numbers are the reading order, so the filenames carry it too.
+  # The preface still states the answer, so nothing is buried by building up.
   chapters:
     - index.qmd
-    - part: "The investigation"
+    - part: "Getting the data, and making it honest"
       chapters:
-        - labs/01-who-is-the-best-footballer.ipynb
-        - labs/02-how-far-ahead-is-the-best.ipynb
-        - labs/09-does-it-agree-with-the-voters.ipynb
-    - part: "Methods"
+        - labs/01-where-the-data-comes-from.ipynb
+        - labs/02-who-is-this-player.ipynb
+        - labs/03-when-a-zero-is-a-lie.ipynb
+        - labs/04-four-bugs-no-test-could-catch.ipynb
+    - part: "Turning data into a measure"
       chapters:
-        - labs/05-method-normalisation-and-shrinkage.ipynb
-        - labs/03-method-requirements-and-gates.ipynb
-        - labs/06-method-the-bootstrap.ipynb
-        - labs/07-method-testing-without-a-distribution.ipynb
-        - labs/04-method-league-strength.ipynb
-        - labs/08-method-selection-bias.ipynb
+        - labs/05-what-greatness-requires.ipynb
+        - labs/06-comparing-players-across-eras.ipynb
+        - labs/07-comparing-players-across-leagues.ipynb
+    - part: "The answer"
+      chapters:
+        - labs/08-who-is-the-best-footballer.ipynb
+        - labs/09-how-far-ahead-is-the-best.ipynb
+    - part: "Attacking the answer"
+      chapters:
+        - labs/10-how-much-of-this-is-luck.ipynb
+        - labs/11-can-we-tell-them-apart.ipynb
+        - labs/12-who-is-missing-from-this-data.ipynb
+        - labs/13-does-it-agree-with-the-voters.ipynb
         - tome/method-template.qmd
 
 format:

@@ -6,7 +6,7 @@ twenty-five years were**, and **how you would actually find out**.
 ## The answer, before the argument
 
 No suspense. Here is what the method produces, computed live from the same data
-every chapter uses — a player must clear a floor on **all eleven requirements**
+every chapter uses. A player must clear a floor on **all eleven requirements**
 to appear at all.
 
 ```{python}
@@ -32,8 +32,8 @@ qualified = int(ranking["qualified"].sum())
 kq = keepers[keepers["qualified"]]
 Markdown(
     f"**{qualified} of {len(ranking):,} players** clear every requirement. "
-    f"Goalkeepers are ranked separately on their own eight — "
-    f"{', '.join(kq.head(5)['player'])} — because save percentage and goals per 90 "
+    f"Goalkeepers are ranked separately on their own eight requirements: "
+    f"{', '.join(kq.head(5)['player'])}. Save percentage and goals per 90 "
     f"are not comparable quantities and pretending otherwise would be dishonest.\n\n"
     f"League strength is estimated from transfers alone, with England pinned at zero: "
     + ", ".join(
@@ -50,7 +50,7 @@ eight can be told apart at all. Chapters 6 and 7 make that case against the
 table above, which is the honest way round.
 
 Those two questions are harder to separate than they look. Most arguments about
-the greatest player are not really disagreements about facts — they are
+the greatest player are not really disagreements about facts. They are
 disagreements about what "greatest" means, conducted as though they were
 disagreements about facts. One person means peak. Another means longevity.
 A third means trophies. They talk past each other for hours and nobody moves.
@@ -80,13 +80,13 @@ Being clear about limits early is not modesty, it is what makes the rest
 trustworthy.
 
 - **Advanced statistics do not exist before 2017-18.** Expected goals,
-  progressive passes, shot-creating actions — none of it was recorded for the
+  progressive passes, shot-creating actions: none of it was recorded for the
   2003-04 season, by anyone, at any price. So the ranking here is built on what
   *is* measurable across the whole period: goals, assists, minutes, and the
   strength of the opposition. Richer 2017-onward data appears only as context,
   never as part of the ranking, because a metric that exists for one era and not
   another cannot fairly compare them.
-- **This covers the Big 5 domestic leagues**, 2000-01 to 2024-25 — England,
+- **This covers the Big 5 domestic leagues**, 2000-01 to 2024-25: England,
   Spain, Italy, Germany and France. No Champions League, no internationals, no
   league outside those five. A player who did their best work in Portugal or
   Brazil does not appear, and that is a limitation of scope, not a judgement.
