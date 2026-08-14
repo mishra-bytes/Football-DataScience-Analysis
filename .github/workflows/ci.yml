@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main, phase-1]
+    branches: [main, phase-1, big-five-and-identity]
   pull_request:
 
 jobs:
