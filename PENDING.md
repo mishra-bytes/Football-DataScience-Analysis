@@ -232,9 +232,9 @@ Not bugs. Decisions that need a person.
 
 | Item | Status |
 |---|---|
-| GitHub push | **blocked**, `gh auth login` never completed. All work is committed locally. |
-| CI workflow | Written, **never executed**, it has never run against a real runner. |
-| GitHub Pages deploy | Blocked on the same auth. |
+| GitHub push | **done**, 2026-08-15. `origin/big-five-and-identity` pushed. |
+| CI workflow | **done**, 2026-08-15. Green on a real runner for the first time. |
+| GitHub Pages deploy | **done**, 2026-08-15. `deploy` job added, gated to `main`; Pages enabled with `build_type=workflow`. |
 | PyPI trusted publishing | Configured in the spec, never set up. Requires a licence decision first. |
 | Licence | **None.** All rights reserved by default, which blocks any reuse. |
 | Phase 2 git workflow | Phase 2 was committed **directly to `main`** rather than to a branch merged when green, contrary to the agreed workflow. History is clean; the process was not followed. |

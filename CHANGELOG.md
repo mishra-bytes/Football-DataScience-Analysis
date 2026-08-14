@@ -77,6 +77,7 @@ arc.
   go stale or flatter itself.
 - `laws` invariants and `validate="one_to_one"` guards, so this class of defect
   raises at the layer boundary instead of shipping.
+- Pushed, and CI green on a real runner for the first time.
 
 ### Previously in this release
 

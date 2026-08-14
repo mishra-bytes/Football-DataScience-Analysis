@@ -31,3 +31,41 @@ jobs:
 
       - name: Tests
         run: uv run pytest
+
+  deploy:
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Install
+        run: uv sync --all-groups
+
+      # Notebooks carry their outputs and are the source of truth for the book,
+      # so CI renders without executing rather than re-running the pipeline
+      # against data that is not published to the runner.
+      - name: Render book
+        run: uv run quarto render --no-execute
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: tome/_book
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
