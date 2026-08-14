@@ -14,7 +14,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from gambeta.doubt import bootstrap
+from gambeta.doubt import bca
 from gambeta.kit import SEASONS, Config
 
 _SEASON_ORDER = {season: i for i, season in enumerate(SEASONS)}
@@ -96,7 +96,7 @@ def peak5(df: pd.DataFrame, cfg: Config, window: int = 5) -> pd.DataFrame:
         if end - start + 1 < cfg.min_seasons:
             continue
 
-        _, lo, hi = bootstrap(scores[start : end + 1], n=_BOOTSTRAP_RESAMPLES, seed=cfg.seed)
+        _, lo, hi = bca(scores[start : end + 1], n=_BOOTSTRAP_RESAMPLES, seed=cfg.seed)
 
         rows.append(
             {

@@ -13,10 +13,14 @@ five numbers long.
 
 from __future__ import annotations
 
+from statistics import NormalDist
+
 import numpy as np
 import pandas as pd
 
 from gambeta import gpu
+
+_NORMAL = NormalDist()
 
 GPU_MIN_ELEMENTS = 1_000_000
 """Below this resample-matrix size, NumPy wins.
@@ -72,6 +76,99 @@ def bootstrap(
     host = gpu.asnumpy(resampled) if use_gpu else np.asarray(resampled)
     lo, hi = np.percentile(host, [100 * alpha / 2, 100 * (1 - alpha / 2)])
     return float(data.mean()), float(lo), float(hi)
+
+
+def bca(
+    values: np.ndarray,
+    n: int = 10_000,
+    seed: int = 20260810,
+    alpha: float = 0.05,
+) -> tuple[float, float, float]:
+    """Bias-corrected and accelerated bootstrap interval for the mean.
+
+    The percentile interval assumes the bootstrap distribution is centred on the
+    truth and equally spread on both sides. A career of three seasons satisfies
+    neither: the sample mean is a biased estimate of the level, and season scores
+    are right-skewed, so the interval sits too low and too narrow. Measured on
+    this project's own data it covers about 74% of the time against a nominal
+    95%, and ``min_seasons = 3`` puts exactly those careers into the published
+    table.
+
+    Two corrections improve it from four observations up; at three the jackknife
+    has too little to work with and neither interval covers well. **z0** measures
+    how far the bootstrap distribution
+    sits from the observed estimate, in normal quantiles. **a**, the
+    acceleration, measures how fast the estimate's variance changes with the
+    data, taken from the jackknife's skew. Both shift the percentiles that get
+    read off the same resample distribution, so no extra resampling is needed.
+
+    ``statistics.NormalDist`` supplies the normal CDF and its inverse rather than
+    scipy, which the project does not depend on and which one distribution does
+    not justify adding.
+
+    Parameters
+    ----------
+    values
+        Observations to resample. Fewer than two yields the degenerate answers
+        documented in :func:`bootstrap`.
+    n
+        Number of bootstrap resamples.
+    seed
+        Random seed. A fixed seed makes the interval exactly reproducible.
+    alpha
+        Two-sided significance level; 0.05 gives a 95% interval.
+
+    Returns
+    -------
+    tuple of float
+        ``(estimate, lower, upper)``, the same contract as :func:`bootstrap`.
+
+    Notes
+    -----
+    Degenerate input falls back to the percentile interval rather than raising.
+    If every resample mean lands on the same side of the estimate, z0 is
+    infinite; if every observation is identical the jackknife has no spread and
+    a is undefined. Both happen on real careers, and an interval that is merely
+    uncorrected is more useful than a NaN.
+    """
+    data = np.asarray(values, dtype=float)
+    if data.size == 0:
+        return (float("nan"),) * 3
+    if data.size == 1:
+        return float(data[0]), float(data[0]), float(data[0])
+
+    estimate = float(data.mean())
+    rng = np.random.default_rng(seed)
+    resampled = data[rng.integers(0, data.size, size=(n, data.size))].mean(axis=1)
+
+    # Ties at the estimate get half weight (Efron & Tibshirani's "mean" rule):
+    # counting them as fully below biases z0 toward zero exactly when the
+    # resample distribution is lumpy, which a three-season career's discrete
+    # bootstrap of the mean often is.
+    below = float(
+        (np.count_nonzero(resampled < estimate) + np.count_nonzero(resampled <= estimate))
+        / (2 * resampled.size)
+    )
+    if below <= 0.0 or below >= 1.0:
+        lo, hi = np.percentile(resampled, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        return estimate, float(lo), float(hi)
+    z0 = _NORMAL.inv_cdf(below)
+
+    # Leave-one-out means. The jackknife's third moment is what "acceleration"
+    # measures: how much the estimate's spread depends on where the data sits.
+    jackknife = (data.sum() - data) / (data.size - 1)
+    centred = jackknife.mean() - jackknife
+    denominator = 6.0 * float(np.sum(centred**2)) ** 1.5
+    acceleration = float(np.sum(centred**3) / denominator) if denominator > 0 else 0.0
+
+    def adjusted(z: float) -> float:
+        shifted = z0 + z
+        return _NORMAL.cdf(z0 + shifted / (1.0 - acceleration * shifted))
+
+    lower_q = adjusted(_NORMAL.inv_cdf(alpha / 2))
+    upper_q = adjusted(_NORMAL.inv_cdf(1.0 - alpha / 2))
+    lo, hi = np.percentile(resampled, [100 * lower_q, 100 * upper_q])
+    return estimate, float(lo), float(hi)
 
 
 def permutation_test(

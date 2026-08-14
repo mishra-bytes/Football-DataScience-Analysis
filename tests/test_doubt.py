@@ -135,3 +135,61 @@ def test_cupy_and_numpy_agree() -> None:
     on_cpu = doubt.bootstrap(values, n=20_000, seed=42, force_cpu=True)
     on_gpu = doubt.bootstrap(values, n=20_000, seed=42, force_cpu=False)
     assert np.allclose(on_cpu, on_gpu, atol=0.02)
+
+
+def test_bca_matches_the_percentile_interval_on_symmetric_data() -> None:
+    """With no skew and no bias, the correction should do almost nothing."""
+    values = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    _, plo, phi = doubt.bootstrap(values, n=20_000, seed=1)
+    _, blo, bhi = doubt.bca(values, n=20_000, seed=1)
+    assert abs(blo - plo) < 0.15
+    assert abs(bhi - phi) < 0.15
+
+
+def test_bca_shifts_the_interval_on_skewed_data() -> None:
+    """A right-skewed sample biases the percentile interval low. BCa moves it up."""
+    values = np.array([1.0, 1.0, 1.0, 1.0, 9.0])
+    _, plo, phi = doubt.bootstrap(values, n=20_000, seed=1)
+    _, blo, bhi = doubt.bca(values, n=20_000, seed=1)
+    assert bhi > phi, "acceleration must extend the upper tail on right skew"
+
+
+def test_bca_covers_better_than_percentile_at_a_five_season_window() -> None:
+    """The defect this exists to fix: percentile coverage collapses on short skewed
+    careers. Five observations is the window peak5 actually resamples. At three,
+    neither method covers well and BCa is measurably no better, so the claim is
+    tested where it is true.
+    """
+    rng = np.random.default_rng(20260810)
+    truth = float(np.exp(0.8**2 / 2))  # the population mean of lognormal(0, 0.8);
+    # the intervals estimate the mean, so the mean is the target
+    percentile_hits = bca_hits = 0
+    trials = 1_000
+    for i in range(trials):
+        sample = rng.lognormal(mean=0.0, sigma=0.8, size=5)
+        _, plo, phi = doubt.bootstrap(sample, n=2_000, seed=i)
+        _, blo, bhi = doubt.bca(sample, n=2_000, seed=i)
+        percentile_hits += plo <= truth <= phi
+        bca_hits += blo <= truth <= bhi
+    assert bca_hits > percentile_hits, (
+        f"BCa {bca_hits}/{trials} must beat percentile {percentile_hits}/{trials}"
+    )
+
+
+def test_bca_returns_nans_for_empty_input() -> None:
+    assert all(np.isnan(v) for v in doubt.bca(np.array([])))
+
+
+def test_bca_returns_the_value_three_times_for_one_observation() -> None:
+    assert doubt.bca(np.array([2.5])) == (2.5, 2.5, 2.5)
+
+
+def test_bca_falls_back_when_every_observation_is_identical() -> None:
+    """No spread means z0 is undefined. It must degrade, not raise or emit NaN."""
+    est, lo, hi = doubt.bca(np.array([3.0, 3.0, 3.0, 3.0]))
+    assert (est, lo, hi) == (3.0, 3.0, 3.0)
+
+
+def test_bca_is_deterministic() -> None:
+    values = np.array([1.0, 4.0, 2.0, 8.0, 3.0])
+    assert doubt.bca(values, seed=7) == doubt.bca(values, seed=7)
