@@ -170,7 +170,10 @@ def test_above_team_penalises_players_at_strong_clubs() -> None:
         {"season": ["0405"] * 2, "team": ["Arsenal", "Chelsea"], "elo": [1900.0, 1500.0]}
     )
     got = needs.add_above_team(df, elo, "out").set_index("player")
-    assert got.loc["a", "above_team"] == got.loc["c", "above_team"]
+    # Equal in theory (identical output at each club); the regression solver's
+    # floating-point path differs by platform BLAS, so compare within tolerance
+    # rather than bit-for-bit.
+    assert np.isclose(got.loc["a", "above_team"], got.loc["c", "above_team"])
 
 
 def test_above_team_rewards_outperforming_a_weak_club() -> None:
