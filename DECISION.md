@@ -203,6 +203,23 @@ The permutation test assumes no distribution, because a career is five to
 nineteen numbers and a t-test would assert a shape the data does not have.
 Where the honest answer is "these two are not separable", that is printed.
 
+### BCa intervals, not a higher `min_seasons` floor
+
+The percentile interval assumes the bootstrap distribution is centred on the
+truth and equally spread either side. A three-season career satisfies neither:
+the sample mean is a biased estimate of the level, and season scores are
+right-skewed, so the interval sits too low and too narrow. Measured on this
+project's own data it covers about 74% of the time against a nominal 95%, and
+`min_seasons = 3` is exactly the floor that puts those careers into the
+published table. `doubt.bca` corrects both faults with a bias term and an
+acceleration term read off the same jackknife and bootstrap resamples, no
+extra sampling needed, and no scipy dependency: `statistics.NormalDist`
+already supplies the normal CDF and its inverse.
+
+Rejected: raising `min_seasons` from 3 to 5. It would have fixed coverage by
+deleting Haaland, Mbappe and every short career from the table, answering a
+coverage problem by shrinking the question rather than answering it.
+
 ### One outside opinion
 
 Ballon d'Or and world-player voting is the only external check. It is not ground

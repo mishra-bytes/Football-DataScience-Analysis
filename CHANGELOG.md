@@ -19,6 +19,12 @@ arc.
 
 ### Fixed
 
+- **Percentile bootstrap under-covered short careers.** 74% actual against a
+  nominal 95% at three seasons, and `min_seasons = 3` put exactly those careers
+  in the published table. `doubt.bca` replaces it with a bias-corrected and
+  accelerated interval. On `peak5`'s qualified top ten, median 95% interval
+  width **0.499 -> 0.512**. The widening is the defect being fixed, not a
+  regression: the percentile interval was too narrow, not merely mispositioned.
 - **Side-table join key was not unique.** `(league, season, team, player)` does
   not identify a player: two men called Míchel played for Rayo Vallecano in
   2002-03. Three left joins against a duplicated key returned the cross product.
@@ -214,9 +220,6 @@ arc.
   top eight are separable at p < 0.05 two-sided, and none survives a Bonferroni
   correction. More data did not fix this and more seasons will not; it needs more
   signal per season.
-- **Percentile bootstrap under-covers on short careers**: 74% actual against a
-  nominal 95% at three seasons, which `min_seasons = 3` admits. BCa intervals are
-  the fix and are not implemented.
 - `failure_summary` is near information-free by construction: a percentile gate
   eliminates exactly that share of the population on every requirement.
 - Defenders remain unmeasurable. Top 50 qualifiers are 96% forwards, 4%
