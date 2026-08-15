@@ -76,6 +76,21 @@ arc.
 
 ### Added
 
+- **A Bayesian layer** (`gambeta.bayes`): a hierarchical model of player-season
+  level, with the shrinkage a short career gets estimated from the data
+  instead of imposed by the pipeline's hard `cfg.min_minutes` floor. Each
+  player draws his level from a population distribution whose spread is
+  fitted, not assumed; a season's precision scales with its minutes rather
+  than being excluded outright below the floor. Sits beside the point-estimate
+  pipeline, not in place of it; see DECISION.md. Fitted on the full
+  `player_season_scored.parquet` (10,039 players, 39,877 player-seasons):
+  0 divergences, r_hat 1.00 on `population_sd` and `noise`, 36.1s wall time.
+  Comparing the point estimate's top 50 (minutes-weighted mean of
+  `season_score` on seasons at or above `cfg.min_minutes`) against the same
+  players' rank under the posterior mean, **20 of 50** move by more than 5
+  places once shrinkage is estimated rather than imposed. Optional extra
+  (`bayes`); the rest of the suite passes with it uninstalled, `tests/test_bayes.py`
+  skipped.
 - **`tournament`, the twelfth requirement** (`needs.tournament_value`):
   international output at the World Cup, the Euro and Copa America, scored as
   a per-90 rate scaled by presence and saturating at a full run

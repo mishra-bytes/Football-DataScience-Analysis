@@ -480,6 +480,34 @@ takes an unweighted twentieth percentile, so a 900-minute season gets a full
 vote when a career's floor is decided. Closing that needs the hierarchical model
 in `PENDING.md`, not a better constant.
 
+### The Bayesian layer sits beside the point-estimate pipeline, not in place of it
+
+`gambeta.bayes` is the hierarchical model the previous entry pointed to: each
+player draws his level from a population distribution whose spread is
+estimated from the data, so how far a short career is pulled toward the mean
+is measured rather than set by `cfg.min_minutes`. It reads the same
+`player_season_scored.parquet` the pipeline already writes and produces a
+posterior, nothing downstream of `rank()` changes and no published number in
+the book moves.
+
+Rejected: making the posterior mean the published score. Replacing the
+point estimate would invalidate every number already in the book at once, on
+the strength of one new model that has not been through the same scrutiny
+(the awards check, the permutation tests, the failure table) the rest of the
+pipeline has. The two also answer slightly different questions: the pipeline's
+score pools a career by minutes with a hard floor, the model's posterior mean
+pools it through an estimated population spread with no floor at all, and
+collapsing them into one number would hide that difference rather than state
+it. Comparing the point-estimate top 50 (minutes-weighted mean of
+`season_score` on qualifying seasons) against the same players' order under
+the posterior mean, 20 of 50 move by more than 5 places, which is exactly the
+scale of disagreement a reader should be able to see, not one that should be
+silently resolved by picking a side.
+
+`bayes` is optional (`pyproject.toml`'s `bayes` extra: `pymc`, `nutpie`,
+`arviz`), and the rest of the suite passes with it uninstalled,
+`tests/test_bayes.py` skipping via `pytest.importorskip("pymc")`.
+
 ## The bug class this project keeps finding
 
 Six defects so far. `consistency` measured as variance. `reliability` measured
