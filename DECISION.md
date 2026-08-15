@@ -139,6 +139,27 @@ that ID anyway.
 A player who cannot be matched is reported in `unresolved.csv`, never dropped.
 Dropping raises no error and quietly deletes a career.
 
+### The UCL match rate is judged within the Big-5 population, not overall
+
+Champions League player-seasons match a domestic `player_id` at 75.352% overall,
+but at 99.32% among rows whose club also appears in the Big-5 domestic data, and
+43.66% among rows whose club never does (Shakhtar Donetsk, Dynamo Kyiv, Porto,
+Benfica, Celtic and 130-odd others across all 25 seasons). The ranked population
+is Big-5 only, so a UCL row for a player who never played there is expected not
+to match, and is dropped at the join by design rather than by failure. 99.32% is
+the number that measures whether the join itself works, and it was accepted as
+such.
+
+Rejected: expanding `kit.ACTIVE_LEAGUES` to cover Porto/Shakhtar-class clubs so
+their players would resolve too. That turns a UCL side-column task into a second
+domestic scrape, seasons deep, for leagues the project never set out to rank.
+
+Rejected: loosening `whois.resolve`'s tiers to force a higher match rate. The
+unmatched rows outside the Big-5 population are not spelling variants of a name
+already in the crosswalk, they are different people who never played in a
+tracked league, so a looser tier would manufacture false identities across the
+whole project to paper over rows that were never supposed to match.
+
 ### `reliability` is completed matches, adjusted for position
 
 Completed matches per appearance, minus the median of the player's own position.
