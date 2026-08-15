@@ -1,6 +1,6 @@
 """Gate, then rank.
 
-The definition says a player *must have* eleven things. That is read literally: a
+The definition says a player *must have* twelve things. That is read literally: a
 floor on every requirement decides who qualifies, and only qualifiers are ranked.
 A weighted average alone would let a player be genuinely poor at something the
 list calls a requirement and still win on volume elsewhere.
