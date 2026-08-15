@@ -76,6 +76,38 @@ arc.
 
 ### Added
 
+- **`tournament`, the twelfth requirement** (`needs.tournament_value`):
+  international output at the World Cup, the Euro and Copa America, scored as
+  a per-90 rate scaled by presence and saturating at a full run
+  (`TOURNAMENT_FULL_RUN = 450` minutes, five matches). Copa America joined the
+  World Cup and the Euro by owner ruling 2026-08-15 (the Euro covers European
+  players, Copa America covers South American ones); it is registered with
+  soccerdata the same way the Champions League is
+  (`gambeta.scouts.fbref.register_copa_america`). Absence scores zero, not
+  missing, the same ruling `continental` already carries; see DECISION.md for
+  the nationality objection this requirement only partly answers. Qualifiers
+  **398 -> 357** of 5,508 ranked. At the 40th-percentile gate, `tournament`
+  eliminates 2,203, the same share as every other season-level requirement;
+  its standardised profile carries 0.00% exact-zero mass despite `tournament`
+  starting from a higher raw-zero rate than `continental` did, checked rather
+  than assumed; see DECISION.md. Top ten reorders: Lewandowski rises 6th ->
+  5th, Kane rises 8th -> 6th, Suarez rises 10th -> 9th; Benzema holds 7th;
+  Haaland falls 5th -> 8th (Norway did not qualify for a tracked tournament in
+  his career); Salah drops out of the top ten (Egypt's tournament is the Africa
+  Cup of Nations, out of scope), replaced by van Nistelrooy, 12th -> 10th.
+  Messi, Mbappe, Ronaldo and Henry hold their places at the top.
+- A real defect caught before publishing, not after: fetching World Cup, Euro
+  and Copa America stats one project season at a time (soccerdata indexes
+  them by the tournament's own calendar year, and a batched multi-season
+  request raises the moment one requested year has no data) double-counted
+  the COVID-delayed 2020 Euro and 2020 Copa America editions, because both
+  are still labelled `"2020"` at the source but are also matched by a query
+  for the following domestic season, `"2021"`. `collapse_transfers` summed
+  the duplicate as if it were a real mid-season transfer, doubling every
+  2020-edition player's minutes and goals (caught by comparing a doubled
+  edition's 1,436-minute ceiling against a normal edition's 690). Fixed by
+  deduplicating the raw fetch before it is written; see DECISION.md. Raw
+  tournament rows **8,030 -> 7,307** after the fix.
 - **`continental`, the eleventh requirement** (`needs.continental_value`):
   European club output, currently the Champions League, scored as a per-90
   rate scaled by presence and saturating at a full campaign

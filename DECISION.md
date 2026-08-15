@@ -213,6 +213,94 @@ identical counts at one gate percentile is the expected shape of that
 function's output, not a sign every requirement failed the same players. See
 CHANGELOG.md for the qualifier count and the reordered top ten.
 
+### The tournament requirement measures nationality more than club selection does, and Copa America only shrinks that, it does not close it
+
+`needs.tournament_value` scores World Cup, Euro and Copa America output with the
+same rate-times-presence shape as `continental_value`, and it partly measures
+**nationality**. A Welshman can reach two tournaments in a career; a Brazilian,
+twelve. That gap has nothing to do with which of the two is the better player.
+The rate-times-presence form limits the damage the same way it limits the
+club-selection objection on `continental`: a player is judged on what he did
+with the minutes he had, not punished twice for having few of them, and
+presence saturates at `TOURNAMENT_FULL_RUN = 450` minutes so a deep run cannot
+outscore a solid group stage on volume alone. It does not remove the bias.
+
+Rejected: normalising by the national side's own qualification record (matches
+played, or tournaments reached, by the country as a whole). That would have
+made the requirement measure the team even more directly than it already does,
+trading a player-level nationality bias for a team-level one, which is a worse
+trade, not a fix.
+
+Owner ruling 2026-08-15: Copa America joined the World Cup and the Euro,
+reasoning that the Euro already covers European players and Copa America
+covers South American ones. This is a genuine, partial mitigation, not a
+resolution. South American players now have a second tournament, roughly every
+two to four years since FBref's player-level coverage of the competition
+begins in 2015, to be measured on. It leaves the underlying objection standing
+for players from confederations with no tournament in scope: the Africa Cup of
+Nations and the Asian Cup remain out (see `constraints.md`'s out-of-scope
+list), so an African or Asian great is still judged on the World Cup alone,
+the same single quadrennial opportunity every player outside Europe and South
+America gets. Adding a fourth and fifth confederation's tournament was not
+part of this ruling and was not built.
+
+Measured the same way `continental`'s zero mass was checked, because
+`tournament` starts from an even higher raw-zero rate (a career only touches a
+World Cup, a Euro or a Copa America in a minority of its seasons): the
+standardised profile the gate consumes carries **0.00%** exact-zero mass on
+`tournament` too, for the identical reason, the per-season z-score is computed
+within each `(league, season)` group before the career is pooled, so a raw
+zero stops being one shared number before the gate ever sees the column. The
+40th-percentile floor eliminates 2,203 of 5,508 (39.996%), exactly the same
+share as every other season-level requirement, genuinely rather than by a tied
+mass at the floor. See CHANGELOG.md for the qualifier count and the top ten.
+
+### A COVID-delayed tournament edition is mislabelled at the source, and this project's alignment inherits the mislabelling
+
+FBref keeps the 2020 Euro and the 2020 Copa America under the season label
+`"2020"` even though both were actually played in June-July 2021, because that
+is the tournament's official branding, not its calendar. `align_tournament_seasons`
+is a mechanical `year -> season` transform with no knowledge of that history, so
+it places both editions in domestic season `"1920"` (2019-20), the season that
+had just finished when the tournaments were *originally* scheduled, not `"2021"`
+(2020-21), the season that had just finished when they were *actually* played
+and the squads were actually picked. This is implemented exactly as the brief
+specifies and was not changed, per this project's rule that a disagreement with
+a given implementation is recorded, not silently routed around; the effect on
+any one player's `tournament` value is a one-season misattribution, not a
+wrong number, since the minutes and goals themselves are correct, only their
+season label is arguably one year early.
+
+### A per-season tournament fetch can double-count a COVID-delayed edition, and this is a real defect, fixed
+
+The World Cup and the Euro are known to soccerdata without registration, but
+querying them for a full 25-season span in one batched call raises: soccerdata
+indexes them by the tournament's own calendar year, and any requested year
+with no tournament is a hard `KeyError` on a `.loc` lookup with no partial
+match. Fetching one project season at a time, converted to soccerdata's
+calendar-year label, avoids that. The 2020 Euro and 2020 Copa America break
+even this: because both are still labelled `"2020"` but were played in 2021,
+a query for calendar year **"2021"** (from domestic season `"2021"`) matches
+the *same* underlying page as a query for **"2020"** (from domestic season
+`"1920"`), so both project-season iterations of the fetch loop pulled in an
+identical copy of that edition's roster. `collapse_transfers` cannot tell an
+exact duplicate from a genuine mid-season transfer and sums both, which
+doubled every 2020-edition player's minutes, goals and assists (caught by a
+sanity check: Euro "1920" carried a max of 1,436 minutes against a same-shape
+single-fetch Euro edition's ceiling of 690, almost exactly double). Fixed by
+deduplicating the raw fetch on `(league, season, team, player, born)`, the
+same identity key `flatten`'s own duplicate-key fix uses elsewhere in this
+project, before it is ever written to `tournament_raw.parquet`. Row count
+after dedup: 8,030 -> 7,307.
+
+Rejected: discovering each tournament's actual valid season labels up front
+(one extra soccerdata call per competition) and fetching each one exactly
+once, which would prevent the duplicate fetch rather than clean it up after
+the fact. Not built: it is a second reader abstraction for a defect a
+one-line `drop_duplicates` already closes completely, and this project's own
+run rules ask for the smallest fix that works where the plan leaves a gap
+open, not the most architecturally satisfying one.
+
 ### `reliability` is completed matches, adjusted for position
 
 Completed matches per appearance, minus the median of the player's own position.
