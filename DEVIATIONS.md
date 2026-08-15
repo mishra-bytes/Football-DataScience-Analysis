@@ -183,6 +183,12 @@ bound 11 rows remain, and those are FBref disagreeing with itself: Cannavaro's 2
 appearances, 29 starts and 31 completed matches. Recorded here because a wrong invariant does
 not sit quietly, it accuses correct data of being broken.
 
+## 11. PyMC on Windows needs a working 64-bit C compiler
+
+**Reality:** `pymc.sample` fails to build its C backend on a stock Windows machine with no
+compiler on `PATH`. A system install of mingw-w64 (64-bit) was required on the dev machine before
+the `bayes` extra would run. Recorded so the next Windows contributor does not rediscover it.
+
 ---
 
 # Gate results

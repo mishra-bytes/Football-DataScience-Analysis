@@ -100,8 +100,8 @@ faster.
 
 ### Gate, then rank
 
-"Must have ten things" is read literally: a floor on every requirement decides
-who qualifies, and only then are qualifiers ranked.
+"Must have twelve things" is read literally: a floor on every requirement
+decides who qualifies, and only then are qualifiers ranked.
 
 Rejected: a weighted average. It lets a player be genuinely poor at something the
 definition calls mandatory and win on volume elsewhere. The gate is what stops
@@ -238,8 +238,9 @@ resolution. South American players now have a second tournament, roughly every
 two to four years since FBref's player-level coverage of the competition
 begins in 2015, to be measured on. It leaves the underlying objection standing
 for players from confederations with no tournament in scope: the Africa Cup of
-Nations and the Asian Cup remain out (see `constraints.md`'s out-of-scope
-list), so an African or Asian great is still judged on the World Cup alone,
+Nations and the Asian Cup remain out (the owner's ruling scopes competitions
+to UCL, the World Cup, the Euro and Copa America only, and nothing beyond
+them), so an African or Asian great is still judged on the World Cup alone,
 the same single quadrennial opportunity every player outside Europe and South
 America gets. Adding a fourth and fifth confederation's tournament was not
 part of this ruling and was not built.
@@ -289,9 +290,9 @@ doubled every 2020-edition player's minutes, goals and assists (caught by a
 sanity check: Euro "1920" carried a max of 1,436 minutes against a same-shape
 single-fetch Euro edition's ceiling of 690, almost exactly double). Fixed by
 deduplicating the raw fetch on `(league, season, team, player, born)`, the
-same identity key `flatten`'s own duplicate-key fix uses elsewhere in this
-project, before it is ever written to `tournament_raw.parquet`. Row count
-after dedup: 8,030 -> 7,307.
+same identity key `join_side_tables`'s own duplicate-key fix uses elsewhere in
+this project (`fbref.py:307`), before it is ever written to
+`tournament_raw.parquet`. Row count after dedup: 8,030 -> 7,307.
 
 Rejected: discovering each tournament's actual valid season labels up front
 (one extra soccerdata call per competition) and fetching each one exactly
@@ -308,7 +309,7 @@ It has been three definitions, and each replacement was measured rather than
 argued.
 
 Completed matches per *start* came first and measured being a forward. Benzema,
-Aguero, Higuain, Villa, Owen and Trezeguet all failed qualification on that
+Agüero, Higuaín, Villa, Owen and Trezeguet all failed qualification on that
 requirement alone, because strikers get substituted.
 
 Starts per appearance replaced it and fixed the role bias by discarding the
@@ -402,7 +403,7 @@ extra sampling needed, and no scipy dependency: `statistics.NormalDist`
 already supplies the normal CDF and its inverse.
 
 Rejected: raising `min_seasons` from 3 to 5. It would have fixed coverage by
-deleting Haaland, Mbappe and every short career from the table, answering a
+deleting Haaland, Mbappé and every short career from the table, answering a
 coverage problem by shrinking the question rather than answering it.
 
 ### One outside opinion
@@ -507,6 +508,21 @@ silently resolved by picking a side.
 `bayes` is optional (`pyproject.toml`'s `bayes` extra: `pymc`, `nutpie`,
 `arviz`), and the rest of the suite passes with it uninstalled,
 `tests/test_bayes.py` skipping via `pytest.importorskip("pymc")`.
+
+### `arviz` is floored at 1.0, which raised the Python floor to 3.12
+
+`bayes.player_effects` uses `az.hdi`'s 1.x-only `prob=` keyword and `ci_bound`
+coordinate; unconstrained, the resolver on Python 3.11 picked 0.23, which
+predates both and breaks it silently rather than raising. Flooring the extra
+at `arviz>=1.0` fixes that, but `arviz>=1.0` itself only supports Python 3.12+,
+which `uv lock` refuses to solve against the project's prior `>=3.11` floor.
+
+Rejected: marker-gating `arviz` to `python_version >= '3.12'` and leaving the
+`bayes` extra installable, but silently without `arviz`, on 3.11. That trades
+one silent breakage (a stale API) for another (a missing import), and the dev
+environment already assumed 3.12: `mypy` targets it and `.python-version`
+pins it. `requires-python` is now `>=3.12`, matching what was already true in
+practice.
 
 ## The bug class this project keeps finding
 

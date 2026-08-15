@@ -13,11 +13,11 @@ A player must clear a floor on **all twelve requirements** to qualify at all.
 
 | # | Player | Score | σ above mean | Seasons | Leagues |
 |---|---|---|---|---|---|
-| 1 | **Lionel Messi** | 3.39 | **+5.8** | 18 | Spain, France |
-| 2 | **Cristiano Ronaldo** | 2.99 | +5.1 | 19 | England, Spain, Italy |
-| 3 | Harry Kane | 2.74 | +4.7 | 11 | England, Germany |
-| 4 | Thierry Henry | 2.71 | +4.6 | 10 | England, Spain |
-| 5 | Erling Haaland | 2.59 | +4.4 | 6 | England, Germany |
+| 1 | **Lionel Messi** | 4.61 | **+8.0** | 18 | Spain, France |
+| 2 | **Kylian Mbappé** | 4.04 | +7.0 | 9 | Spain, France |
+| 3 | Cristiano Ronaldo | 3.82 | +6.7 | 19 | England, Spain, Italy |
+| 4 | Thierry Henry | 3.49 | +6.1 | 10 | England, Spain |
+| 5 | Robert Lewandowski | 3.11 | +5.4 | 15 | Spain, Germany |
 
 **Almost none of that ordering is statistically supported.** Of the 28 pairs
 among the top eight, **one survives a two-sided permutation test** at p < 0.05,
@@ -36,7 +36,7 @@ pretending otherwise would be dishonest.
 
 ## What "best" means here
 
-Ten requirements, each measurable across all 25 seasons and every league:
+Twelve requirements, each measurable across all 25 seasons and every league:
 
 | | Requirement | Measured by |
 |---|---|---|
@@ -50,11 +50,14 @@ Ten requirements, each measurable across all 25 seasons and every league:
 | 8 | Sustains it | qualifying seasons |
 | 9 | Has no bad seasons | 20th percentile of his season scores |
 | 10 | Does not cost his team | negative cards and fouls |
+| 11 | Delivers in Europe | Champions League output, scaled by presence |
+| 12 | Shows up for his country | World Cup / Euro / Copa América output, scaled by presence |
 
 It was eleven until "beats his team's level" was measured against the other ten
-and found to be a copy of "scores goals". Chapter 15 has the arithmetic. The
-requirement survives on the goalkeeper list, where club strength explains 45% of
-goals conceded rather than 0.8% of who scores.
+and found to be a copy of "scores goals", leaving ten, which `continental` and
+`tournament` later brought to twelve. Chapter 15 has the arithmetic for the
+original removal. The requirement survives on the goalkeeper list, where club
+strength explains 45% of goals conceded rather than 0.8% of who scores.
 
 **Gate, then rank.** "Must have" is read literally. A floor on every requirement
 decides who qualifies, and only then are qualifiers ranked. A weighted average
@@ -168,7 +171,7 @@ Assumptions, How it breaks.** The last section is the one most tutorials skip.
 ## Honest limitations
 
 - **Attacking contribution only.** FBref records no per-player defensive action
-  before 2017-18, so a centre-back is invisible to most of the ten
+  before 2017-18, so a centre-back is invisible to most of the twelve
   requirements. The rating is named for what it measures.
 - **Champions League and internationals are requirements, not just a career
   list.** `continental` (Champions League) and `tournament` (World Cup, Euro,
@@ -181,9 +184,9 @@ Assumptions, How it breaks.** The last section is the one most tutorials skip.
   good he is, and Copa America only mitigates the objection for South Americans.
 - **Identity is probabilistic.** 93.9% of player-seasons resolve to a Wikidata
   entity. The other 1,240 players are listed, never dropped.
-- **Ten requirements are not ten independent tests.** They behave like about
-  five and a half, and `reliability` still correlates 0.55 with `availability`,
-  down from 0.72. Chapter 15 measures it.
+- **Twelve requirements are not twelve independent tests.** They behave like
+  about five and a half, and `reliability` still correlates 0.55 with
+  `availability`, down from 0.72. Chapter 15 measures it.
 - **The top ten is not an ordering.** Not one of the 28 pairs among the top
   eight is separable at p < 0.05. The
   ranking prints an order because a table has to. The statistics support "this

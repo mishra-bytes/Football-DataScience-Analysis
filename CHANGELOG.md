@@ -23,7 +23,7 @@ arc.
   nominal 95% at three seasons, and `min_seasons = 3` put exactly those careers
   in the published table. `doubt.bca` replaces it with a bias-corrected and
   accelerated interval. On `peak5`'s qualified top ten, median 95% interval
-  width **0.499 -> 0.512**. The widening is the defect being fixed, not a
+  width **0.499 → 0.512**. The widening is the defect being fixed, not a
   regression: the percentile interval was too narrow, not merely mispositioned.
 - **Side-table join key was not unique.** `(league, season, team, player)` does
   not identify a player: two men called Míchel played for Rayo Vallecano in
@@ -101,16 +101,16 @@ arc.
   (`gambeta.scouts.fbref.register_copa_america`). Absence scores zero, not
   missing, the same ruling `continental` already carries; see DECISION.md for
   the nationality objection this requirement only partly answers. Qualifiers
-  **398 -> 357** of 5,508 ranked. At the 40th-percentile gate, `tournament`
+  **398 → 357** of 5,508 ranked. At the 40th-percentile gate, `tournament`
   eliminates 2,203, the same share as every other season-level requirement;
   its standardised profile carries 0.00% exact-zero mass despite `tournament`
   starting from a higher raw-zero rate than `continental` did, checked rather
-  than assumed; see DECISION.md. Top ten reorders: Lewandowski rises 6th ->
-  5th, Kane rises 8th -> 6th, Suarez rises 10th -> 9th; Benzema holds 7th;
-  Haaland falls 5th -> 8th (Norway did not qualify for a tracked tournament in
+  than assumed; see DECISION.md. Top ten reorders: Lewandowski rises 6th →
+  5th, Kane rises 8th → 6th, Suárez rises 10th → 9th; Benzema holds 7th;
+  Haaland falls 5th → 8th (Norway did not qualify for a tracked tournament in
   his career); Salah drops out of the top ten (Egypt's tournament is the Africa
-  Cup of Nations, out of scope), replaced by van Nistelrooy, 12th -> 10th.
-  Messi, Mbappe, Ronaldo and Henry hold their places at the top.
+  Cup of Nations, out of scope), replaced by van Nistelrooy, 12th → 10th.
+  Messi, Mbappé, Ronaldo and Henry hold their places at the top.
 - A real defect caught before publishing, not after: fetching World Cup, Euro
   and Copa America stats one project season at a time (soccerdata indexes
   them by the tournament's own calendar year, and a batched multi-season
@@ -122,20 +122,20 @@ arc.
   2020-edition player's minutes and goals (caught by comparing a doubled
   edition's 1,436-minute ceiling against a normal edition's 690). Fixed by
   deduplicating the raw fetch before it is written; see DECISION.md. Raw
-  tournament rows **8,030 -> 7,307** after the fix.
+  tournament rows **8,030 → 7,307** after the fix.
 - **`continental`, the eleventh requirement** (`needs.continental_value`):
   European club output, currently the Champions League, scored as a per-90
   rate scaled by presence and saturating at a full campaign
   (`CONTINENTAL_FULL_SEASON = 900` minutes). Absence from Europe scores zero,
-  not missing, by ruling; see DECISION.md. Qualifiers **445 -> 398** of 5,508
+  not missing, by ruling; see DECISION.md. Qualifiers **445 → 398** of 5,508
   ranked. At the 40th-percentile gate, `continental` eliminates 2,203, the
   same share as every other season-level requirement, checked rather than
   assumed: the column's exact-zero mass measures at 0.00% in the standardised
   profile the gate consumes, well clear of the floor, so the cut is real and
   not an artefact of the tie the requirement could in principle land on; see
-  DECISION.md for the measurement. Top ten reorders: Mbappé rises 6th -> 2nd,
-  Lewandowski 8th -> 6th, Benzema 10th -> 7th, Kane falls 3rd -> 8th, Suárez
-  7th -> 10th; Messi, Ronaldo, Henry and Haaland hold their places at the top.
+  DECISION.md for the measurement. Top ten reorders: Mbappé rises 6th → 2nd,
+  Lewandowski 8th → 6th, Benzema 10th → 7th, Kane falls 3rd → 8th, Suárez
+  7th → 10th; Messi, Ronaldo, Henry and Haaland hold their places at the top.
 - **Four data chapters**, all runnable from committed files with no network and
   no Chrome: where the data comes from, who is this player, when a zero is a lie,
   and four bugs no test could catch. The last one **computes its own verdict**

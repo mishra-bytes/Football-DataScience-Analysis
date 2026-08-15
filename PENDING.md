@@ -168,9 +168,9 @@ exactly as FBref's own index does: **"UEFA Champions League"**, not "Champions
 League". UCL is ingested as columns on a domestic player-season, never as rows
 in the ranked population (`vault/clean/continental.parquet`, 17,555
 player-seasons across 25 seasons), and is the eleventh requirement,
-`continental`. Overall match rate to domestic player-ids is 75.352%; 99.32% of
-matched rows are within Big-5-affiliated clubs, ruled acceptable because the
-ranked population is Big-5 only.
+`continental`. Overall match rate to domestic player-ids is 75.352%, but 99.32%
+among rows whose club is Big-5-affiliated, ruled acceptable because the ranked
+population is Big-5 only.
 
 Internationals are the twelfth requirement, `tournament`: the World Cup, the
 Euro, and Copa America, the last added by an owner ruling mid-run because the
