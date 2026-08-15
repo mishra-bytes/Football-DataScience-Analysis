@@ -78,19 +78,19 @@ book:
     - part: "Reference"
       chapters:
         - tome/reference/index.qmd
-    - tome/reference/needs.qmd
-    - tome/reference/gate.qmd
-    - tome/reference/lens.qmd
-    - tome/reference/doubt.qmd
-    - tome/reference/bayes.qmd
-    - tome/reference/scouts.fbref.qmd
-    - tome/reference/whois.qmd
-    - tome/reference/tally.qmd
-    - tome/reference/laws.qmd
-    - tome/reference/locker.qmd
-    - tome/reference/bridge.qmd
-    - tome/reference/level.qmd
-    - tome/reference/kit.qmd
+        - tome/reference/needs.qmd
+        - tome/reference/gate.qmd
+        - tome/reference/lens.qmd
+        - tome/reference/doubt.qmd
+        - tome/reference/bayes.qmd
+        - tome/reference/scouts.fbref.qmd
+        - tome/reference/whois.qmd
+        - tome/reference/tally.qmd
+        - tome/reference/laws.qmd
+        - tome/reference/locker.qmd
+        - tome/reference/bridge.qmd
+        - tome/reference/level.qmd
+        - tome/reference/kit.qmd
 
 format:
   html:
