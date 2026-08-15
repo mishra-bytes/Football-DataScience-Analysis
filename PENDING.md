@@ -50,10 +50,10 @@ Two consequences worth stating, because both moved the answer:
 Scrape cost, measured: **95 minutes** for the 162 missing pages, sequential, one
 browser session per table. The pipeline itself then runs offline in ~5 minutes.
 
-## 1.4 Identity resolution, 93.8%, against a 95% target
+## 1.4 Identity resolution, 93.9%, against a 95% target
 
 **1,240 players unresolved**, listed in `vault/clean/unresolved.csv`. Up from
-83.9%; the remaining 1.2 points are the hard tail.
+83.9%; the remaining 1.1 points are the hard tail.
 
 The original diagnosis was wrong and worth recording. This looked like a name
 normalisation problem, and it was mostly a **query** problem: the crosswalk
@@ -180,7 +180,7 @@ named as blocked on UCL data, is now built on `continental` (3.1).
 
 ### 4.2 ~~Dashboard weight sliders~~, **done, 2026-08-11**
 
-An argument selector, eleven weight sliders, a gate-percentile slider and an
+An argument selector, twelve weight sliders, a gate-percentile slider and an
 "A vs B" significance tab. The page says so when the reader's argument changes
 who comes first.
 
@@ -201,20 +201,20 @@ endpoint with its labelling repaired.
 ### 5.1 ~~Awards validation~~, **done, 2026-08-11**
 
 `gambeta.verdict`, against five award bodies. Of 18 men's winners in the window,
-16 are in our data, 10 clear all ten requirements, and the median winner ranks
-60th of 5,508.
+16 are in our data, 10 clear all twelve requirements, and the median winner
+ranks 37th of 5,508.
 
 The disagreements are the output worth reading:
 
 | Winner | Our rank | Why |
 |---|---|---|
-| Zidane | 104 | qualified |
-| Nedvěd, Figo, Rodri | 704-1171 | failed **discipline** alone |
-| Van Dijk | 1036 | failed creation |
-| **Cannavaro** | **2707** | failed 8 of 11 |
+| Zidane | 37 | qualified |
+| Nedvěd, Figo, Rodri | 450-792 | failed **discipline** alone |
+| Van Dijk | 881 | failed creation |
+| **Cannavaro** | **2263** | failed 5 of 12 |
 
 Cannavaro is the honest headline: a centre-back won the 2006 Ballon d'Or and this
-definition ranks him below two and a half thousand players. That is the
+definition ranks him below two thousand players. That is the
 attacking-contribution limitation stated as a number instead of a caveat. Three
 winners failing on discipline alone also sharpens the open question in Part 3
 about whether fouls are weighted like unavailability.

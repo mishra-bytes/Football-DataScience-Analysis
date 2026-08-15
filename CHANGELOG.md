@@ -59,6 +59,18 @@ arc.
   Bonferroni correction **1 → 0**. Median award-winner rank 61st → 64th.
 - Top eight reordered: Henry rises to 6th, Suárez ahead of Lewandowski, Haaland
   above Mbappé. Messi and Ronaldo unchanged at 1 and 2.
+- **Book chapters re-run against the twelve-requirement pipeline.** An audit
+  found 11 of 17 chapters still carrying ten/eleven-requirement numbers after
+  `continental` and `tournament` shipped. Chapters 01-16 re-executed against
+  the committed sample and 03, 05, 07-16 had their prose swept for numbers the
+  new outputs contradicted (17 needed no changes). Headline effects: awards
+  median winner rank 60th → 37th of 5,508; Henry vs Suárez permutation test
+  flips from not significant to significant, p 0.0906 → 0.0467; Messi's lead
+  over the mean 5.81 → 8.03 sigma, with Mbappé rather than Ronaldo now second;
+  qualifiers under the shipped gate 445 → 357, multi-league qualifiers 173 →
+  139; discipline no longer eliminates more players than any other
+  requirement, every season-level requirement ties at 2,203 under the
+  percentile gate.
 - **The book is one arc, from a raw HTML page to the answer and back at it.**
   Thirteen chapters renumbered and retitled in reading order, in four parts:
   getting the data honest, turning data into a measure, the answer, attacking the

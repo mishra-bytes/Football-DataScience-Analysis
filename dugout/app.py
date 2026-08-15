@@ -108,7 +108,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
     st.set_page_config(page_title="gambeta", layout="wide")
     st.title("Who is the best footballer of the last 25 years?")
     st.caption(
-        "Eleven requirements, measured across the Big 5 leagues and 25 seasons. A player must "
+        "Twelve requirements, measured across the Big 5 leagues and 25 seasons. A player must "
         "clear the floor on every one of them to qualify at all; qualifiers are then ranked."
     )
 
@@ -147,7 +147,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
         st.divider()
         st.caption(
             "Attacking contribution only. FBref records no per-player defensive action before "
-            "2017-18, so defenders score near zero on six of the eleven requirements."
+            "2017-18, so defenders score near zero on six of the twelve requirements."
         )
 
     everyone = reweight(published, needs.OUTFIELD, weights, gate_percentile)
@@ -180,7 +180,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
             tifo.ranked_dots(
                 shown.assign(lo=shown["score"], hi=shown["score"]),
                 top=top,
-                title="Composite of eleven requirements",
+                title="Composite of twelve requirements",
                 subtitle="Era- and league-adjusted. League strength estimated from transfers.",
             )
         )

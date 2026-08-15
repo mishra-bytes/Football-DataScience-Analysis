@@ -76,15 +76,15 @@ the gap between those leagues. Solved across thousands of moves:
 | League | Strength (England = 0) | Move endpoints |
 |---|---|---|
 | England | 0.000 | 967 |
-| Spain | −0.188 | 788 |
-| Italy | −0.267 | 684 |
-| Germany | −0.294 | 496 |
-| France | −0.379 | 743 |
+| Spain | −0.170 | 788 |
+| Italy | −0.254 | 684 |
+| Germany | −0.299 | 496 |
+| France | −0.377 | 743 |
 
 1,839 distinct transfers, each counted once at each end. **England is pinned at
 zero, not measured as best**, because the offsets are identified only up to a
 constant. Pinning any other league instead reproduces the same gaps to within
-0.013, and England still comes out top.
+0.011, and England still comes out top.
 
 The gaps are small in 2000-04 and widen from 2005, which is the Premier League's
 financial ascent recovered purely from players moving. Nothing about money is in
