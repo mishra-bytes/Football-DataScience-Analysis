@@ -170,8 +170,15 @@ Assumptions, How it breaks.** The last section is the one most tutorials skip.
 - **Attacking contribution only.** FBref records no per-player defensive action
   before 2017-18, so a centre-back is invisible to most of the ten
   requirements. The rating is named for what it measures.
-- **No Champions League, no internationals.** A career here means a Big-5
-  domestic league career.
+- **Champions League and internationals are requirements, not just a career
+  list.** `continental` (Champions League) and `tournament` (World Cup, Euro,
+  Copa America) are two of the twelve requirements, each an output rate scaled
+  by presence, absence scoring zero by ruling. `continental` partly measures
+  **club selection**: a great player at a mid-table side never gets the chance,
+  and the rate-times-presence shape only limits that damage, it does not remove
+  it. `tournament` partly measures **nationality**: a player from a confederation
+  with no tournament in scope, Africa's or Asia's, cannot close that gap however
+  good he is, and Copa America only mitigates the objection for South Americans.
 - **Identity is probabilistic.** 93.9% of player-seasons resolve to a Wikidata
   entity. The other 1,240 players are listed, never dropped.
 - **Ten requirements are not ten independent tests.** They behave like about
@@ -207,8 +214,8 @@ minutes. They are written up in `DEVIATIONS.md` and in chapters 03, 04 and 05.
 | 2 - Eleven requirements, league bridge, keepers | done |
 | 2b - Big 5 complete: Ligue 1, all keepers, full `misc` | done |
 | 2c - Data integrity: join keys, share arithmetic, missingness | **done** |
-| 3 - Bayesian era model, Monte Carlo replay, weight sliders | next |
-| 4 - Champions League, internationals | see PENDING.md |
+| 3 - Bayesian era model, weight sliders | done. Monte Carlo replay is out of scope, see PENDING.md 3.4 |
+| 4 - Champions League, internationals | done |
 
 ## Licence
 

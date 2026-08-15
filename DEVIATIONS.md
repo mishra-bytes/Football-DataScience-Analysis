@@ -17,7 +17,7 @@ normalized name and the birth year agree.
 1,859 distinct players, only 3 names collided, and all 3 were separated by birth year.
 Unresolved players are written to `vault/clean/unresolved.csv` and reported, never dropped.
 
-## 2. No Champions League data available
+## 2. No Champions League data available *(superseded 2026-08-12)*
 
 **Spec:** D3, competitions are "Big 5 domestic leagues + UCL + internationals".
 
@@ -30,6 +30,16 @@ the Big 5, `Big 5 European Leagues Combined`, `INT-World Cup`, `INT-European Cha
 **Impact:** Phase 2 will need a custom `league_dict.json` for soccerdata to reach UCL data, or
 the `biggame` lens must be restricted to international tournaments. Flagged now so Phase 2
 planning accounts for it.
+
+**Superseded, 2026-08-12.** The diagnosis read "no Champions League entry" as "no Champions
+League data", and that was the wrong conclusion from a true observation. `available_leagues()`
+only lists competitions soccerdata already knows about; it says nothing about what FBref itself
+serves. The Champions League is one entry in soccerdata's `league_dict.json` away, and the entry
+has to name the competition exactly as FBref's own index does, **"UEFA Champions League"**, not
+"Champions League": the wrong name returns an empty frame rather than raising, which is what kept
+this looking unavailable for longer than it was. `register_ucl()` (`gambeta/scouts/fbref.py`)
+writes that entry idempotently. UCL is now ingested as columns on a domestic player-season, never
+as rows in the ranked population, see `DECISION.md` and `PENDING.md` §4.1.
 
 ## 3. CuPy needs the `[ctk]` extra on a machine without a CUDA toolkit
 

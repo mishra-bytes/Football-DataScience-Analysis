@@ -84,20 +84,28 @@ follows is what those specs promised and this codebase does not yet have.
 
 ## Phase 3, Depth
 
-### 3.1 The other four lenses *(spec §6.3)*
+### 3.1 The other four lenses *(spec §6.3)*, four of five built, 2026-08-15
 
-`gambeta/lens.py` contains **only `peak5`**. The spec defined five:
+`gambeta/lens.py` now holds four of the five lenses the spec named:
 
 | Lens | Question it answers | Status |
 |---|---|---|
 | `peak5` | Best five consecutive seasons | **built** |
-| `career` | Cumulative value across the whole career | missing |
-| `per90` | Production per 90, above a minutes floor | missing |
-| `biggame` | Knockout and high-stakes matches | missing, needs UCL data (4.1) |
-| `teamfit` | Output relative to teammate quality | partly covered by the `above_team` requirement |
+| `career` | Cumulative value across the whole career | **built** |
+| `per90` | Production per 90, above a minutes floor | **built** |
+| `biggame` | Knockout and high-stakes matches | **built**, on `continental` now that UCL data exists (4.1) |
+| `teamfit` | Output relative to teammate quality | **deliberately not built** |
 
 Each is a pure function `(player_seasons, cfg) -> DataFrame`. `peak5` is the
-worked example to copy.
+worked example the other three copy.
+
+`teamfit` is the one omission, and it is a ruling rather than a gap. It would
+have measured output relative to teammate quality, which is exactly what the
+`above_team` requirement already measures, and it correlates 0.996 with
+`scoring` on outfielders: the residual of something a club barely explains
+(15's audit puts that share at 0.8%) is the thing back again. Building the
+lens would restate the first answer under a second name. `DECISION.md`
+records the reasoning.
 
 ### 3.2 ~~`blend.py` (the weight-tunable composite~~) **done, 2026-08-11**
 
@@ -110,15 +118,21 @@ volume, efficiency, longevity, team-carrying, professionalism and equal weight.
 The sliders were built expecting some weighting to dethrone him; none does, and
 that is a stronger claim than the headline ranking makes.
 
-### 3.3 `bayes.py`, the hierarchical era model *(spec §6.2)*
+### 3.3 `bayes.py`, the hierarchical era model *(spec §6.2)*, done 2026-08-15
 
-There is no shrinkage in the pipeline at all: careers are pooled weighted by
-minutes and short seasons are excluded by a hard floor. A hierarchical model would
-**estimate the shrinkage strength from the data** and give proper uncertainty on
-every player-season, instead of the current point estimates.
+Built. `gambeta/bayes.py` estimates the shrinkage strength from the data
+instead of imposing the pipeline's hard minutes floor: each player draws his
+level from a population distribution whose spread is fit rather than set by
+`cfg.min_minutes`. Comparing the point-estimate top 50 against the same
+players' order under the estimated shrinkage, **20 of 50 move by more than 5
+places**.
 
-PyMC + `nutpie` on CPU, minutes, not hours, at this data size. The `bayes`
-extra is already declared in `pyproject.toml` and never installed.
+It sits beside the point-estimate pipeline, not in place of it: `rank()` and
+every published number are unchanged, `DECISION.md` records why replacing the
+point estimate was rejected. PyMC + `nutpie` run on CPU in minutes, not hours,
+at this data size. The `bayes` extra is optional in `pyproject.toml`, and the
+suite passes with it uninstalled, `tests/test_bayes.py` skipping via
+`pytest.importorskip("pymc")`.
 
 ### 3.4 Monte Carlo career replay *(spec §6.5)*
 
@@ -142,15 +156,27 @@ nominal 95%, and `min_seasons = 3` lets those careers into the published table.
 
 ## Phase 4, Presentation
 
-### 4.1 Champions League and internationals *(decision D3)*
+### 4.1 Champions League and internationals *(decision D3)*, done 2026-08-15
 
-The original scope was Big 5 **plus UCL plus internationals**. The Big 5 is now
-complete; neither of the other two exists.
+The original scope was Big 5 **plus UCL plus internationals**. All three are
+now in the pipeline.
 
-FBref's reader exposes **no Champions League at all** (`DEVIATIONS.md` #2), so
-this needs a custom `league_dict.json` for soccerdata. `INT-World Cup` and
-`INT-European Championship` *are* available and would be much easier, a
-reasonable first step, and the only route to a `biggame` lens.
+FBref does carry the Champions League; `DEVIATIONS.md` #2's original diagnosis
+was wrong, and is superseded there. Registering it needs one entry in
+soccerdata's `league_dict.json`, and the entry has to name the competition
+exactly as FBref's own index does: **"UEFA Champions League"**, not "Champions
+League". UCL is ingested as columns on a domestic player-season, never as rows
+in the ranked population (`vault/clean/continental.parquet`, 17,555
+player-seasons across 25 seasons), and is the eleventh requirement,
+`continental`. Overall match rate to domestic player-ids is 75.352%; 99.32% of
+matched rows are within Big-5-affiliated clubs, ruled acceptable because the
+ranked population is Big-5 only.
+
+Internationals are the twelfth requirement, `tournament`: the World Cup, the
+Euro, and Copa America, the last added by an owner ruling mid-run because the
+Euro covers European players and Copa America covers South American ones.
+7,307 tournament player-seasons. `biggame`, the lens this section originally
+named as blocked on UCL data, is now built on `continental` (3.1).
 
 ### 4.2 ~~Dashboard weight sliders~~, **done, 2026-08-11**
 
