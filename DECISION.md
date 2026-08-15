@@ -352,6 +352,29 @@ and every other requirement were measured, and the best of them was `creation` a
 A keeper's goals-against is mostly his defence; the residual is the part that is
 his.
 
+### `teamfit` is not the fifth lens
+
+The lens spec named five: `peak5`, `career`, `per90`, `biggame` and `teamfit`.
+Only four are built. `teamfit` would have ranked careers by `above_team`, the
+same club-strength residual measured directly above and already shown to
+correlate 0.996 with `scoring` on outfielders, because club strength explains
+0.8% of who scores inside a league-season and the residual of something barely
+explained is the thing back again. A lens built on it would not answer a new
+question; it would restate `per90` or `career` under a different name while
+looking, from the selector, like a fifth independent argument.
+
+Rejected: building it anyway, against `above_team` or against a different
+target. The requirement-level version of exactly this search already ran
+(`creation` was the best alternative target found, at 1.1%) and found nothing
+that survives being regressed on club strength. Re-running that search inside
+a lens would not change the answer, only the label on the same restated
+number.
+
+Rejected: building `teamfit` against `above_team` for keepers only, where the
+residual construction is real signal (45% of goals conceded). The lens set
+ranks the outfield population; a lens that only ever has one entrant is not a
+lens.
+
 ### Two leaderboards, not one
 
 Keepers are ranked on their own eight requirements. Save percentage and goals per
