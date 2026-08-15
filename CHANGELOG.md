@@ -76,6 +76,16 @@ arc.
 
 ### Added
 
+- **`continental`, the eleventh requirement** (`needs.continental_value`):
+  European club output, currently the Champions League, scored as a per-90
+  rate scaled by presence and saturating at a full campaign
+  (`CONTINENTAL_FULL_SEASON = 900` minutes). Absence from Europe scores zero,
+  not missing, by ruling; see DECISION.md. Qualifiers **445 -> 398** of 5,508
+  ranked. At the 40th-percentile gate, `continental` eliminates 2,203, the
+  same share as every other season-level requirement. Top ten reorders:
+  Mbappé rises 6th -> 2nd, Lewandowski 8th -> 6th, Benzema 10th -> 7th, Kane
+  falls 3rd -> 8th, Suárez 7th -> 10th; Messi, Ronaldo, Henry and Haaland hold
+  their places at the top.
 - **Four data chapters**, all runnable from committed files with no network and
   no Chrome: where the data comes from, who is this player, when a zero is a lie,
   and four bugs no test could catch. The last one **computes its own verdict**

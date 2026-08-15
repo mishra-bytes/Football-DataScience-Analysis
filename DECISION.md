@@ -160,6 +160,42 @@ already in the crosswalk, they are different people who never played in a
 tracked league, so a looser tier would manufacture false identities across the
 whole project to paper over rows that were never supposed to match.
 
+### Absence from Europe scores zero, not missing
+
+`needs.continental_value` scores European club output (currently the Champions
+League) as a per-90 rate scaled by presence, and a player who never appeared in
+one gets zero on it, not a null. The ruling: the definition says the best
+footballer plays the top competitions, so never appearing in one is a low score
+rather than an unknown.
+
+The honest objection, recorded because it is real: this requirement partly
+measures club selection. Totti at Roma and Messi at Barcelona did not face the
+same opportunity to play in Europe, and the requirement cannot separate "never
+good enough" from "never given the chance." Two things limit the damage rather
+than remove it. The rate is per 90, so a player is judged on what he did with
+the minutes he had, not punished twice for having few of them. The presence
+term (`CONTINENTAL_FULL_SEASON = 900` minutes, ten matches) saturates at a
+group-stage-sized campaign, so a deep cup run cannot outscore a solid group
+stage on volume alone, which keeps the requirement from rewarding the team's
+achievement over the player's.
+
+Rejected: excluding players with no European minutes from the ranked
+population. That does not remove the club-selection bias, it hides it by
+shrinking who gets judged at all, and it treats this requirement differently
+from every other one, where a player who does not do something scores zero
+rather than being dropped.
+
+Rejected: treating a missing European record as null and imputing it (a league
+mean, a position mean, or similar). A null would be filled by something
+downstream anyway, filled without anybody having decided what it meant, and an
+imputed value for "never played in Europe" is not a defensible estimate of what
+that player would have done there.
+
+Measured effect: at the 40th-percentile gate, `continental` eliminates 2,203 of
+5,508, the same share as every other season-level requirement, which is what a
+percentile floor does by construction. See CHANGELOG.md for the qualifier count
+and the reordered top ten.
+
 ### `reliability` is completed matches, adjusted for position
 
 Completed matches per appearance, minus the median of the player's own position.
