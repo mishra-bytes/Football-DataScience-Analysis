@@ -302,9 +302,11 @@ def test_outfield_values_emits_tournament_when_the_columns_are_present() -> None
     assert "tournament" in needs.outfield_values(df).columns
 
 
-def test_tournament_is_zero_in_a_season_with_no_tournament() -> None:
-    """Odd years have neither a World Cup nor a Euro. Zero must not read as failure."""
-    df = pd.DataFrame({"int_minutes": [0], "int_npg": [0], "int_assists": [0], "minutes": [3000]})
+def test_tournament_is_zero_when_the_int_columns_are_entirely_absent() -> None:
+    """A season with no tournament never attaches `int_*` columns at all, rather
+    than attaching them at zero. `_column`'s default-fill path must cover that.
+    """
+    df = pd.DataFrame({"minutes": [3000]})
     assert needs.tournament_value(df)[0] == 0.0
 
 

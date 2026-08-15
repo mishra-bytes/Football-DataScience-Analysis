@@ -304,6 +304,11 @@ def rank(cfg: kit.Config) -> None:
             outfield, extra[extra["comp"].isin(cfg.continental)], prefix="ucl"
         )
     if (cfg.clean / CLEAN_TOURNAMENT).exists():
+        # Three competitions (World Cup, Euro, Copa America) go in at once, but
+        # attach_extra_competition's one_to_one merge still holds: clean()'s
+        # collapse_transfers already folded them to one row per
+        # (player_id, season) upstream, and that is the uniqueness the merge
+        # actually needs, not a single competition.
         extra = locker.read(cfg.clean / CLEAN_TOURNAMENT, laws.EXTRA_COMP)
         outfield = tally.attach_extra_competition(
             outfield, extra[extra["comp"].isin(cfg.tournaments)], prefix="int"

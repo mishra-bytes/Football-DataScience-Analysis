@@ -2,7 +2,9 @@
 name = "gambeta"
 version = "0.1.0"
 description = "Football analysis toolkit: era-normalized player ratings"
-requires-python = ">=3.11"
+# Raised from 3.11: arviz>=1.0 (see the bayes extra below) only supports
+# 3.12+, and the dev environment already assumed 3.12 (mypy, .python-version).
+requires-python = ">=3.12"
 dependencies = [
     "pandas>=2.2",
     "pyarrow>=16",
@@ -21,7 +23,10 @@ gpu = ["cupy-cuda12x[ctk]>=13"]
 # np.row_stack() call breaks against current numpy (np.row_stack was removed).
 # Floored above it at the newest stable line pytensor's own numba backend
 # allows (numba<=0.66.0).
-bayes = ["pymc>=5.16", "nutpie>=0.13", "arviz>=0.18", "numba>=0.65,<=0.66"]
+# arviz floored at 1.0: bayes.py's player_effects() uses the 1.x API
+# (az.hdi's `prob=` kwarg and the `ci_bound` coordinate). Unconstrained, the
+# resolver on python 3.11 picks 0.23, which predates both and breaks it.
+bayes = ["pymc>=5.16", "nutpie>=0.13", "arviz>=1.0", "numba>=0.65,<=0.66"]
 
 [project.scripts]
 gambeta = "gambeta.cli:main"

@@ -14,7 +14,7 @@ quietly deletes a career from the analysis, and no test would ever notice.
 
 **Matching runs in tiers.** Measured on the real data, 90% of unmatched players
 had a name that was absent from the crosswalk under its exact spelling and
-present under another: an extra surname (``Iv·n Kaviedes`` against ``Iv·n
+present under another: an extra surname (``Iv√°n Kaviedes`` against ``Iv√°n
 Kaviedes Toaquiza``), a missing one (``Yakubu Aiyegbeni`` against ``Yakubu``), or
 a shortened forename (``Matt Upson`` against ``Matthew Upson``). The exact join
 runs first; whatever it leaves over is offered to the looser tiers.
@@ -44,7 +44,7 @@ whois.normalize(name)
 
 Fold accents and punctuation, collapse whitespace, and lowercase a name.
 
-FBref and Wikidata disagree routinely on diacritics ("F‡bregas" against
+FBref and Wikidata disagree routinely on diacritics ("F√†bregas" against
 "Fabregas") and on punctuation ("M'Boma" against "Mboma"), so both sides
 are folded to a common form before matching.
 

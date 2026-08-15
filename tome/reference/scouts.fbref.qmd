@@ -164,7 +164,7 @@ still produces a schema-valid frame.
 
 The join key includes birth year, and ``validate="one_to_one"`` enforces that
 it is unique. Without both, two players sharing a name at one club return the
-cross product rather than a lookup: two players called Míchel at Rayo
+cross product rather than a lookup: two players called MÃ­chel at Rayo
 Vallecano in 2002-03 became sixteen rows across three joins, one of them
 carrying 19,288 minutes in a 38-match season. Nothing raised, no schema
 rejected it, and every downstream per-90 divided by it.

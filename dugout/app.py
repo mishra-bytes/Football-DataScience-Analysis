@@ -294,9 +294,14 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
             st.warning("No careers qualify under this lens.")
         else:
             top = lens_out.iloc[0]["player"]
-            peak5_top = lens.LENSES["peak5"](careers, cfg).iloc[0]["player"]
-            if lens_name != "peak5" and top != peak5_top:
-                st.info(f"Under **{lens_name}** the best player is **{top}**, not {peak5_top}.")
+            # Reuse lens_out when the selected lens already is peak5, rather than
+            # computing it twice, and guard .iloc[0] the same way lens_out is
+            # guarded above: peak5 can come back empty independently of lens_out.
+            peak5_out = lens_out if lens_name == "peak5" else lens.LENSES["peak5"](careers, cfg)
+            if lens_name != "peak5" and not peak5_out.empty:
+                peak5_top = peak5_out.iloc[0]["player"]
+                if top != peak5_top:
+                    st.info(f"Under **{lens_name}** the best player is **{top}**, not {peak5_top}.")
             st.dataframe(
                 lens_out[["player", "score", "lo", "hi", "start_season", "end_season"]].round(2),
                 width="stretch",

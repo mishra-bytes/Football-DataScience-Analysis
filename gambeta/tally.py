@@ -176,18 +176,22 @@ def attach_extra_competition(
     A null would be filled by something downstream anyway, and filled without
     anybody having decided what it meant.
 
-    ``validate="one_to_one"`` because the source frame is unique on
-    ``(player_id, season, comp)`` and one competition is passed at a time.
-    Without it, a duplicated key would return the cross product, which is
-    exactly the defect recorded in DEVIATIONS.md #7.
+    ``validate="one_to_one"`` because ``extra`` must be unique on
+    ``(player_id, season)``. A single competition guarantees that on its own.
+    Several competitions passed together (the tournament file mixes World Cup,
+    Euro and Copa America) still satisfy it, because :func:`collapse_transfers`
+    upstream groups by ``(player_id, season)`` alone, folding every competition
+    a player appeared in that season into one row before this function ever
+    sees it. Without the validation, a duplicated key would return the cross
+    product, which is exactly the defect recorded in DEVIATIONS.md #7.
 
     Parameters
     ----------
     seasons
         Player-seasons, one row per ``(player_id, season)``.
     extra
-        Frame conforming to :data:`gambeta.laws.EXTRA_COMP`, already filtered to
-        a single competition.
+        Frame conforming to :data:`gambeta.laws.EXTRA_COMP`, already unique on
+        ``(player_id, season)``, whether it holds one competition or several.
     prefix
         Column prefix, for example ``"ucl"`` giving ``ucl_minutes``.
     """

@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from gambeta import tally
 
@@ -151,3 +152,42 @@ def test_attach_extra_competition_never_adds_rows() -> None:
     )
     out = tally.attach_extra_competition(seasons, extra, prefix="ucl")
     assert list(out["player_id"]) == ["a"]
+
+
+def test_attach_extra_competition_accepts_two_comps_in_different_seasons() -> None:
+    """The real requirement is uniqueness on (player_id, season), not one competition.
+
+    A frame mixing two tournament comps (e.g. World Cup and Euro) is fine as
+    long as the same player does not appear twice in the same season, which is
+    what collapse_transfers guarantees upstream in practice.
+    """
+    seasons = pd.DataFrame({"player_id": ["a", "a"], "season": ["2018", "2021"]})
+    extra = pd.DataFrame(
+        {
+            "player_id": ["a", "a"],
+            "season": ["2018", "2021"],
+            "comp": ["World Cup", "Euro"],
+            "minutes": [270, 360],
+            "npg": [2, 1],
+            "assists": [1, 0],
+        }
+    )
+    out = tally.attach_extra_competition(seasons, extra, prefix="int")
+    assert list(out["int_minutes"]) == [270, 360]
+
+
+def test_attach_extra_competition_rejects_the_same_season_under_two_comps() -> None:
+    """Two comps colliding on one (player_id, season) breaks the merge's one_to_one contract."""
+    seasons = pd.DataFrame({"player_id": ["a"], "season": ["2018"]})
+    extra = pd.DataFrame(
+        {
+            "player_id": ["a", "a"],
+            "season": ["2018", "2018"],
+            "comp": ["World Cup", "Euro"],
+            "minutes": [270, 90],
+            "npg": [2, 0],
+            "assists": [1, 0],
+        }
+    )
+    with pytest.raises(pd.errors.MergeError):
+        tally.attach_extra_competition(seasons, extra, prefix="int")

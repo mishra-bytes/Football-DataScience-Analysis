@@ -330,7 +330,7 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     player's own position**. It has been three things.
 
     It began as completed matches per *start*, which measured being a forward:
-    Benzema, Aguero, Higuain, Villa, Owen and Trezeguet all failed qualification
+    Benzema, Agüero, Higuaín, Villa, Owen and Trezeguet all failed qualification
     on that requirement alone, because strikers get substituted.
 
     It then became starts per appearance, which fixed the role bias by throwing

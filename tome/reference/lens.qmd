@@ -4,13 +4,16 @@
 
 Rating lenses. Each is a pure function from player-seasons to a ranking.
 
-Phase 1 implements one lens, ``peak5``. Later phases add ``career``, ``per90``,
-``biggame`` and ``teamfit`` with the same signature, and ``blend`` combines them
-under a reader-controlled weight vector.
+Four lenses are implemented: ``peak5``, ``career``, ``per90`` and ``biggame``.
+A lens answers one clearly-stated question rather than pretending to answer
+"who was best", which is a choice about what matters that the project leaves
+to the reader.
 
-A lens answers one clearly-stated question. It does not pretend to answer
-"who was best". That is a choice about which lens matters, and the project
-makes the reader make it.
+``teamfit``, a fifth lens ranking careers by output after regressing out club
+strength, is deliberately not built. Measured, that residual correlated 0.996
+with plain scoring output, because club strength explains under 1% of who
+scores within a league-season; a lens that reduces to a lens already built
+teaches nothing. See DECISION.md.
 
 ## Attributes
 

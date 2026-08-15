@@ -136,7 +136,7 @@ Nothing here assumes normality, which is the point: a career is five to
 nineteen numbers, the score distribution is visibly skewed, and a t-test
 would be asserting a shape the data does not have.
 
-**One-sided by default**, because a claim like "Henry was better than Su·rez"
+**One-sided by default**, because a claim like "Henry was better than Su√°rez"
 is directional and stated before looking. Swapping the arguments tests the
 opposite claim.
 
