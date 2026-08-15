@@ -17,7 +17,11 @@ dependencies = [
 # [ctk] pulls the CUDA toolkit headers CuPy needs to JIT-compile kernels;
 # without them cupy.random raises at runtime even though allocation works.
 gpu = ["cupy-cuda12x[ctk]>=13"]
-bayes = ["pymc>=5.16", "nutpie>=0.13", "arviz>=0.18"]
+# Unconstrained, the resolver reaches for numba 0.63.0b1, a pre-release whose
+# np.row_stack() call breaks against current numpy (np.row_stack was removed).
+# Floored above it at the newest stable line pytensor's own numba backend
+# allows (numba<=0.66.0).
+bayes = ["pymc>=5.16", "nutpie>=0.13", "arviz>=0.18", "numba>=0.65,<=0.66"]
 
 [project.scripts]
 gambeta = "gambeta.cli:main"
@@ -62,6 +66,12 @@ files = ["gambeta"]
 
 [[tool.mypy.overrides]]
 module = ["soccerdata.*", "pandera.*", "matplotlib.*", "cupy.*", "streamlit.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# pymc, arviz and pytensor ship no stubs. Same pattern as the override above,
+# scoped to the bayes extra only.
+module = ["pymc.*", "arviz.*", "pytensor.*", "nutpie.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
