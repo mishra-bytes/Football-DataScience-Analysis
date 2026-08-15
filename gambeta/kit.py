@@ -37,6 +37,23 @@ normalise a player against the wrong peers and invent a transfer every August.
 They arrive as extra columns on a domestic player-season instead.
 """
 
+TOURNAMENT_LEAGUES: tuple[str, ...] = (
+    "INT-World Cup",
+    "INT-European Championship",
+    "INT-Copa America",
+)
+"""International tournaments.
+
+The World Cup and the Euro are available in soccerdata without registration;
+Copa America is not, and is registered by
+:func:`gambeta.scouts.fbref.register_copa_america`. Owner ruling 2026-08-15:
+Copa America is in scope alongside the World Cup and the Euro, because the Euro
+covers European players and Copa America covers South American ones.
+
+Same treatment as :data:`CONTINENTAL_LEAGUES`: columns on a domestic
+player-season, never rows in the ranked population.
+"""
+
 REFERENCE_LEAGUE = "ENG-Premier League"
 """League pinned at zero when solving for league-strength offsets."""
 
@@ -71,6 +88,7 @@ class Config:
     league: str = REFERENCE_LEAGUE
     leagues: tuple[str, ...] = ACTIVE_LEAGUES
     continental: tuple[str, ...] = CONTINENTAL_LEAGUES
+    tournaments: tuple[str, ...] = TOURNAMENT_LEAGUES
     seasons: tuple[str, ...] = SEASONS
     min_minutes: int = 900
     min_seasons: int = 3

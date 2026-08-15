@@ -102,10 +102,10 @@ def test_career_and_season_keys_partition_the_list() -> None:
     assert not set(needs.season_keys(needs.OUTFIELD)) & set(needs.career_keys(needs.OUTFIELD))
 
 
-def test_outfield_list_has_eleven_requirements() -> None:
+def test_outfield_list_has_twelve_requirements() -> None:
     """Ten from 2026-08-12, when above_team was found to be a copy of scoring,
-    plus continental from 2026-08-15."""
-    assert len(needs.OUTFIELD) == 11
+    plus continental and tournament from 2026-08-15."""
+    assert len(needs.OUTFIELD) == 12
 
 
 def test_outfield_does_not_gate_on_above_team() -> None:
@@ -254,6 +254,58 @@ def test_outfield_values_emits_continental_when_the_columns_are_present() -> Non
     df = _outfield()
     df["ucl_minutes"], df["ucl_npg"], df["ucl_assists"] = 540, 3, 1
     assert "continental" in needs.outfield_values(df).columns
+
+
+def test_tournament_is_zero_without_international_minutes() -> None:
+    df = pd.DataFrame({"int_minutes": [0], "int_npg": [0], "int_assists": [0], "minutes": [3000]})
+    assert needs.tournament_value(df)[0] == 0.0
+
+
+def test_tournament_scales_a_cameo_down() -> None:
+    """One goal in 90 minutes is not a full tournament run. Presence scales it."""
+    cameo = pd.DataFrame(
+        {"int_minutes": [90], "int_npg": [1], "int_assists": [0], "minutes": [3000]}
+    )
+    full = pd.DataFrame(
+        {"int_minutes": [450], "int_npg": [5], "int_assists": [0], "minutes": [3000]}
+    )
+    assert needs.tournament_value(cameo)[0] < needs.tournament_value(full)[0]
+
+
+def test_tournament_presence_saturates_at_a_full_run() -> None:
+    """Beyond a full run, more minutes must not keep inflating the same rate."""
+    full = pd.DataFrame(
+        {"int_minutes": [450], "int_npg": [5], "int_assists": [0], "minutes": [3000]}
+    )
+    deep_run = pd.DataFrame(
+        {"int_minutes": [630], "int_npg": [7], "int_assists": [0], "minutes": [3000]}
+    )
+    assert needs.tournament_value(deep_run)[0] == pytest.approx(
+        needs.tournament_value(full)[0], rel=0.05
+    )
+
+
+def test_tournament_is_higher_better() -> None:
+    """Every requirement column is higher-better; a sign slip here poisons the gate."""
+    low = pd.DataFrame(
+        {"int_minutes": [450], "int_npg": [1], "int_assists": [0], "minutes": [3000]}
+    )
+    high = pd.DataFrame(
+        {"int_minutes": [450], "int_npg": [6], "int_assists": [3], "minutes": [3000]}
+    )
+    assert needs.tournament_value(high)[0] > needs.tournament_value(low)[0]
+
+
+def test_outfield_values_emits_tournament_when_the_columns_are_present() -> None:
+    df = _outfield()
+    df["int_minutes"], df["int_npg"], df["int_assists"] = 270, 2, 1
+    assert "tournament" in needs.outfield_values(df).columns
+
+
+def test_tournament_is_zero_in_a_season_with_no_tournament() -> None:
+    """Odd years have neither a World Cup nor a Euro. Zero must not read as failure."""
+    df = pd.DataFrame({"int_minutes": [0], "int_npg": [0], "int_assists": [0], "minutes": [3000]})
+    assert needs.tournament_value(df)[0] == 0.0
 
 
 def test_above_team_flips_sign_when_lower_is_better() -> None:

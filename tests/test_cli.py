@@ -130,6 +130,12 @@ def test_clean_writes_a_schema_valid_continental_frame(tmp_path: Path) -> None:
     )
 
 
+def test_tournament_seasons_align_with_domestic_codes() -> None:
+    """A June 2018 tournament belongs to the 1718 season, not to '2018'."""
+    frame = pd.DataFrame({"season": ["2018", "1718"]})
+    assert list(cli.align_tournament_seasons(frame)["season"]) == ["1718", "1718"]
+
+
 def test_parser_accepts_each_stage() -> None:
     for stage in ("scrape", "clean", "rank", "all"):
         assert cli.build_parser().parse_args([stage]).stage == stage

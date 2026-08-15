@@ -44,8 +44,15 @@ OUTFIELD: tuple[Requirement, ...] = (
     Requirement("consistency", "Has no bad seasons", "career"),
     Requirement("discipline", "Does not cost his team", "season"),
     Requirement("continental", "Delivers in Europe", "season"),
+    Requirement("tournament", "Shows up for his country", "season"),
 )
-"""Eleven requirements: ten plus ``continental``, added 2026-08-15.
+"""Twelve requirements: eleven plus ``tournament``, added 2026-08-15.
+
+``tournament`` scores international output at the World Cup, the Euro and Copa
+America, the same rate-times-presence shape as ``continental``. Owner ruling
+2026-08-15: Copa America joined the World Cup and the Euro because the Euro
+covers European players and Copa America covers South American ones. See
+:func:`tournament_value` for the shape and its limits.
 
 ``continental`` scores European club output (currently the Champions League).
 The owner's ruling is that the best footballer plays the top competitions, so
@@ -265,6 +272,57 @@ def continental_value(df: pd.DataFrame) -> np.ndarray:
     return rate * presence
 
 
+TOURNAMENT_FULL_RUN = 450.0
+"""Minutes that count as a full tournament: five matches, a quarter-final exit.
+
+Lower than :data:`CONTINENTAL_FULL_SEASON` because a tournament is seven matches
+at most. Anything higher would mean only finalists could saturate, which would
+rank players by how strong their national side was.
+"""
+
+
+def tournament_value(df: pd.DataFrame) -> np.ndarray:
+    """Score international tournament output: a per-90 rate, scaled by presence.
+
+    Identical shape to :func:`continental_value`. Absence scores zero, for the
+    same reason: never appearing at a tournament is a low score rather than an
+    unknown.
+
+    This requirement is **zero for most seasons by construction**, because none
+    of the World Cup, the Euro or Copa America is played every year, and a
+    given player's season never carries more than one of them: WC years fall
+    on neither the Euro's nor Copa America's cycle, and a player is eligible
+    for exactly one national team, so the Euro and Copa America never collide
+    for the same player either. It is therefore a weaker discriminator than
+    ``continental``, which a player can contribute to every year his club
+    qualifies. That is a limitation to publish, not to hide.
+
+    It also partly measures **nationality** rather than ability alone: a player
+    from a small footballing nation reaches far fewer tournaments across a
+    career than one from a traditional power, independent of how good either
+    one is. Copa America mitigates this for South American players, who now
+    have a second tournament to be measured on, but leaves it standing for
+    players from confederations with no tournament in scope, such as Africa's
+    or Asia's. The rate-times-presence form limits the damage the same way it
+    does for ``continental``, but does not remove it.
+
+    Returns
+    -------
+    np.ndarray
+        Higher is better, like every other requirement column.
+    """
+    minutes = _column(df, "int_minutes").to_numpy(dtype=float)
+    contributions = _column(df, "int_npg").to_numpy(dtype=float) + _column(
+        df, "int_assists"
+    ).to_numpy(dtype=float)
+    nineties = minutes / MINUTES_PER_MATCH
+    rate: np.ndarray = np.divide(
+        contributions, nineties, out=np.zeros_like(contributions), where=nineties > 0
+    )
+    presence = np.clip(minutes / TOURNAMENT_FULL_RUN, 0.0, 1.0)
+    return rate * presence
+
+
 def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     """Add one column per season-level outfield requirement.
 
@@ -324,6 +382,7 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     )
     out["discipline"] = -cost
     out["continental"] = continental_value(df)
+    out["tournament"] = tournament_value(df)
     return out
 
 

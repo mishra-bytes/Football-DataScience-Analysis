@@ -118,6 +118,43 @@ def register_ucl() -> None:
     config.write_text(json.dumps(known, indent=2), encoding="utf-8")
 
 
+COPA_LEAGUE = "INT-Copa America"
+"""How this project names the Copa America."""
+
+COPA_FBREF_NAME = "CONMEBOL Copa América"
+"""How FBref's competition index names it, which is what soccerdata matches on.
+
+soccerdata ships no Copa America at all, unlike the World Cup and the Euro, so
+it needs the same registration the Champions League gets. Unlike the Champions
+League, it is registered with ``season_code: single-year``: FBref indexes it,
+like the World Cup and the Euro, by the tournament's own calendar year rather
+than a two-year domestic code, which is the mismatch
+:func:`gambeta.cli.align_tournament_seasons` exists to correct. FBref has only
+carried player-level stats for this competition since 2015; earlier editions
+are absent, the same "expected absence" a biennial tournament already produces.
+"""
+
+
+def register_copa_america() -> None:
+    """Teach soccerdata about the Copa America, idempotently.
+
+    Mirrors :func:`register_ucl`, with ``season_code`` set so soccerdata reads
+    and returns single calendar-year seasons instead of two-year domestic ones.
+    """
+    import json
+
+    config = Path.home() / "soccerdata" / "config" / "league_dict.json"
+    config.parent.mkdir(parents=True, exist_ok=True)
+    known = json.loads(config.read_text(encoding="utf-8")) if config.exists() else {}
+    known[COPA_LEAGUE] = {
+        "FBref": COPA_FBREF_NAME,
+        "season_start": "Jun",
+        "season_end": "Jul",
+        "season_code": "single-year",
+    }
+    config.write_text(json.dumps(known, indent=2), encoding="utf-8")
+
+
 SIDE_TABLES: dict[str, dict[tuple[str, str], str]] = {
     "shooting": _RENAME_SHOOTING,
     "playing_time": _RENAME_PLAYING_TIME,

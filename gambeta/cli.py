@@ -14,7 +14,7 @@ import pandas as pd
 
 from gambeta import bridge, gate, kit, laws, level, locker, needs, tally, verdict, whois
 from gambeta.scouts.elo import EloScout, align_teams
-from gambeta.scouts.fbref import FBrefScout, register_ucl
+from gambeta.scouts.fbref import FBrefScout, register_copa_america, register_ucl
 from gambeta.scouts.wikidata import AwardsScout, WikidataScout
 
 log = logging.getLogger("gambeta")
@@ -25,9 +25,11 @@ RAW_ELO = "elo.parquet"
 RAW_CROSSWALK = "crosswalk.parquet"
 RAW_AWARDS = "awards.parquet"
 RAW_CONTINENTAL = "continental_raw.parquet"
+RAW_TOURNAMENT = "tournament_raw.parquet"
 CLEAN_OUTFIELD = "outfield.parquet"
 CLEAN_KEEPER = "keeper.parquet"
 CLEAN_CONTINENTAL = "continental.parquet"
+CLEAN_TOURNAMENT = "tournament.parquet"
 UNRESOLVED = "unresolved.csv"
 OFFSETS = "league_offsets.parquet"
 RANKING = "ranking.parquet"
@@ -52,6 +54,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Never fetch: skip any stat table not already cached",
     )
     return parser
+
+
+def align_tournament_seasons(frame: pd.DataFrame) -> pd.DataFrame:
+    """Rewrite a four-digit calendar year into this project's season code.
+
+    A summer tournament sits between two domestic seasons. FBref labels a 2018
+    World Cup page "2018", while every domestic table in this project uses
+    "1718". The tournament follows the season that has just finished, because
+    that is the football the squad was picked on. Already-coded seasons pass
+    through unchanged, so this is safe to apply twice.
+    """
+    codes = frame["season"].astype(str)
+    calendar = pd.to_numeric(codes, errors="coerce")
+    is_year = calendar.between(2000, 2099)
+    ending = (calendar % 100).astype("Int64")
+    out = frame.copy()
+    out["season"] = codes.where(
+        ~is_year, (ending - 1).astype(str).str.zfill(2) + ending.astype(str).str.zfill(2)
+    )
+    return out
 
 
 def scrape(
@@ -114,6 +136,51 @@ def scrape(
                 extra, cfg.raw / RAW_CONTINENTAL, laws.OUTFIELD_RAW, source="fbref-continental"
             )
 
+    # Same treatment as the continental block above, with one difference this
+    # league list forces: soccerdata indexes these competitions by the
+    # tournament's single calendar year (e.g. "2018"), not by the two-year
+    # domestic code every other reader in this project uses, and it raises if
+    # even one requested season is absent from that index. A World Cup, Euro
+    # or Copa America sits in only some of any 25-season span, so the single
+    # batched fetch the continental block uses would always raise. Fetched one
+    # season at a time instead, exactly the resilience `align_tournament_seasons`
+    # assumes: an absent season is expected, not an error.
+    #
+    # A COVID-postponed edition (Euro 2020, Copa America 2020, both actually
+    # played in 2021) is where a per-season loop bites back: soccerdata still
+    # labels it "2020", but it also answers to a query for "2021", so two
+    # different domestic-season iterations of this loop both fetch it and it
+    # would enter `tourney_parts` twice. `collapse_transfers` cannot tell that
+    # from a real mid-season transfer and sums the duplicate, which doubled
+    # every 2020-edition player's minutes and goals until this was caught by
+    # comparing against a single-fetch edition's minutes ceiling. Deduplicated
+    # on the raw identity key before it ever reaches that stage.
+    if cfg.tournaments:
+        register_copa_america()
+        tourney_parts: list[pd.DataFrame] = []
+        for code in seasons:
+            year = str(2000 + int(code[2:]))
+            try:
+                part, _ = FBrefScout(
+                    cfg.tournaments,
+                    [year],
+                    cfg.raw,
+                    cache_only=cache_only,
+                    stat_types=("standard",),
+                ).fetch()
+            except RuntimeError:
+                continue
+            tourney_parts.append(part)
+        if not tourney_parts:
+            log.warning("no tournament data - continuing without it")
+        else:
+            combined = pd.concat(tourney_parts, ignore_index=True).drop_duplicates(
+                subset=["league", "season", "team", "player", "born"]
+            )
+            locker.write(
+                combined, cfg.raw / RAW_TOURNAMENT, laws.OUTFIELD_RAW, source="fbref-tournament"
+            )
+
 
 def clean(cfg: kit.Config) -> None:
     """Resolve identity and collapse mid-season transfers."""
@@ -168,6 +235,21 @@ def clean(cfg: kit.Config) -> None:
         )
         log.info("continental: %d player-seasons", len(collapsed_extra))
 
+    if (cfg.raw / RAW_TOURNAMENT).exists():
+        tourney = locker.read(cfg.raw / RAW_TOURNAMENT, laws.OUTFIELD_RAW)
+        tourney = align_tournament_seasons(tourney)
+        resolved, _ = whois.resolve(tourney, crosswalk)
+        collapsed_tourney = tally.collapse_transfers(resolved)
+        collapsed_tourney["comp"] = collapsed_tourney["league"]
+        tourney_cols = ["player_id", "qid", "season", "comp", "minutes", "mp", "npg", "assists"]
+        locker.write(
+            collapsed_tourney[tourney_cols],
+            cfg.clean / CLEAN_TOURNAMENT,
+            laws.EXTRA_COMP,
+            source="fbref-tournament",
+        )
+        log.info("tournament: %d player-seasons", len(collapsed_tourney))
+
 
 def _normalise(df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
     """Z-score each requirement within its (league, season), in place of the raw value."""
@@ -220,6 +302,11 @@ def rank(cfg: kit.Config) -> None:
         extra = locker.read(cfg.clean / CLEAN_CONTINENTAL, laws.EXTRA_COMP)
         outfield = tally.attach_extra_competition(
             outfield, extra[extra["comp"].isin(cfg.continental)], prefix="ucl"
+        )
+    if (cfg.clean / CLEAN_TOURNAMENT).exists():
+        extra = locker.read(cfg.clean / CLEAN_TOURNAMENT, laws.EXTRA_COMP)
+        outfield = tally.attach_extra_competition(
+            outfield, extra[extra["comp"].isin(cfg.tournaments)], prefix="int"
         )
 
     # Filter before deriving, not after. `reliability` subtracts a positional
