@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from gambeta import doubt, gate, kit, needs
+from gambeta import doubt, gate, kit, lens, needs
 
 SAMPLE = Path(__file__).resolve().parent.parent / "data" / "sample"
 
@@ -171,8 +171,8 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
     elif now != was:
         st.info(f"Under this argument the best player is **{now}**, not {was}.")
 
-    ranking_tab, argue_tab, distribution_tab, keeper_tab, failure_tab = st.tabs(
-        ["Ranking", "A vs B", "Distribution", "Goalkeepers", "Who failed, and why"]
+    ranking_tab, argue_tab, distribution_tab, keeper_tab, failure_tab, lenses_tab = st.tabs(
+        ["Ranking", "A vs B", "Distribution", "Goalkeepers", "Who failed, and why", "Lenses"]
     )
 
     with ranking_tab:
@@ -278,6 +278,30 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
             "share of the population by construction. That is what a percentile floor does. "
             "The interesting column is *which* players, above."
         )
+
+    with lenses_tab:
+        st.caption(
+            "One ranking, four questions. peak5 asks about a sustained best five years; "
+            "career rewards volume a peak cannot see; per90 measures level alone, career "
+            "length ignored; biggame is European and international output only, and a "
+            "player who never played there is excluded, not scored zero."
+        )
+        lens_name = st.selectbox("Lens", list(lens.LENSES), index=0)
+        careers = load_seasons().rename(columns={"season_score": "score"})
+        cfg = kit.load()
+        lens_out = lens.LENSES[lens_name](careers, cfg)
+        if lens_out.empty:
+            st.warning("No careers qualify under this lens.")
+        else:
+            top = lens_out.iloc[0]["player"]
+            peak5_top = lens.LENSES["peak5"](careers, cfg).iloc[0]["player"]
+            if lens_name != "peak5" and top != peak5_top:
+                st.info(f"Under **{lens_name}** the best player is **{top}**, not {peak5_top}.")
+            st.dataframe(
+                lens_out[["player", "score", "lo", "hi", "start_season", "end_season"]].round(2),
+                width="stretch",
+                hide_index=True,
+            )
 
 
 if __name__ == "__main__":  # Windows uses spawn; guard the entry point.
