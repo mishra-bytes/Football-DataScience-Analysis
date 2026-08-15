@@ -1,0 +1,41 @@
+# level { #gambeta.level }
+
+`level`
+
+Era normalization: levelling the playing field across 25 seasons.
+
+A goal in 2000-01 is not a goal in 2024-25. Every rate metric is z-scored
+*within* its ``(league, season)``, so a player is measured against the
+contemporaries they actually faced. Cross-era comparison then happens on the
+z-scale, which is the only defensible way to do it with the data available.
+
+A short season is not shrunk here. It is carried at full strength and then
+weighted by its minutes when the career is pooled, in
+:func:`gambeta.gate.career_profile`. The two are not the same correction and the
+difference is worked through in the era chapter.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [zscore](#gambeta.level.zscore) | Add ``<col>_z`` columns holding within-group standard scores. |
+
+### zscore { #gambeta.level.zscore }
+
+```python
+level.zscore(df, cols, by=('league', 'season'))
+```
+
+Add ``<col>_z`` columns holding within-group standard scores.
+
+Uses the population standard deviation (``ddof=0``): a season is the whole
+population of players who played it, not a sample drawn from something
+larger. A group with zero variance yields zeros rather than NaN or infinity.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type            | Description                                                   | Default                |
+|--------|-----------------|---------------------------------------------------------------|------------------------|
+| df     | pd.DataFrame    | Frame to normalize.                                           | _required_             |
+| cols   | Sequence\[str\] | Columns to standardize.                                       | _required_             |
+| by     | Sequence\[str\] | Grouping keys defining an era. Defaults to league and season. | `('league', 'season')` |

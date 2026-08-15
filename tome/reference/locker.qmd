@@ -1,0 +1,67 @@
+# locker { #gambeta.locker }
+
+`locker`
+
+Parquet read/write with schema validation and provenance manifests.
+
+The Parquet store is the seam of the project: ingestion writes it, and every
+downstream consumer reads it. Nothing past this module touches the network,
+so a broken scraper breaks ingestion rather than analysis.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [manifest_path](#gambeta.locker.manifest_path) | Return the sidecar manifest path for a Parquet file. |
+| [read](#gambeta.locker.read) | Read a Parquet file and validate it against ``schema``. |
+| [write](#gambeta.locker.write) | Validate ``df``, write it to ``path``, and emit a provenance manifest. |
+
+### manifest_path { #gambeta.locker.manifest_path }
+
+```python
+locker.manifest_path(path)
+```
+
+Return the sidecar manifest path for a Parquet file.
+
+### read { #gambeta.locker.read }
+
+```python
+locker.read(path, schema)
+```
+
+Read a Parquet file and validate it against ``schema``.
+
+### write { #gambeta.locker.write }
+
+```python
+locker.write(df, path, schema, source, extra=None)
+```
+
+Validate ``df``, write it to ``path``, and emit a provenance manifest.
+
+Validation happens before any file is created, so a rejected frame never
+leaves a partial artifact behind. A partial scrape must always be
+distinguishable from a complete one. That is the manifest's real job.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type                     | Description                                                    | Default    |
+|--------|--------------------------|----------------------------------------------------------------|------------|
+| df     | pd.DataFrame             | Frame to persist.                                              | _required_ |
+| path   | Path                     | Destination ``.parquet`` path. Parent directories are created. | _required_ |
+| schema | pa.DataFrameSchema       | Schema the frame must satisfy.                                 | _required_ |
+| source | str                      | Provenance label, e.g. ``"fbref"``.                            | _required_ |
+| extra  | dict\[str, Any\] \| None | Additional key-value pairs to record in the manifest.          | `None`     |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type   | Description       |
+|--------|--------|-------------------|
+|        | Path   | The path written. |
+
+#### Raises {.doc-section .doc-section-raises}
+
+| Name   | Type                         | Description                                                |
+|--------|------------------------------|------------------------------------------------------------|
+|        | gambeta.laws.ValidationError | If ``df`` does not satisfy ``schema``. No file is written. |

@@ -1,0 +1,92 @@
+# bayes { #gambeta.bayes }
+
+`bayes`
+
+Hierarchical model of player-season level, with shrinkage estimated rather than assumed.
+
+The pipeline's point estimates pool a career weighted by minutes and exclude
+short seasons with a hard floor at ``cfg.min_minutes``. Both are decisions
+somebody made, and neither is measured. A player with three seasons and a player
+with eighteen get the same treatment, and the sensitivity sweep in chapter 14
+cannot justify the floor because it is not a parameter the data speaks to.
+
+A partially pooled model replaces both. Each player gets his own level, drawn
+from a population distribution whose spread is estimated from the data, so how
+far a short career is pulled toward the mean is an answer rather than a setting.
+Season effects absorb era drift that the within-season z-score does not already
+remove.
+
+This does not reorder the top of the table, and it is not meant to. It makes the
+uncertainty on every player honest, and it removes the minutes floor as an
+unexamined choice.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [FULL_SEASON_MINUTES](#gambeta.bayes.FULL_SEASON_MINUTES) | A full season's minutes: 38 matches at 90 minutes, the same constant `lens._FULL_SEASON` uses. |
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [fit](#gambeta.bayes.fit) | Fit the hierarchical player-season model. |
+| [player_effects](#gambeta.bayes.player_effects) | Reduce the ``player`` posterior to a point estimate and an interval per player. |
+
+### fit { #gambeta.bayes.fit }
+
+```python
+bayes.fit(seasons, cfg, draws=1000, tune=1000)
+```
+
+Fit the hierarchical player-season model.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name    | Type         | Description                                                                      | Default    |
+|---------|--------------|----------------------------------------------------------------------------------|------------|
+| seasons | pd.DataFrame | Player-seasons with ``player_id``, ``season``, ``minutes`` and ``season_score``. | _required_ |
+| cfg     | Config       | Project config; supplies the random seed.                                        | _required_ |
+| draws   | int          | Passed straight to :func:`pymc.sample`.                                          | `1000`     |
+| tune    | int          | Passed straight to :func:`pymc.sample`.                                          | `1000`     |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type             | Description                                                             |
+|--------|------------------|-------------------------------------------------------------------------|
+|        | az.InferenceData | The posterior. :func:`player_effects` reduces it to one row per player. |
+
+#### Notes {.doc-section .doc-section-notes}
+
+``pymc``, ``pytensor`` and ``arviz`` are imported inside this function, not
+at module level. ``bayes`` is an optional extra (``pyproject.toml``'s
+``bayes`` group), and the rest of the suite has to keep collecting and
+passing when it is not installed; a module-level import would fail
+``tests/test_bayes.py``'s own collection before ``pytest.importorskip``
+ever runs.
+
+### player_effects { #gambeta.bayes.player_effects }
+
+```python
+bayes.player_effects(idata, seasons)
+```
+
+Reduce the ``player`` posterior to a point estimate and an interval per player.
+
+``seasons`` is not read: every player id the posterior carries already lives
+in the model's own coords, which is the index this indexes back through.
+It stays in the signature because the caller always has both in hand and a
+consistent interface is worth more than dropping one unused parameter.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name    | Type             | Description                | Default    |
+|---------|------------------|----------------------------|------------|
+| idata   | az.InferenceData | The result of :func:`fit`. | _required_ |
+| seasons | pd.DataFrame     | Unused; see above.         | _required_ |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                                             |
+|--------|--------------|-------------------------------------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | Columns ``player_id, mean, sd, hdi_lo, hdi_hi``. The interval is a 94% highest-density interval, arviz's default width. |

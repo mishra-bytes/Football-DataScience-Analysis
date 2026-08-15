@@ -1,0 +1,90 @@
+# whois { #gambeta.whois }
+
+`whois`
+
+Player identity resolution.
+
+The project's highest-risk component. FBref exposes no player ID at season level
+(see ``DEVIATIONS.md`` #1), so identity is built from ``(normalized_name, born)``
+and enriched with a Wikidata QID where both name and birth year agree.
+
+The cardinal rule: a player who cannot be matched is **reported**, never
+dropped. Silently discarding an unmatched row does not raise an error. It just
+quietly deletes a career from the analysis, and no test would ever notice.
+
+**Matching runs in tiers.** Measured on the real data, 90% of unmatched players
+had a name that was absent from the crosswalk under its exact spelling and
+present under another: an extra surname (``Iván Kaviedes`` against ``Iván
+Kaviedes Toaquiza``), a missing one (``Yakubu Aiyegbeni`` against ``Yakubu``), or
+a shortened forename (``Matt Upson`` against ``Matthew Upson``). The exact join
+runs first; whatever it leaves over is offered to the looser tiers.
+
+Every tier is bound by the same two rules, and they are what make loosening the
+name safe:
+
+1. **The birth year never relaxes.** It is the only independent evidence in the
+   record, so a tier may weaken the name and nothing else.
+2. **Ambiguity is a non-match.** If a tier finds two candidates it returns
+   nothing. A wrong QID is worse than a missing one, because a missing one is
+   reported and a wrong one is not.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [normalize](#gambeta.whois.normalize) | Fold accents and punctuation, collapse whitespace, and lowercase a name. |
+| [player_id](#gambeta.whois.player_id) | Return a stable identifier for a player. |
+| [resolve](#gambeta.whois.resolve) | Attach ``player_id`` and, where possible, a Wikidata ``qid``. |
+
+### normalize { #gambeta.whois.normalize }
+
+```python
+whois.normalize(name)
+```
+
+Fold accents and punctuation, collapse whitespace, and lowercase a name.
+
+FBref and Wikidata disagree routinely on diacritics ("Fàbregas" against
+"Fabregas") and on punctuation ("M'Boma" against "Mboma"), so both sides
+are folded to a common form before matching.
+
+### player_id { #gambeta.whois.player_id }
+
+```python
+whois.player_id(name, born)
+```
+
+Return a stable identifier for a player.
+
+Derived from the normalized name plus birth year, so one person keeps a
+single identifier across clubs and seasons while two people who share a name
+stay separate.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type          | Description                                               | Default    |
+|--------|---------------|-----------------------------------------------------------|------------|
+| name   | str           | Player name as recorded by the source.                    | _required_ |
+| born   | float \| None | Birth year, or ``None``/``NaN`` when the source omits it. | _required_ |
+
+### resolve { #gambeta.whois.resolve }
+
+```python
+whois.resolve(raw, crosswalk)
+```
+
+Attach ``player_id`` and, where possible, a Wikidata ``qid``.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name      | Type         | Description                                                      | Default    |
+|-----------|--------------|------------------------------------------------------------------|------------|
+| raw       | pd.DataFrame | Frame with at least ``player`` and ``born`` columns.             | _required_ |
+| crosswalk | pd.DataFrame | Wikidata crosswalk conforming to :data:`gambeta.laws.CROSSWALK`. | _required_ |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name       | Type         | Description                                                                                                                      |
+|------------|--------------|----------------------------------------------------------------------------------------------------------------------------------|
+| labelled   | pd.DataFrame | ``raw`` plus ``player_id`` and ``qid``, where ``qid`` is null when no confident match exists. Always the same length as ``raw``. |
+| unresolved | pd.DataFrame | One row per distinct unmatched player, for reporting.                                                                            |

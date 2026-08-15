@@ -1,0 +1,25 @@
+# laws { #gambeta.laws }
+
+`laws`
+
+pandera schemas: the contract between pipeline layers.
+
+Every Parquet write validates against a schema here, and every read validates
+again. An identity-resolution bug therefore surfaces as a loud failure at the
+layer boundary rather than as a subtly wrong chart three layers downstream.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [CROSSWALK](#gambeta.laws.CROSSWALK) | Wikidata identity crosswalk, one row per person. |
+| [ELO](#gambeta.laws.ELO) | Team strength snapshot, one row per (season, team). |
+| [EXTRA_COMP](#gambeta.laws.EXTRA_COMP) | One row per (player, season, competition) outside the domestic league. |
+| [KEEPER_RAW](#gambeta.laws.KEEPER_RAW) | Goalkeeper season table. Separate population, separate requirements. |
+| [LEAGUE_OFFSETS](#gambeta.laws.LEAGUE_OFFSETS) | League-strength offsets in z units, with the number of transfers behind each. |
+| [OUTFIELD_RAW](#gambeta.laws.OUTFIELD_RAW) | `standard` joined with the shooting, playing-time and misc tables. |
+| [PLAYER_SEASON](#gambeta.laws.PLAYER_SEASON) | One row per (player_id, season). Mid-season transfers collapsed. |
+| [PLAYER_SEASON_RAW](#gambeta.laws.PLAYER_SEASON_RAW) | One row per (season, team, player), exactly as scraped. Transfers duplicate. |
+| [RANKING](#gambeta.laws.RANKING) | Gate-and-rank output. |
+| [RATING](#gambeta.laws.RATING) | Lens output: one row per player with a point estimate and interval. |
+| [ValidationError](#gambeta.laws.ValidationError) | Catch-all for schema violations. |

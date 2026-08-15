@@ -1,0 +1,193 @@
+# scouts.fbref { #gambeta.scouts.fbref }
+
+`scouts.fbref`
+
+FBref adapter, via soccerdata.
+
+soccerdata 1.9.1 drives seleniumbase to get past Cloudflare, so a Chrome
+installation is required for live fetches. All reshaping lives in `flatten`,
+which is pure. That is where the bugs would otherwise hide, untested.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [ALL_STAT_TYPES](#gambeta.scouts.fbref.ALL_STAT_TYPES) | Every table fetched for a domestic league. |
+| [COPA_FBREF_NAME](#gambeta.scouts.fbref.COPA_FBREF_NAME) | How FBref's competition index names it, which is what soccerdata matches on. |
+| [COPA_LEAGUE](#gambeta.scouts.fbref.COPA_LEAGUE) | How this project names the Copa America. |
+| [SIDE_COLUMNS](#gambeta.scouts.fbref.SIDE_COLUMNS) | Every column the side tables contribute, whether or not they were fetched. |
+| [SIDE_TABLES](#gambeta.scouts.fbref.SIDE_TABLES) | Tables joined onto `standard` by (league, season, team, player). |
+| [UCL_FBREF_NAME](#gambeta.scouts.fbref.UCL_FBREF_NAME) | How FBref's competition index names it, which is what soccerdata matches on. |
+| [UCL_LEAGUE](#gambeta.scouts.fbref.UCL_LEAGUE) | How this project names the Champions League. |
+
+## Classes
+
+| Name | Description |
+| --- | --- |
+| [FBrefScout](#gambeta.scouts.fbref.FBrefScout) | Fetch player-season stats from FBref for one or more leagues. |
+
+### FBrefScout { #gambeta.scouts.fbref.FBrefScout }
+
+```python
+scouts.fbref.FBrefScout(
+    leagues,
+    seasons,
+    data_dir,
+    cache_only=False,
+    stat_types=None,
+)
+```
+
+Fetch player-season stats from FBref for one or more leagues.
+
+Fetches per league, never via the Big 5 combined reader: that endpoint leaves
+Bundesliga's league label null in every season and merges Ligue 1 into the
+same null group before 2017, which would normalise players against the wrong
+peer population.
+
+#### Methods
+
+| Name | Description |
+| --- | --- |
+| [cached](#gambeta.scouts.fbref.FBrefScout.cached) | Is **every** requested season of this (league, stat) already on disk? |
+| [fetch](#gambeta.scouts.fbref.FBrefScout.fetch) | Return ``(outfield, keeper)`` frames covering every configured league. |
+
+##### cached { #gambeta.scouts.fbref.FBrefScout.cached }
+
+```python
+scouts.fbref.FBrefScout.cached(league, stat)
+```
+
+Is **every** requested season of this (league, stat) already on disk?
+
+Completeness matters, not mere presence. soccerdata fetches whatever is
+missing, so a table cached for 8 of 25 seasons would silently trigger 17
+page loads, turning an offline run into half an hour of browser
+automation. A partially cached table counts as absent.
+
+##### fetch { #gambeta.scouts.fbref.FBrefScout.fetch }
+
+```python
+scouts.fbref.FBrefScout.fetch()
+```
+
+Return ``(outfield, keeper)`` frames covering every configured league.
+
+Slow on a cold cache, roughly 15 minutes per league per stat table. Reads
+entirely from cache once :mod:`scripts.warm_cache` has run.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [flatten](#gambeta.scouts.fbref.flatten) | Flatten FBref's MultiIndex output into a tidy frame. |
+| [flatten_keeper](#gambeta.scouts.fbref.flatten_keeper) | Flatten the goalkeeper table into a tidy frame. |
+| [flatten_side](#gambeta.scouts.fbref.flatten_side) | Flatten a secondary FBref table down to its join keys plus renamed columns. |
+| [join_side_tables](#gambeta.scouts.fbref.join_side_tables) | Merge the secondary tables onto `standard` by (league, season, team, player). |
+| [register_copa_america](#gambeta.scouts.fbref.register_copa_america) | Teach soccerdata about the Copa America, idempotently. |
+| [register_ucl](#gambeta.scouts.fbref.register_ucl) | Teach soccerdata about the Champions League, idempotently. |
+
+### flatten { #gambeta.scouts.fbref.flatten }
+
+```python
+scouts.fbref.flatten(raw)
+```
+
+Flatten FBref's MultiIndex output into a tidy frame.
+
+Lifts the ``(league, season, team, player)`` row index into columns, renames
+the two-level stat headers to snake_case, drops FBref's pre-computed per-90
+columns (we recompute them from minutes), and coerces counts to integers.
+
+Counts are clipped at zero. FBref's own ``G-PK`` occasionally goes negative
+on old Champions League rows where a penalty is recorded but the goals total
+is not (Zoran Tosic, CSKA Moscow, 2015-16: 0 goals, 1 penalty scored), which
+is a data entry fault on their side rather than a real result, and a
+negative count is never a real one regardless of source.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type         | Description                                                         | Default    |
+|--------|--------------|---------------------------------------------------------------------|------------|
+| raw    | pd.DataFrame | Output of ``FBref.read_player_season_stats(stat_type="standard")``. | _required_ |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                  |
+|--------|--------------|----------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | Conforms to :data:`gambeta.laws.PLAYER_SEASON_RAW`. Column order matches the schema exactly. |
+
+### flatten_keeper { #gambeta.scouts.fbref.flatten_keeper }
+
+```python
+scouts.fbref.flatten_keeper(raw)
+```
+
+Flatten the goalkeeper table into a tidy frame.
+
+Keepers are a separate population with their own requirements, so this is a
+separate table rather than extra columns on the outfield one.
+
+### flatten_side { #gambeta.scouts.fbref.flatten_side }
+
+```python
+scouts.fbref.flatten_side(raw, rename)
+```
+
+Flatten a secondary FBref table down to its join keys plus renamed columns.
+
+Unlike :func:`flatten`, nothing is coerced to a fixed schema, because these tables
+contribute a handful of numeric columns each and are merged onto `standard`.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type                           | Description                                                            | Default    |
+|--------|--------------------------------|------------------------------------------------------------------------|------------|
+| raw    | pd.DataFrame                   | Output of ``read_player_season_stats`` for one of :data:`SIDE_TABLES`. | _required_ |
+| rename | dict\[tuple\[str, str\], str\] | Two-level column header to snake_case name.                            | _required_ |
+
+### join_side_tables { #gambeta.scouts.fbref.join_side_tables }
+
+```python
+scouts.fbref.join_side_tables(standard, sides)
+```
+
+Merge the secondary tables onto `standard` by (league, season, team, player).
+
+Left joins throughout: a player missing from a side table keeps their standard
+row with nulls, rather than vanishing from the dataset. Dropping them silently
+is the failure mode this project cares most about avoiding.
+
+Columns from side tables that were not fetched are filled with nulls, so a run
+that deliberately skips one (to save scraping time and backfill it later)
+still produces a schema-valid frame.
+
+The join key includes birth year, and ``validate="one_to_one"`` enforces that
+it is unique. Without both, two players sharing a name at one club return the
+cross product rather than a lookup: two players called Míchel at Rayo
+Vallecano in 2002-03 became sixteen rows across three joins, one of them
+carrying 19,288 minutes in a 38-match season. Nothing raised, no schema
+rejected it, and every downstream per-90 divided by it.
+
+### register_copa_america { #gambeta.scouts.fbref.register_copa_america }
+
+```python
+scouts.fbref.register_copa_america()
+```
+
+Teach soccerdata about the Copa America, idempotently.
+
+Mirrors :func:`register_ucl`, with ``season_code`` set so soccerdata reads
+and returns single calendar-year seasons instead of two-year domestic ones.
+
+### register_ucl { #gambeta.scouts.fbref.register_ucl }
+
+```python
+scouts.fbref.register_ucl()
+```
+
+Teach soccerdata about the Champions League, idempotently.
+
+Writes to soccerdata's own config directory, because that is the only place
+it reads custom competitions from. Merged rather than overwritten, so a
+reader who has registered other competitions keeps them.

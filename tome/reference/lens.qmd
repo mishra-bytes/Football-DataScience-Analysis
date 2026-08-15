@@ -1,0 +1,109 @@
+# lens { #gambeta.lens }
+
+`lens`
+
+Rating lenses. Each is a pure function from player-seasons to a ranking.
+
+Phase 1 implements one lens, ``peak5``. Later phases add ``career``, ``per90``,
+``biggame`` and ``teamfit`` with the same signature, and ``blend`` combines them
+under a reader-controlled weight vector.
+
+A lens answers one clearly-stated question. It does not pretend to answer
+"who was best". That is a choice about which lens matters, and the project
+makes the reader make it.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [LENSES](#gambeta.lens.LENSES) | Every lens, by name. The dashboard builds its selector from this. |
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [biggame](#gambeta.lens.biggame) | Rank by European and international output only. |
+| [career](#gambeta.lens.career) | Rank by cumulative value: how good, multiplied by how much of it there was. |
+| [peak5](#gambeta.lens.peak5) | Rank players by their best ``window`` consecutive seasons. |
+| [per90](#gambeta.lens.per90) | Rank by level alone, weighted by minutes, with length deliberately ignored. |
+
+### biggame { #gambeta.lens.biggame }
+
+```python
+lens.biggame(df, cfg)
+```
+
+Rank by European and international output only.
+
+Players with no continental minutes across their whole career are
+**excluded**, not scored zero. That is the opposite of what the
+``continental`` requirement does in the gate, and deliberately so: the gate
+asks "did he meet this requirement", where never turning up is an answer,
+while this lens asks "how good was he on the big nights", where never turning
+up is not a low score but no data at all. Ranking an empty career at zero
+would put every domestic-only player in a tie at the bottom and imply they
+had been measured.
+
+### career { #gambeta.lens.career }
+
+```python
+lens.career(df, cfg)
+```
+
+Rank by cumulative value: how good, multiplied by how much of it there was.
+
+``peak5`` deliberately cannot see the difference between ten great seasons
+and five, because it measures a peak. This lens is the other half of that
+argument, and it is the one under which a long, level career beats a short,
+brilliant one.
+
+Seasons are summed rather than averaged, each weighted by its share of a full
+campaign, so half a season contributes half. Summing raw season scores
+instead would let a player accumulate value from cameos.
+
+### peak5 { #gambeta.lens.peak5 }
+
+```python
+lens.peak5(df, cfg, window=5)
+```
+
+Rank players by their best ``window`` consecutive seasons.
+
+Players whose longest consecutive run is shorter than ``cfg.min_seasons``
+are **excluded**, not merely down-weighted. Two reasons, both load-bearing:
+
+* A one-season "best five consecutive seasons" is a category error. On real
+  data this let a single outstanding campaign outrank five-season windows
+  from Rooney and Ronaldo, which is not what the lens claims to measure.
+* Bootstrapping a single observation returns a zero-width interval. That is
+  arithmetically correct, since one point has no resampling spread, but it
+  renders as *perfect confidence* on the shakiest estimate in the table.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type         | Description                                                                                                     | Default    |
+|--------|--------------|-----------------------------------------------------------------------------------------------------------------|------------|
+| df     | pd.DataFrame | Player-seasons with ``player_id``, ``player``, ``season``, ``score``.                                           | _required_ |
+| cfg    | Config       | Project config; supplies the random seed and the season floor.                                                  | _required_ |
+| window | int          | Maximum window length in seasons. Shorter careers use what they have, subject to the ``cfg.min_seasons`` floor. | `5`        |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                                                    |
+|--------|--------------|--------------------------------------------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | Conforms to :data:`gambeta.laws.RATING`: one row per qualifying player, sorted best first, each with a 95% bootstrap interval. |
+
+### per90 { #gambeta.lens.per90 }
+
+```python
+lens.per90(df, cfg)
+```
+
+Rank by level alone, weighted by minutes, with length deliberately ignored.
+
+The complement of :func:`career`. It answers "how good was he when he
+played", which is the question a fan actually argues about and the one every
+volume metric refuses to answer.
+
+Minutes weighting is what stops this being a cameo lens: without it, one
+outstanding 200-minute season would outrank a decade.

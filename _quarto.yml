@@ -21,7 +21,23 @@ project:
     - labs/13-does-it-agree-with-the-voters.ipynb
     - labs/14-does-the-answer-depend-on-my-choices.ipynb
     - labs/15-how-many-things-is-this-measuring.ipynb
+    - labs/16-who-is-this-player-really.ipynb
+    - labs/17-where-should-the-bar-be.ipynb
     - tome/method-template.qmd
+    - tome/reference/index.qmd
+    - tome/reference/needs.qmd
+    - tome/reference/gate.qmd
+    - tome/reference/lens.qmd
+    - tome/reference/doubt.qmd
+    - tome/reference/bayes.qmd
+    - tome/reference/scouts.fbref.qmd
+    - tome/reference/whois.qmd
+    - tome/reference/tally.qmd
+    - tome/reference/laws.qmd
+    - tome/reference/locker.qmd
+    - tome/reference/bridge.qmd
+    - tome/reference/level.qmd
+    - tome/reference/kit.qmd
 
 book:
   title: "gambeta"
@@ -56,7 +72,25 @@ book:
         - labs/13-does-it-agree-with-the-voters.ipynb
         - labs/14-does-the-answer-depend-on-my-choices.ipynb
         - labs/15-how-many-things-is-this-measuring.ipynb
+        - labs/16-who-is-this-player-really.ipynb
+        - labs/17-where-should-the-bar-be.ipynb
         - tome/method-template.qmd
+    - part: "Reference"
+      chapters:
+        - tome/reference/index.qmd
+    - tome/reference/needs.qmd
+    - tome/reference/gate.qmd
+    - tome/reference/lens.qmd
+    - tome/reference/doubt.qmd
+    - tome/reference/bayes.qmd
+    - tome/reference/scouts.fbref.qmd
+    - tome/reference/whois.qmd
+    - tome/reference/tally.qmd
+    - tome/reference/laws.qmd
+    - tome/reference/locker.qmd
+    - tome/reference/bridge.qmd
+    - tome/reference/level.qmd
+    - tome/reference/kit.qmd
 
 format:
   html:
@@ -71,3 +105,21 @@ format:
 execute:
   freeze: auto
   warning: false
+
+quartodoc:
+  package: gambeta
+  dir: tome/reference
+  title: "API reference"
+  sections:
+    - title: "Definition"
+      desc: "What greatness requires, and how the gate applies it."
+      contents: [needs, gate, lens]
+    - title: "Uncertainty"
+      desc: "Intervals, tests, and shrinkage."
+      contents: [doubt, bayes]
+    - title: "Data"
+      desc: "Scraping, identity, and the contracts between layers."
+      contents: [scouts.fbref, whois, tally, laws, locker]
+    - title: "Comparison"
+      desc: "Across leagues and across eras."
+      contents: [bridge, level, kit]

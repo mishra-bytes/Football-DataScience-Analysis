@@ -1,0 +1,96 @@
+# gate { #gambeta.gate }
+
+`gate`
+
+Gate, then rank.
+
+The definition says a player *must have* eleven things. That is read literally: a
+floor on every requirement decides who qualifies, and only qualifiers are ranked.
+A weighted average alone would let a player be genuinely poor at something the
+list calls a requirement and still win on volume elsewhere.
+
+The third output, which requirement each failed player missed, is a
+first-class deliverable, not diagnostics. "Haaland fails longevity" is more
+informative than his rank, and it is what makes the definition arguable instead
+of decreed.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [career_profile](#gambeta.gate.career_profile) | Pool a player's seasons into one value per requirement. |
+| [failure_summary](#gambeta.gate.failure_summary) | Count how many players each requirement eliminated. |
+| [qualify_and_rank](#gambeta.gate.qualify_and_rank) | Apply the floor to every requirement, then rank the qualifiers. |
+| [standardise](#gambeta.gate.standardise) | Z-score every requirement across players so they share one scale. |
+
+### career_profile { #gambeta.gate.career_profile }
+
+```python
+gate.career_profile(seasons, reqs, cfg)
+```
+
+Pool a player's seasons into one value per requirement.
+
+Season-level requirements are averaged across the player's seasons weighted
+by minutes, so a 200-minute cameo cannot swing a career. Longevity and
+consistency are then derived from that same per-season series.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name    | Type                      | Description                                                                                                           | Default    |
+|---------|---------------------------|-----------------------------------------------------------------------------------------------------------------------|------------|
+| seasons | pd.DataFrame              | Player-seasons whose requirement columns are already z-scored within ``(league, season)`` and league-offset adjusted. | _required_ |
+| reqs    | tuple\[Requirement, ...\] | The requirement list, :data:`gambeta.needs.OUTFIELD` or ``KEEPER``.                                                   | _required_ |
+| cfg     | Config                    | Supplies nothing here yet but keeps the signature uniform with the rest of the pipeline.                              | _required_ |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                                       |
+|--------|--------------|-------------------------------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | One row per player, one column per requirement, plus ``seasons`` and ``leagues`` describing the career behind it. |
+
+### failure_summary { #gambeta.gate.failure_summary }
+
+```python
+gate.failure_summary(ranking, reqs)
+```
+
+Count how many players each requirement eliminated.
+
+A requirement that eliminates nobody is not doing any work; one that
+eliminates almost everybody is miscalibrated. Both are worth seeing.
+
+### qualify_and_rank { #gambeta.gate.qualify_and_rank }
+
+```python
+gate.qualify_and_rank(profile, reqs, cfg, weights=None)
+```
+
+Apply the floor to every requirement, then rank the qualifiers.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name    | Type                       | Description                                                                                                                                                    | Default    |
+|---------|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| profile | pd.DataFrame               | Output of :func:`standardise`.                                                                                                                                 | _required_ |
+| reqs    | tuple\[Requirement, ...\]  | The requirement list being applied.                                                                                                                            | _required_ |
+| cfg     | Config                     | Supplies ``gate_percentile``.                                                                                                                                  | _required_ |
+| weights | dict\[str, float\] \| None | Per-requirement weights for the ranking. Sparse: any requirement left out counts 1.0, so naming the one you care about is enough. Defaults to equal weighting. | `None`     |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                                                                                                                                      |
+|--------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | Conforming to :data:`gambeta.laws.RANKING`, sorted with qualifiers first and best first within them. Non-qualifiers are retained with ``qualified=False`` and the requirements they missed listed in ``failed``. |
+
+### standardise { #gambeta.gate.standardise }
+
+```python
+gate.standardise(profile, reqs)
+```
+
+Z-score every requirement across players so they share one scale.
+
+Without this the gate would compare a save percentage against a per-90 rate
+and the weighted mean would be dominated by whichever requirement happened to
+have the largest units.

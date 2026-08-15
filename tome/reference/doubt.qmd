@@ -1,0 +1,164 @@
+# doubt { #gambeta.doubt }
+
+`doubt`
+
+Uncertainty: bootstrap confidence intervals and permutation tests.
+
+Every published ranking carries an interval. Where two players' intervals
+overlap, the project says so rather than reporting a spurious ordering, which
+is the difference between an analysis and a hot take.
+
+The interval answers "how precisely do we know this player's level?". The
+permutation test answers the question people actually argue about: "is A
+better than B, or is that gap what two equal players look like?", and it
+answers it without assuming a distribution, which matters when a career is
+five numbers long.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [GPU_MIN_ELEMENTS](#gambeta.doubt.GPU_MIN_ELEMENTS) | Below this resample-matrix size, NumPy wins. |
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [bca](#gambeta.doubt.bca) | Bias-corrected and accelerated bootstrap interval for the mean. |
+| [bootstrap](#gambeta.doubt.bootstrap) | Bootstrap the mean of ``values``. |
+| [bootstrap_groups](#gambeta.doubt.bootstrap_groups) | Bootstrap the mean of ``value_col`` separately within each group. |
+| [permutation_test](#gambeta.doubt.permutation_test) | Test "A is better than B" by shuffling the two careers together. |
+
+### bca { #gambeta.doubt.bca }
+
+```python
+doubt.bca(values, n=10000, seed=20260810, alpha=0.05)
+```
+
+Bias-corrected and accelerated bootstrap interval for the mean.
+
+The percentile interval assumes the bootstrap distribution is centred on the
+truth and equally spread on both sides. A career of three seasons satisfies
+neither: the sample mean is a biased estimate of the level, and season scores
+are right-skewed, so the interval sits too low and too narrow. Measured on
+this project's own data it covers about 74% of the time against a nominal
+95%, and ``min_seasons = 3`` puts exactly those careers into the published
+table.
+
+Two corrections improve it from four observations up; at three the jackknife
+has too little to work with and neither interval covers well. **z0** measures
+how far the bootstrap distribution
+sits from the observed estimate, in normal quantiles. **a**, the
+acceleration, measures how fast the estimate's variance changes with the
+data, taken from the jackknife's skew. Both shift the percentiles that get
+read off the same resample distribution, so no extra resampling is needed.
+
+``statistics.NormalDist`` supplies the normal CDF and its inverse rather than
+scipy, which the project does not depend on and which one distribution does
+not justify adding.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type       | Description                                                                                             | Default    |
+|--------|------------|---------------------------------------------------------------------------------------------------------|------------|
+| values | np.ndarray | Observations to resample. Fewer than two yields the degenerate answers documented in :func:`bootstrap`. | _required_ |
+| n      | int        | Number of bootstrap resamples.                                                                          | `10000`    |
+| seed   | int        | Random seed. A fixed seed makes the interval exactly reproducible.                                      | `20260810` |
+| alpha  | float      | Two-sided significance level; 0.05 gives a 95% interval.                                                | `0.05`     |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type           | Description                                                           |
+|--------|----------------|-----------------------------------------------------------------------|
+|        | tuple of float | ``(estimate, lower, upper)``, the same contract as :func:`bootstrap`. |
+
+#### Notes {.doc-section .doc-section-notes}
+
+Degenerate input falls back to the percentile interval rather than raising.
+If every resample mean lands on the same side of the estimate, z0 is
+infinite; if every observation is identical the jackknife has no spread and
+a is undefined. Both happen on real careers, and an interval that is merely
+uncorrected is more useful than a NaN.
+
+### bootstrap { #gambeta.doubt.bootstrap }
+
+```python
+doubt.bootstrap(values, n=10000, seed=20260810, alpha=0.05, force_cpu=False)
+```
+
+Bootstrap the mean of ``values``.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name      | Type       | Description                                                      | Default    |
+|-----------|------------|------------------------------------------------------------------|------------|
+| values    | np.ndarray | Observations to resample.                                        | _required_ |
+| n         | int        | Number of bootstrap resamples.                                   | `10000`    |
+| seed      | int        | Random seed. A fixed seed makes the result exactly reproducible. | `20260810` |
+| alpha     | float      | Two-sided significance level; 0.05 gives a 95% interval.         | `0.05`     |
+| force_cpu | bool       | Use NumPy even when a GPU is present. Used by the parity test.   | `False`    |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type           | Description                                                                                                                                                                       |
+|--------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | tuple of float | ``(estimate, lower, upper)``. Empty input yields NaNs; a single observation yields that value three times, since one data point carries no information about its own uncertainty. |
+
+### bootstrap_groups { #gambeta.doubt.bootstrap_groups }
+
+```python
+doubt.bootstrap_groups(df, value_col, group_col, n=10000, seed=20260810)
+```
+
+Bootstrap the mean of ``value_col`` separately within each group.
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                           |
+|--------|--------------|---------------------------------------|
+|        | pd.DataFrame | Columns ``<group_col>, est, lo, hi``. |
+
+### permutation_test { #gambeta.doubt.permutation_test }
+
+```python
+doubt.permutation_test(a, b, n=10000, seed=20260810, two_sided=False)
+```
+
+Test "A is better than B" by shuffling the two careers together.
+
+Under the null hypothesis the two players are equally good, which means a
+season belongs to either career equally well. So the seasons are pooled,
+dealt back out at the original career lengths, and the difference in means
+recomputed. The p-value is how often chance alone produces a gap at least as
+large as the real one.
+
+Nothing here assumes normality, which is the point: a career is five to
+nineteen numbers, the score distribution is visibly skewed, and a t-test
+would be asserting a shape the data does not have.
+
+**One-sided by default**, because a claim like "Henry was better than Suárez"
+is directional and stated before looking. Swapping the arguments tests the
+opposite claim.
+
+**Use ``two_sided=True`` when the direction came from the data.** Scanning
+every pair in a table sorted by score means ``a`` is always the higher
+scorer, so the direction was chosen after seeing the answer, and a
+one-sided test picked that way is anti-conservative by roughly a factor of
+two. On the top eight of this ranking it reports 5 significant pairs where
+the two-sided test reports 3.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name      | Type       | Description                                                                                                                                                                | Default    |
+|-----------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| a         | np.ndarray | Per-season scores for the two players, already normalised within ``(league, season)`` and league-offset adjusted, so the numbers are comparable across eras and divisions. | _required_ |
+| b         | np.ndarray | Per-season scores for the two players, already normalised within ``(league, season)`` and league-offset adjusted, so the numbers are comparable across eras and divisions. | _required_ |
+| n         | int        | Number of random reallocations.                                                                                                                                            | `10000`    |
+| seed      | int        | Random seed; a fixed seed makes the p-value exactly reproducible.                                                                                                          | `20260810` |
+| two_sided | bool       | Test "these differ" rather than "a beats b", by comparing absolute differences. Required whenever the direction was picked post hoc.                                       | `False`    |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type           | Description                                                                                                                                                                                                                                                                                                                                      |
+|--------|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | tuple of float | ``(observed difference in means, p-value)``. The p-value uses the ``(hits + 1) / (n + 1)`` correction, so it is never reported as zero. 10,000 shuffles cannot distinguish "impossible" from "rarer than 1 in 10,000", and printing ``p = 0`` would claim it can. Fewer than two seasons on either side yields NaN: there is nothing to shuffle. |

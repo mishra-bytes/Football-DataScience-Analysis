@@ -71,3 +71,7 @@ Thumbs.db
 
 /.quarto/
 **/*.quarto_ipynb
+
+# quartodoc's intersphinx-style inventory, written to the project root by
+# `quartodoc build`. Regenerated alongside tome/reference/, same as _book.
+/objects.json

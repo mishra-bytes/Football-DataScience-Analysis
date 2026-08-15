@@ -1,0 +1,42 @@
+# API reference {.doc .doc-index}
+
+## Definition
+
+What greatness requires, and how the gate applies it.
+
+| | |
+| --- | --- |
+| [needs](needs.qmd#gambeta.needs) | What greatness requires, and how each requirement is measured. |
+| [gate](gate.qmd#gambeta.gate) | Gate, then rank. |
+| [lens](lens.qmd#gambeta.lens) | Rating lenses. Each is a pure function from player-seasons to a ranking. |
+
+## Uncertainty
+
+Intervals, tests, and shrinkage.
+
+| | |
+| --- | --- |
+| [doubt](doubt.qmd#gambeta.doubt) | Uncertainty: bootstrap confidence intervals and permutation tests. |
+| [bayes](bayes.qmd#gambeta.bayes) | Hierarchical model of player-season level, with shrinkage estimated rather than assumed. |
+
+## Data
+
+Scraping, identity, and the contracts between layers.
+
+| | |
+| --- | --- |
+| [scouts.fbref](scouts.fbref.qmd#gambeta.scouts.fbref) | FBref adapter, via soccerdata. |
+| [whois](whois.qmd#gambeta.whois) | Player identity resolution. |
+| [tally](tally.qmd#gambeta.tally) | Derived metrics: transfer collapsing, per-90 rates, and share of club output. |
+| [laws](laws.qmd#gambeta.laws) | pandera schemas: the contract between pipeline layers. |
+| [locker](locker.qmd#gambeta.locker) | Parquet read/write with schema validation and provenance manifests. |
+
+## Comparison
+
+Across leagues and across eras.
+
+| | |
+| --- | --- |
+| [bridge](bridge.qmd#gambeta.bridge) | League strength, estimated from players who change league. |
+| [level](level.qmd#gambeta.level) | Era normalization: levelling the playing field across 25 seasons. |
+| [kit](kit.qmd#gambeta.kit) | Project configuration: paths, season range, and modelling thresholds. |

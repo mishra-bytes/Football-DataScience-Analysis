@@ -37,7 +37,11 @@ dev = [
     "dvc>=3.55",
     "nbstripout>=0.7",
 ]
-docs = ["quartodoc>=0.7", "jupyter>=1.1", "nbformat>=5.10"]
+# griffe unconstrained lets the resolver reach for 2.x, whose numpydoc parser
+# dropped the `allow_section_blank_line` kwarg quartodoc 0.11.1 still passes,
+# crashing `quartodoc build` outright. Floored below it, same pattern as the
+# numba pin on the bayes extra above.
+docs = ["quartodoc>=0.7", "griffe<2.0", "jupyter>=1.1", "nbformat>=5.10"]
 app = ["streamlit>=1.38"]
 
 [build-system]

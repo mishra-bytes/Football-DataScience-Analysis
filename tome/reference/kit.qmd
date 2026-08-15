@@ -1,0 +1,68 @@
+# kit { #gambeta.kit }
+
+`kit`
+
+Project configuration: paths, season range, and modelling thresholds.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [ACTIVE_LEAGUES](#gambeta.kit.ACTIVE_LEAGUES) | Leagues with data collected: the full Big 5. |
+| [CONTINENTAL_LEAGUES](#gambeta.kit.CONTINENTAL_LEAGUES) | Club competitions above the domestic league. |
+| [REFERENCE_LEAGUE](#gambeta.kit.REFERENCE_LEAGUE) | League pinned at zero when solving for league-strength offsets. |
+| [SEASONS](#gambeta.kit.SEASONS) | Seasons 2000-01 ("0001") through 2024-25 ("2425"). |
+| [STAT_TYPES](#gambeta.kit.STAT_TYPES) | Every season-level table FBref exposes for a single league. |
+| [TOURNAMENT_LEAGUES](#gambeta.kit.TOURNAMENT_LEAGUES) | International tournaments. |
+
+## Classes
+
+| Name | Description |
+| --- | --- |
+| [Config](#gambeta.kit.Config) | Immutable project configuration. |
+
+### Config { #gambeta.kit.Config }
+
+```python
+kit.Config(
+    root,
+    raw,
+    clean,
+    derive,
+    sample,
+    league=REFERENCE_LEAGUE,
+    leagues=ACTIVE_LEAGUES,
+    continental=CONTINENTAL_LEAGUES,
+    tournaments=TOURNAMENT_LEAGUES,
+    seasons=SEASONS,
+    min_minutes=900,
+    min_seasons=3,
+    gate_percentile=40.0,
+    seed=20260810,
+)
+```
+
+Immutable project configuration.
+
+#### Attributes {.doc-section .doc-section-attributes}
+
+| Name        | Type   | Description                                                                                                                                                                                                                                                               |
+|-------------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| root        | Path   | Repository root. All other paths derive from it.                                                                                                                                                                                                                          |
+| min_minutes | int    | Minimum minutes in a season for a player-season to enter a rating.                                                                                                                                                                                                        |
+| min_seasons | int    | Minimum seasons in a player's peak window for them to be ranked at all. A one-season "best five consecutive seasons" is not a peak-five, and a single observation yields a zero-width interval that reads as certainty when it is the least certain estimate on the page. |
+| seed        | int    | Global random seed for every stochastic routine.                                                                                                                                                                                                                          |
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [load](#gambeta.kit.load) | Build a :class:`Config` rooted at ``root`` (default: repository root). |
+
+### load { #gambeta.kit.load }
+
+```python
+kit.load(root=None)
+```
+
+Build a :class:`Config` rooted at ``root`` (default: repository root).

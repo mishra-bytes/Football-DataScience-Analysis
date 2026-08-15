@@ -1,0 +1,204 @@
+# needs { #gambeta.needs }
+
+`needs`
+
+What greatness requires, and how each requirement is measured.
+
+The definition is a list of things the best footballer must have. This module
+owns that list: one column per requirement, computed per player-season, with
+**higher always better** so nothing downstream needs per-requirement direction
+logic, which is the class of bug that silently inverts one metric and poisons a ranking.
+
+Two requirements (longevity, consistency) are career-level by nature and are
+derived in :mod:`gambeta.gate` from the per-season series this module produces.
+
+Keepers get a parallel list because they do a different job. They are never
+claimed to be comparable with outfielders.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [ARGUMENTS](#gambeta.needs.ARGUMENTS) | Named weight vectors: the arguments people actually have about greatness. |
+| [CONTINENTAL_FULL_SEASON](#gambeta.needs.CONTINENTAL_FULL_SEASON) | Minutes that count as a full European campaign: ten matches. |
+| [KEEPER](#gambeta.needs.KEEPER) | No discipline requirement: FBref's keeper table carries no cards, so it would |
+| [MISC_COVERAGE](#gambeta.needs.MISC_COVERAGE) | Share of a league-season that must carry a figure for a `misc` term to count. |
+| [OUTFIELD](#gambeta.needs.OUTFIELD) | Twelve requirements: eleven plus ``tournament``, added 2026-08-15. |
+| [TOURNAMENT_FULL_RUN](#gambeta.needs.TOURNAMENT_FULL_RUN) | Minutes that count as a full tournament: five matches, a quarter-final exit. |
+
+## Classes
+
+| Name | Description |
+| --- | --- |
+| [Requirement](#gambeta.needs.Requirement) | One thing the best player must have. |
+
+### Requirement { #gambeta.needs.Requirement }
+
+```python
+needs.Requirement(key, label, kind)
+```
+
+One thing the best player must have.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [add_above_team](#gambeta.needs.add_above_team) | Add ``above_team``: performance relative to what the club's strength predicts. |
+| [career_keys](#gambeta.needs.career_keys) | Requirement keys derived from the per-season series. |
+| [continental_value](#gambeta.needs.continental_value) | Score European club output: a per-90 rate, scaled by how present he was. |
+| [keeper_values](#gambeta.needs.keeper_values) | Add one column per season-level keeper requirement. |
+| [outfield_values](#gambeta.needs.outfield_values) | Add one column per season-level outfield requirement. |
+| [season_keys](#gambeta.needs.season_keys) | Requirement keys computed per season. |
+| [tournament_value](#gambeta.needs.tournament_value) | Score international tournament output: a per-90 rate, scaled by presence. |
+
+### add_above_team { #gambeta.needs.add_above_team }
+
+```python
+needs.add_above_team(df, elo, output_col, higher_is_better=True)
+```
+
+Add ``above_team``: performance relative to what the club's strength predicts.
+
+Fits ``output ~ elo`` within each ``(league, season)`` and keeps the residual.
+A player at a dominant club has to beat a higher bar to score positively,
+which is the whole point, because it separates the player from the side around him.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name             | Type         | Description                                                                                                                                 | Default    |
+|------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| df               | pd.DataFrame | Player-seasons with ``league``, ``season``, ``team``.                                                                                       | _required_ |
+| elo              | pd.DataFrame | Team strength conforming to :data:`gambeta.laws.ELO`.                                                                                       | _required_ |
+| output_col       | str          | Column holding the output being explained.                                                                                                  | _required_ |
+| higher_is_better | bool         | ``False`` for keeper goals-against, where a negative residual is good; the sign is flipped so the requirement still reads higher-is-better. | `True`     |
+
+### career_keys { #gambeta.needs.career_keys }
+
+```python
+needs.career_keys(reqs)
+```
+
+Requirement keys derived from the per-season series.
+
+### continental_value { #gambeta.needs.continental_value }
+
+```python
+needs.continental_value(df)
+```
+
+Score European club output: a per-90 rate, scaled by how present he was.
+
+Absence scores zero. That is a ruling, not an oversight: the definition says
+the best footballer plays the top competitions, so never appearing in one is
+a low score rather than an unknown.
+
+The honest objection is that this partly measures **club selection**. A great
+player at a mid-table side never gets the chance. Two things limit the
+damage. The rate is per 90, so a player is judged on what he did with the
+minutes he had. The presence term saturates at
+:data:`CONTINENTAL_FULL_SEASON`, so a semi-final run cannot outscore a group
+stage on volume alone. What survives is the part the ruling actually wants:
+a career spent entirely outside Europe scores zero on this requirement, and
+the gate then decides what that costs.
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type       | Description                                            |
+|--------|------------|--------------------------------------------------------|
+|        | np.ndarray | Higher is better, like every other requirement column. |
+
+### keeper_values { #gambeta.needs.keeper_values }
+
+```python
+needs.keeper_values(df)
+```
+
+Add one column per season-level keeper requirement.
+
+Save percentage is the only requirement here that conditions on the shots
+actually faced. Clean sheets and goals-against largely measure the defence in
+front of the keeper, which is why :func:`add_above_team` matters more for
+keepers than it does for outfielders.
+
+### outfield_values { #gambeta.needs.outfield_values }
+
+```python
+needs.outfield_values(df)
+```
+
+Add one column per season-level outfield requirement.
+
+``reliability`` is **completed matches per appearance, relative to the
+player's own position**. It has been three things.
+
+It began as completed matches per *start*, which measured being a forward:
+Benzema, Aguero, Higuain, Villa, Owen and Trezeguet all failed qualification
+on that requirement alone, because strikers get substituted.
+
+It then became starts per appearance, which fixed the role bias by throwing
+away the information. A quarter of player-seasons scored exactly 1.000, so
+the requirement could not separate a squad player with twelve starts from a
+captain with thirty-eight, and it correlated 0.72 with ``availability``.
+
+Measured against those four faults, the current form is better on three:
+no ceiling, a role gap of 0.07 rather than 0.25, and elite players standing
+1.85 standard deviations clear rather than 0.58. The overlap with
+``availability`` improves only from 0.62 to 0.55, and is the reason this
+requirement still has an open question against it.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type         | Description                                                                                                                                                    | Default    |
+|--------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| df     | pd.DataFrame | Player-seasons with the columns produced by :func:`gambeta.scouts.fbref.join_side_tables`, plus ``team_goal_share`` from :func:`gambeta.tally.add_team_share`. | _required_ |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                                                                  |
+|--------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | ``df`` plus a column per key in ``season_keys(OUTFIELD)`` except ``above_team``, which needs ClubElo and is added by :func:`add_above_team`. |
+
+### season_keys { #gambeta.needs.season_keys }
+
+```python
+needs.season_keys(reqs)
+```
+
+Requirement keys computed per season.
+
+### tournament_value { #gambeta.needs.tournament_value }
+
+```python
+needs.tournament_value(df)
+```
+
+Score international tournament output: a per-90 rate, scaled by presence.
+
+Identical shape to :func:`continental_value`. Absence scores zero, for the
+same reason: never appearing at a tournament is a low score rather than an
+unknown.
+
+This requirement is **zero for most seasons by construction**, because none
+of the World Cup, the Euro or Copa America is played every year, and a
+given player's season never carries more than one of them: WC years fall
+on neither the Euro's nor Copa America's cycle, and a player is eligible
+for exactly one national team, so the Euro and Copa America never collide
+for the same player either. It is therefore a weaker discriminator than
+``continental``, which a player can contribute to every year his club
+qualifies. That is a limitation to publish, not to hide.
+
+It also partly measures **nationality** rather than ability alone: a player
+from a small footballing nation reaches far fewer tournaments across a
+career than one from a traditional power, independent of how good either
+one is. Copa America mitigates this for South American players, who now
+have a second tournament to be measured on, but leaves it standing for
+players from confederations with no tournament in scope, such as Africa's
+or Asia's. The rate-times-presence form limits the damage the same way it
+does for ``continental``, but does not remove it.
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type       | Description                                            |
+|--------|------------|--------------------------------------------------------|
+|        | np.ndarray | Higher is better, like every other requirement column. |

@@ -1,0 +1,113 @@
+# bridge { #gambeta.bridge }
+
+`bridge`
+
+League strength, estimated from players who change league.
+
+Within-league z-scores are not comparable across leagues: two standard deviations
+above Ligue 1 is not two above the Premier League. Pooling a career across
+leagues makes that error worse, so it has to be corrected.
+
+**A player who changes league between consecutive seasons is approximately the
+same footballer on both sides of the move.** So each transfer is one noisy
+measurement of one league pair:
+
+    z_after - z_before  ~  strength(old league) - strength(new league)
+
+Thousands of moves over 25 years form a connected graph, and the offsets fall out
+of a weighted least-squares fit with one league pinned as the reference. It is the
+same device that makes chess ratings comparable across separate rating pools.
+
+Offsets are estimated per **league-era block** rather than per league-season:
+125 league-season parameters would be badly identified from the handful of moves
+some pairs see in a single year, while one constant per league would hide 25 years
+of genuine drift. Five-season blocks are the compromise, and the number of moves
+behind every estimate is published so a thin one can be discounted.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [BLOCK_SEASONS](#gambeta.bridge.BLOCK_SEASONS) | Seasons per era block. Five keeps each offset backed by enough transfers. |
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [apply_offsets](#gambeta.bridge.apply_offsets) | Shift each requirement's z-score by its league-season offset. |
+| [era_block](#gambeta.bridge.era_block) | Map a season code to its five-season era block. |
+| [find_moves](#gambeta.bridge.find_moves) | Find every consecutive-season league change. |
+| [solve_offsets](#gambeta.bridge.solve_offsets) | Recover league-era strength offsets by weighted least squares. |
+
+### apply_offsets { #gambeta.bridge.apply_offsets }
+
+```python
+bridge.apply_offsets(seasons, offsets, cols)
+```
+
+Shift each requirement's z-score by its league-season offset.
+
+### era_block { #gambeta.bridge.era_block }
+
+```python
+bridge.era_block(season)
+```
+
+Map a season code to its five-season era block.
+
+### find_moves { #gambeta.bridge.find_moves }
+
+```python
+bridge.find_moves(seasons, score_col='score')
+```
+
+Find every consecutive-season league change.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name      | Type         | Description                                                                                                                       | Default    |
+|-----------|--------------|-----------------------------------------------------------------------------------------------------------------------------------|------------|
+| seasons   | pd.DataFrame | Player-seasons with ``player_id``, ``league``, ``season``, ``minutes`` and ``score_col`` (a within-league-season standard score). | _required_ |
+| score_col | str          | Column holding the normalised score to difference across the move.                                                                | `'score'`  |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                                                                    |
+|--------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | One row per move: the leagues and era blocks either side, the change in score, the age after the move, and the weight to give the observation. |
+
+### solve_offsets { #gambeta.bridge.solve_offsets }
+
+```python
+bridge.solve_offsets(moves, cfg, leagues=None)
+```
+
+Recover league-era strength offsets by weighted least squares.
+
+The model fitted for each move is::
+
+    delta = adaptation + beta * centred_age + offset[from] - offset[to]
+
+``adaptation`` is a single global intercept: settling into a new league costs
+something on average, and that cost is not league strength. Age is centred and
+entered linearly because players move at different career stages and decline
+would otherwise be misread as league difficulty. Observations are weighted by
+the smaller of the two seasons' minutes, so a 200-minute season counts for
+little.
+
+The reference league's blocks are dropped from the design matrix, pinning them
+at zero, because offsets are only ever identified up to a constant.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name    | Type                    | Description                                                                                                                                                                                                                                                | Default    |
+|---------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| moves   | pd.DataFrame            | Output of :func:`find_moves`.                                                                                                                                                                                                                              | _required_ |
+| cfg     | Config                  | Supplies the season range and the preferred reference league.                                                                                                                                                                                              | _required_ |
+| leagues | Sequence\[str\] \| None | Leagues to solve for. Defaults to ``cfg.leagues``. Callers should pass the leagues actually present in the data, so a partial dataset (say four of the Big 5) produces offsets for what exists rather than empty rows for a league nobody has scraped yet. | `None`     |
+
+#### Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                                                                                                                                     |
+|--------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | pd.DataFrame | Conforming to :data:`gambeta.laws.LEAGUE_OFFSETS`. A positive offset means the league is *stronger* than the reference, so a given z-score there is worth more. |

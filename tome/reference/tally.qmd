@@ -1,0 +1,121 @@
+# tally { #gambeta.tally }
+
+`tally`
+
+Derived metrics: transfer collapsing, per-90 rates, and share of club output.
+
+Everything here is vectorized. ``groupby.apply`` is deliberately avoided, because its
+semantics shifted in pandas 3.0 and it is slower than the merge-based
+equivalents below.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [add_age](#gambeta.tally.add_age) | Attach each player-season's age, joined on the keys rather than by position. |
+| [add_rates](#gambeta.tally.add_rates) | Add per-90 rate columns. |
+| [add_team_share](#gambeta.tally.add_team_share) | Add each player's share of the goals scored by the clubs they played for. |
+| [attach_extra_competition](#gambeta.tally.attach_extra_competition) | Attach one competition's counts onto player-seasons as prefixed columns. |
+| [collapse_transfers](#gambeta.tally.collapse_transfers) | Collapse mid-season transfers into one row per ``(player_id, season)``. |
+
+### add_age { #gambeta.tally.add_age }
+
+```python
+tally.add_age(df, raw)
+```
+
+Attach each player-season's age, joined on the keys rather than by position.
+
+This was ``df["age"] = raw.groupby(keys)["age"].first().to_numpy()``, which
+silently scrambled the column. ``collapse_transfers`` groups with
+``sort=False`` and keeps insertion order, while ``groupby`` sorts by default,
+so the two sequences disagreed at **every** position: 61,131 of 65,069
+player-seasons carried somebody else's age, off by 5.4 years on average and
+by as much as 23.
+
+Nothing raised, because both sides were the same length. Age is a control in
+the league-strength regression, so the damage surfaced as offsets that
+quietly moved whenever row order did, which is exactly the kind of bug that
+hides until something unrelated perturbs the ordering.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type         | Description                                                         | Default    |
+|--------|--------------|---------------------------------------------------------------------|------------|
+| df     | pd.DataFrame | Collapsed player-season frame, one row per ``(player_id, season)``. | _required_ |
+| raw    | pd.DataFrame | Uncollapsed frame carrying ``player_id``, ``season`` and ``age``.   | _required_ |
+
+### add_rates { #gambeta.tally.add_rates }
+
+```python
+tally.add_rates(df)
+```
+
+Add per-90 rate columns.
+
+Zero minutes yields a zero rate rather than a division error, so squad
+players who never took the pitch do not poison downstream aggregates.
+
+### add_team_share { #gambeta.tally.add_team_share }
+
+```python
+tally.add_team_share(df, raw)
+```
+
+Add each player's share of the goals scored by the clubs they played for.
+
+A player who scores 20 of their club's 40 goals carried more of the attack
+than one who scored 20 of 90, and this column is what lets a later lens say
+so.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type         | Description                                                                                                     | Default    |
+|--------|--------------|-----------------------------------------------------------------------------------------------------------------|------------|
+| df     | pd.DataFrame | Collapsed player-season frame, one row per ``(player_id, season)``.                                             | _required_ |
+| raw    | pd.DataFrame | Uncollapsed frame carrying ``player_id``, ``season``, ``team`` and ``goals``, used to total each club's output. | _required_ |
+
+### attach_extra_competition { #gambeta.tally.attach_extra_competition }
+
+```python
+tally.attach_extra_competition(seasons, extra, prefix)
+```
+
+Attach one competition's counts onto player-seasons as prefixed columns.
+
+A **left** join, so the ranked population is decided entirely by domestic
+play and a competition can never add a player. Missing values become
+**zero, not null**, and that is the load-bearing choice: the project's ruling
+is that never appearing in Europe is a low score rather than an unknown one.
+A null would be filled by something downstream anyway, and filled without
+anybody having decided what it meant.
+
+``validate="one_to_one"`` because the source frame is unique on
+``(player_id, season, comp)`` and one competition is passed at a time.
+Without it, a duplicated key would return the cross product, which is
+exactly the defect recorded in DEVIATIONS.md #7.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+| Name    | Type         | Description                                                                                    | Default    |
+|---------|--------------|------------------------------------------------------------------------------------------------|------------|
+| seasons | pd.DataFrame | Player-seasons, one row per ``(player_id, season)``.                                           | _required_ |
+| extra   | pd.DataFrame | Frame conforming to :data:`gambeta.laws.EXTRA_COMP`, already filtered to a single competition. | _required_ |
+| prefix  | str          | Column prefix, for example ``"ucl"`` giving ``ucl_minutes``.                                   | _required_ |
+
+### collapse_transfers { #gambeta.tally.collapse_transfers }
+
+```python
+tally.collapse_transfers(df)
+```
+
+Collapse mid-season transfers into one row per ``(player_id, season)``.
+
+A player who changes clubs mid-season appears once per club in FBref's
+output. Counting stats are summed and the clubs are joined into a ``teams``
+string, so a transfer season is not silently counted twice.
+
+``min_pct`` is recomputed rather than summed. It is a share of one club's
+minutes, so adding two of them is meaningless. It produced availability
+figures up to 296%. Each club's implied total is recovered from the share it
+came with, and the real share is taken against the sum of those.
