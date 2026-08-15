@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 from gambeta import laws
+from gambeta.scouts import fbref
 from gambeta.scouts.fbref import flatten
 
 FIXTURE = Path(__file__).parent / "fixtures" / "fbref_raw.pkl"
@@ -53,6 +54,15 @@ def test_flatten_yields_integer_counting_stats() -> None:
     out = flatten(_raw())
     for col in ("minutes", "goals", "assists", "mp"):
         assert out[col].dtype.kind == "i", f"{col} should be an integer count"
+
+
+def test_flatten_clips_a_negative_count_to_zero() -> None:
+    """FBref's own G-PK goes negative on some old rows: a penalty recorded with
+    no matching goal. A negative count is never real, whatever the source."""
+    raw = _raw().copy()
+    raw.iloc[0, raw.columns.get_loc(("Performance", "G-PK"))] = -1
+    out = flatten(raw)
+    assert out["npg"].iloc[0] == 0
 
 
 def _two_level(rows: int = 3) -> pd.DataFrame:
@@ -168,3 +178,16 @@ def test_join_fills_columns_for_tables_that_were_skipped() -> None:
     merged = join_side_tables(flatten(_raw()), {})
     for column in SIDE_COLUMNS:
         assert column in merged.columns
+
+
+def test_scout_defaults_to_every_stat_type() -> None:
+    scout = fbref.FBrefScout(["ENG-Premier League"], ["2223"], data_dir=Path("."))
+    assert scout.stat_types == fbref.SIDE_TABLES.keys() | {"standard", "keeper"}
+
+
+def test_scout_can_be_restricted_to_standard_only() -> None:
+    """UCL publishes no reliable side tables, so asking for them wastes a browser session."""
+    scout = fbref.FBrefScout(
+        ["UEFA-Champions League"], ["2223"], data_dir=Path("."), stat_types=("standard",)
+    )
+    assert scout.stat_types == {"standard"}

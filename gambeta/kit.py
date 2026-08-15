@@ -27,6 +27,16 @@ player-season is normalised against, so a mislabelled row would normalise Bayern
 players against the wrong peers and corrupt the transfer bridge too.
 """
 
+CONTINENTAL_LEAGUES: tuple[str, ...] = ("UEFA-Champions League",)
+"""Club competitions above the domestic league.
+
+Kept apart from :data:`ACTIVE_LEAGUES` on purpose. These rows must never join the
+domestic population: requirement values are z-scored within ``(league, season)``
+and the transfer bridge reads league changes as moves, so a UCL row would both
+normalise a player against the wrong peers and invent a transfer every August.
+They arrive as extra columns on a domestic player-season instead.
+"""
+
 REFERENCE_LEAGUE = "ENG-Premier League"
 """League pinned at zero when solving for league-strength offsets."""
 
@@ -60,6 +70,7 @@ class Config:
     sample: Path
     league: str = REFERENCE_LEAGUE
     leagues: tuple[str, ...] = ACTIVE_LEAGUES
+    continental: tuple[str, ...] = CONTINENTAL_LEAGUES
     seasons: tuple[str, ...] = SEASONS
     min_minutes: int = 900
     min_seasons: int = 3

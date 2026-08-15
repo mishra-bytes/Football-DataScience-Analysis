@@ -14,7 +14,7 @@ import pandas as pd
 
 from gambeta import bridge, gate, kit, laws, level, locker, needs, tally, verdict, whois
 from gambeta.scouts.elo import EloScout, align_teams
-from gambeta.scouts.fbref import FBrefScout
+from gambeta.scouts.fbref import FBrefScout, register_ucl
 from gambeta.scouts.wikidata import AwardsScout, WikidataScout
 
 log = logging.getLogger("gambeta")
@@ -24,8 +24,10 @@ RAW_KEEPER = "keeper_raw.parquet"
 RAW_ELO = "elo.parquet"
 RAW_CROSSWALK = "crosswalk.parquet"
 RAW_AWARDS = "awards.parquet"
+RAW_CONTINENTAL = "continental_raw.parquet"
 CLEAN_OUTFIELD = "outfield.parquet"
 CLEAN_KEEPER = "keeper.parquet"
+CLEAN_CONTINENTAL = "continental.parquet"
 UNRESOLVED = "unresolved.csv"
 OFFSETS = "league_offsets.parquet"
 RANKING = "ranking.parquet"
@@ -95,6 +97,23 @@ def scrape(
             AwardsScout().fetch(), cfg.raw / RAW_AWARDS, laws.AWARDS, source="wikidata-awards"
         )
 
+    # Registered, fetched and stored apart from the domestic tables. A UCL row is
+    # a column on a player-season, never a row in the ranked population.
+    register_ucl()
+    if cfg.continental:
+        try:
+            extra, _ = FBrefScout(
+                cfg.continental, seasons, cfg.raw, cache_only=cache_only, stat_types=("standard",)
+            ).fetch()
+        except RuntimeError as exc:
+            # An uncached continental table must not abort a domestic run, the
+            # same treatment a missing domestic league gets above.
+            log.warning("no continental data: %s - continuing without it", exc)
+        else:
+            locker.write(
+                extra, cfg.raw / RAW_CONTINENTAL, laws.OUTFIELD_RAW, source="fbref-continental"
+            )
+
 
 def clean(cfg: kit.Config) -> None:
     """Resolve identity and collapse mid-season transfers."""
@@ -134,6 +153,20 @@ def clean(cfg: kit.Config) -> None:
     keeper_labelled, _ = whois.resolve(keeper, crosswalk)
     keeper_labelled.to_parquet(cfg.clean / CLEAN_KEEPER, index=False)
     log.info("clean: %d outfield rows, %d keeper rows", len(collapsed), len(keeper_labelled))
+
+    if (cfg.raw / RAW_CONTINENTAL).exists():
+        extra = locker.read(cfg.raw / RAW_CONTINENTAL, laws.OUTFIELD_RAW)
+        resolved, _ = whois.resolve(extra, crosswalk)
+        collapsed_extra = tally.collapse_transfers(resolved)
+        collapsed_extra["comp"] = collapsed_extra["league"]
+        extra_cols = ["player_id", "qid", "season", "comp", "minutes", "mp", "npg", "assists"]
+        locker.write(
+            collapsed_extra[extra_cols],
+            cfg.clean / CLEAN_CONTINENTAL,
+            laws.EXTRA_COMP,
+            source="fbref-continental",
+        )
+        log.info("continental: %d player-seasons", len(collapsed_extra))
 
 
 def _normalise(df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:

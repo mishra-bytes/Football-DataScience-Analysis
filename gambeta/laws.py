@@ -72,6 +72,28 @@ PLAYER_SEASON = DataFrameSchema(
 )
 """One row per (player_id, season). Mid-season transfers collapsed."""
 
+EXTRA_COMP = DataFrameSchema(
+    {
+        "player_id": Column(str),
+        "qid": Column(str, nullable=True),
+        "season": Column(str, _SEASON),
+        "comp": Column(str),
+        "minutes": Column(int, _NON_NEG),
+        "mp": Column(int, _NON_NEG),
+        "npg": Column(int, _NON_NEG),
+        "assists": Column(int, _NON_NEG),
+    },
+    strict=True,
+    coerce=True,
+    unique=["player_id", "season", "comp"],
+)
+"""One row per (player, season, competition) outside the domestic league.
+
+Deliberately narrow. Only the four counts that survive across 25 seasons of
+Champions League and tournament coverage are carried, because a column that is
+null before 2010 cannot enter a requirement measured across the whole window.
+"""
+
 _SIDE_COLUMNS = {
     "sot": Column(float, nullable=True),
     "sot_p90": Column(float, nullable=True),
@@ -221,6 +243,7 @@ to reverse-engineer.
 __all__ = [
     "CROSSWALK",
     "ELO",
+    "EXTRA_COMP",
     "KEEPER_RAW",
     "LEAGUE_OFFSETS",
     "OUTFIELD_RAW",

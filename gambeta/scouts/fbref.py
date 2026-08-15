@@ -199,6 +199,12 @@ def flatten(raw: pd.DataFrame) -> pd.DataFrame:
     the two-level stat headers to snake_case, drops FBref's pre-computed per-90
     columns (we recompute them from minutes), and coerces counts to integers.
 
+    Counts are clipped at zero. FBref's own ``G-PK`` occasionally goes negative
+    on old Champions League rows where a penalty is recorded but the goals total
+    is not (Zoran Tosic, CSKA Moscow, 2015-16: 0 goals, 1 penalty scored), which
+    is a data entry fault on their side rather than a real result, and a
+    negative count is never a real one regardless of source.
+
     Parameters
     ----------
     raw
@@ -220,7 +226,7 @@ def flatten(raw: pd.DataFrame) -> pd.DataFrame:
     df = df.loc[:, ~df.columns.duplicated()]
 
     for col in _COUNTS:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("int64")
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).clip(lower=0).astype("int64")
     for col in _FLOATS:
         df[col] = pd.to_numeric(df[col], errors="coerce").astype("float64")
     for col in _INDEX:
@@ -311,6 +317,10 @@ def join_side_tables(standard: pd.DataFrame, sides: dict[str, pd.DataFrame]) -> 
     return out
 
 
+ALL_STAT_TYPES: frozenset[str] = frozenset({"standard", "keeper", *SIDE_TABLES})
+"""Every table fetched for a domestic league."""
+
+
 class FBrefScout:
     """Fetch player-season stats from FBref for one or more leagues.
 
@@ -328,11 +338,13 @@ class FBrefScout:
         seasons: Sequence[str],
         data_dir: Path,
         cache_only: bool = False,
+        stat_types: Sequence[str] | None = None,
     ) -> None:
         self.leagues = list(leagues)
         self.seasons = list(seasons)
         self.data_dir = data_dir
         self.cache_only = cache_only
+        self.stat_types = frozenset(stat_types) if stat_types else ALL_STAT_TYPES
 
     def cached(self, league: str, stat: str) -> bool:
         """Is **every** requested season of this (league, stat) already on disk?
@@ -378,7 +390,7 @@ class FBrefScout:
 
             sides = {}
             for name, rename in SIDE_TABLES.items():
-                if self._skip(league, name):
+                if name not in self.stat_types or self._skip(league, name):
                     continue
                 try:
                     sides[name] = flatten_side(read(stat_type=name), rename)
@@ -388,7 +400,7 @@ class FBrefScout:
                     continue
             outfield_parts.append(join_side_tables(standard, sides))
 
-            if self._skip(league, "keeper"):
+            if "keeper" not in self.stat_types or self._skip(league, "keeper"):
                 continue
             try:
                 keeper_parts.append(flatten_keeper(read(stat_type="keeper")))
