@@ -212,6 +212,16 @@ def rank(cfg: kit.Config) -> None:
     keeper = pd.read_parquet(cfg.clean / CLEAN_KEEPER)
     elo = align_teams(locker.read(cfg.raw / RAW_ELO, laws.ELO), keeper["team"])
 
+    # Attached before the minutes filter and before deriving, for the same reason
+    # the filter sits where it does: `continental` is z-scored within
+    # (league, season) and the population that normalisation runs against has to
+    # be the population that gets ranked.
+    if (cfg.clean / CLEAN_CONTINENTAL).exists():
+        extra = locker.read(cfg.clean / CLEAN_CONTINENTAL, laws.EXTRA_COMP)
+        outfield = tally.attach_extra_competition(
+            outfield, extra[extra["comp"].isin(cfg.continental)], prefix="ucl"
+        )
+
     # Filter before deriving, not after. `reliability` subtracts a positional
     # median and the `misc` terms test per-league-season coverage, so both must
     # be computed against the population that is actually ranked. Filtering

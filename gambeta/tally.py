@@ -159,3 +159,41 @@ def add_team_share(df: pd.DataFrame, raw: pd.DataFrame) -> pd.DataFrame:
         0.0,
     )
     return df.merge(totals[[*keys, "team_goal_share"]], on=keys, how="left")
+
+
+EXTRA_COUNTS = ("minutes", "npg", "assists")
+
+
+def attach_extra_competition(
+    seasons: pd.DataFrame, extra: pd.DataFrame, prefix: str
+) -> pd.DataFrame:
+    """Attach one competition's counts onto player-seasons as prefixed columns.
+
+    A **left** join, so the ranked population is decided entirely by domestic
+    play and a competition can never add a player. Missing values become
+    **zero, not null**, and that is the load-bearing choice: the project's ruling
+    is that never appearing in Europe is a low score rather than an unknown one.
+    A null would be filled by something downstream anyway, and filled without
+    anybody having decided what it meant.
+
+    ``validate="one_to_one"`` because the source frame is unique on
+    ``(player_id, season, comp)`` and one competition is passed at a time.
+    Without it, a duplicated key would return the cross product, which is
+    exactly the defect recorded in DEVIATIONS.md #7.
+
+    Parameters
+    ----------
+    seasons
+        Player-seasons, one row per ``(player_id, season)``.
+    extra
+        Frame conforming to :data:`gambeta.laws.EXTRA_COMP`, already filtered to
+        a single competition.
+    prefix
+        Column prefix, for example ``"ucl"`` giving ``ucl_minutes``.
+    """
+    columns = ["player_id", "season", *EXTRA_COUNTS]
+    renamed = extra[columns].rename(columns={c: f"{prefix}_{c}" for c in EXTRA_COUNTS})
+    out = seasons.merge(renamed, on=["player_id", "season"], how="left", validate="one_to_one")
+    for count in EXTRA_COUNTS:
+        out[f"{prefix}_{count}"] = out[f"{prefix}_{count}"].fillna(0).astype("int64")
+    return out

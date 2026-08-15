@@ -124,3 +124,30 @@ def test_team_share_survives_a_goalless_club() -> None:
     collapsed = tally.add_rates(tally.collapse_transfers(raw))
     out = tally.add_team_share(collapsed, raw)
     assert (out["team_goal_share"] == 0.0).all()
+
+
+def test_attach_extra_competition_fills_absence_with_zero() -> None:
+    """Absence is a score, not a gap. A null here would be silently imputed later."""
+    seasons = pd.DataFrame({"player_id": ["a", "b"], "season": ["2223", "2223"]})
+    extra = pd.DataFrame(
+        {"player_id": ["a"], "season": ["2223"], "minutes": [540], "npg": [4], "assists": [2]}
+    )
+    out = tally.attach_extra_competition(seasons, extra, prefix="ucl")
+    assert out.set_index("player_id").loc["b", "ucl_minutes"] == 0
+    assert out.set_index("player_id").loc["a", "ucl_npg"] == 4
+
+
+def test_attach_extra_competition_never_adds_rows() -> None:
+    """A player with a UCL row but no qualifying domestic season must not appear."""
+    seasons = pd.DataFrame({"player_id": ["a"], "season": ["2223"]})
+    extra = pd.DataFrame(
+        {
+            "player_id": ["a", "z"],
+            "season": ["2223", "2223"],
+            "minutes": [90, 900],
+            "npg": [0, 9],
+            "assists": [0, 9],
+        }
+    )
+    out = tally.attach_extra_competition(seasons, extra, prefix="ucl")
+    assert list(out["player_id"]) == ["a"]

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from gambeta import needs
 
@@ -101,9 +102,10 @@ def test_career_and_season_keys_partition_the_list() -> None:
     assert not set(needs.season_keys(needs.OUTFIELD)) & set(needs.career_keys(needs.OUTFIELD))
 
 
-def test_outfield_list_has_ten_requirements() -> None:
-    """Eleven until above_team was found to be a copy of scoring."""
-    assert len(needs.OUTFIELD) == 10
+def test_outfield_list_has_eleven_requirements() -> None:
+    """Ten from 2026-08-12, when above_team was found to be a copy of scoring,
+    plus continental from 2026-08-15."""
+    assert len(needs.OUTFIELD) == 11
 
 
 def test_outfield_does_not_gate_on_above_team() -> None:
@@ -206,6 +208,52 @@ def test_above_team_survives_a_single_club_group() -> None:
     elo = pd.DataFrame({"season": ["0405"], "team": ["Arsenal"], "elo": [1900.0]})
     got = needs.add_above_team(df, elo, "out")
     assert np.isclose(got["above_team"].mean(), 0.0)
+
+
+def test_continental_is_zero_without_european_minutes() -> None:
+    df = pd.DataFrame({"ucl_minutes": [0], "ucl_npg": [0], "ucl_assists": [0], "minutes": [3000]})
+    assert needs.continental_value(df)[0] == 0.0
+
+
+def test_continental_scales_a_cameo_down() -> None:
+    """One goal in 90 minutes is not a European season. Presence scales it."""
+    cameo = pd.DataFrame(
+        {"ucl_minutes": [90], "ucl_npg": [1], "ucl_assists": [0], "minutes": [3000]}
+    )
+    full = pd.DataFrame(
+        {"ucl_minutes": [900], "ucl_npg": [10], "ucl_assists": [0], "minutes": [3000]}
+    )
+    assert needs.continental_value(cameo)[0] < needs.continental_value(full)[0]
+
+
+def test_continental_presence_saturates_at_a_full_campaign() -> None:
+    """Beyond a full campaign, more minutes must not keep inflating the same rate."""
+    full = pd.DataFrame(
+        {"ucl_minutes": [900], "ucl_npg": [10], "ucl_assists": [0], "minutes": [3000]}
+    )
+    deep_run = pd.DataFrame(
+        {"ucl_minutes": [1200], "ucl_npg": [13], "ucl_assists": [0], "minutes": [3000]}
+    )
+    assert needs.continental_value(deep_run)[0] == pytest.approx(
+        needs.continental_value(full)[0], rel=0.05
+    )
+
+
+def test_continental_is_higher_better() -> None:
+    """Every requirement column is higher-better; a sign slip here poisons the gate."""
+    low = pd.DataFrame(
+        {"ucl_minutes": [900], "ucl_npg": [1], "ucl_assists": [0], "minutes": [3000]}
+    )
+    high = pd.DataFrame(
+        {"ucl_minutes": [900], "ucl_npg": [12], "ucl_assists": [3], "minutes": [3000]}
+    )
+    assert needs.continental_value(high)[0] > needs.continental_value(low)[0]
+
+
+def test_outfield_values_emits_continental_when_the_columns_are_present() -> None:
+    df = _outfield()
+    df["ucl_minutes"], df["ucl_npg"], df["ucl_assists"] = 540, 3, 1
+    assert "continental" in needs.outfield_values(df).columns
 
 
 def test_above_team_flips_sign_when_lower_is_better() -> None:

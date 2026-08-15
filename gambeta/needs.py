@@ -43,8 +43,18 @@ OUTFIELD: tuple[Requirement, ...] = (
     Requirement("longevity", "Sustains it", "career"),
     Requirement("consistency", "Has no bad seasons", "career"),
     Requirement("discipline", "Does not cost his team", "season"),
+    Requirement("continental", "Delivers in Europe", "season"),
 )
-"""Ten requirements, and it was eleven until 2026-08-12.
+"""Eleven requirements: ten plus ``continental``, added 2026-08-15.
+
+``continental`` scores European club output (currently the Champions League).
+The owner's ruling is that the best footballer plays the top competitions, so
+never appearing in one is a low score rather than an unknown. The honest
+objection is that this partly measures club selection: Totti at Roma and
+Messi at Barcelona did not face the same opportunity. See
+:func:`continental_value` for the mitigation.
+
+It was ten requirements, and eleven until 2026-08-12, for an unrelated reason.
 
 ``above_team`` was the residual of scoring after regressing on the club's
 ClubElo rating, meant to separate a player from the side around him. Measured,
@@ -80,6 +90,7 @@ ARGUMENTS: dict[str, dict[str, float]] = {
     "The longevity argument": {"longevity": 4.0, "availability": 2.0, "consistency": 2.0},
     "The team-carrier argument": {"team_share": 4.0, "creation": 2.0},
     "The professional argument": {"discipline": 3.0, "availability": 3.0, "reliability": 2.0},
+    "The big-nights argument": {"continental": 4.0, "team_share": 2.0},
 }
 """Named weight vectors: the arguments people actually have about greatness.
 
@@ -211,6 +222,49 @@ def _ratio(numerator: pd.Series, denominator: pd.Series) -> np.ndarray:
     return np.nan_to_num(numerator.to_numpy(dtype=float) / safe)
 
 
+CONTINENTAL_FULL_SEASON = 900.0
+"""Minutes that count as a full European campaign: ten matches.
+
+A group stage is six matches and a run to the final is thirteen, so this sits
+where "he was properly part of it" starts. Above it the presence term saturates,
+because a deep run is the team's achievement as much as the player's and
+rewarding it linearly would rank players by how far their club went.
+"""
+
+
+def continental_value(df: pd.DataFrame) -> np.ndarray:
+    """Score European club output: a per-90 rate, scaled by how present he was.
+
+    Absence scores zero. That is a ruling, not an oversight: the definition says
+    the best footballer plays the top competitions, so never appearing in one is
+    a low score rather than an unknown.
+
+    The honest objection is that this partly measures **club selection**. A great
+    player at a mid-table side never gets the chance. Two things limit the
+    damage. The rate is per 90, so a player is judged on what he did with the
+    minutes he had. The presence term saturates at
+    :data:`CONTINENTAL_FULL_SEASON`, so a semi-final run cannot outscore a group
+    stage on volume alone. What survives is the part the ruling actually wants:
+    a career spent entirely outside Europe scores zero on this requirement, and
+    the gate then decides what that costs.
+
+    Returns
+    -------
+    np.ndarray
+        Higher is better, like every other requirement column.
+    """
+    minutes = _column(df, "ucl_minutes").to_numpy(dtype=float)
+    contributions = _column(df, "ucl_npg").to_numpy(dtype=float) + _column(
+        df, "ucl_assists"
+    ).to_numpy(dtype=float)
+    nineties = minutes / MINUTES_PER_MATCH
+    rate: np.ndarray = np.divide(
+        contributions, nineties, out=np.zeros_like(contributions), where=nineties > 0
+    )
+    presence = np.clip(minutes / CONTINENTAL_FULL_SEASON, 0.0, 1.0)
+    return rate * presence
+
+
 def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
     """Add one column per season-level outfield requirement.
 
@@ -269,6 +323,7 @@ def outfield_values(df: pd.DataFrame) -> pd.DataFrame:
         + _misc_term(out, "fouls", minutes)
     )
     out["discipline"] = -cost
+    out["continental"] = continental_value(df)
     return out
 
 

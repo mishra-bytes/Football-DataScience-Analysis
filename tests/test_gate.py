@@ -224,6 +224,28 @@ def test_named_arguments_use_real_requirement_keys() -> None:
         assert not unknown, f"{name} names requirements that do not exist: {unknown}"
 
 
+def test_a_requirement_with_a_mass_at_the_floor_eliminates_nobody() -> None:
+    """Documents the tie behaviour, so the continental elimination count is expected,
+    not a surprise."""
+    profile = pd.DataFrame(
+        {
+            "player_id": [f"p{i}" for i in range(10)],
+            "player": [f"P{i}" for i in range(10)],
+            "seasons": [5] * 10,
+            "leagues": ["ENG-Premier League"] * 10,
+            "continental": [0.0] * 6 + [1.0, 2.0, 3.0, 4.0],
+            "scoring": list(range(10)),
+        }
+    )
+    reqs = (
+        needs.Requirement("continental", "Delivers in Europe", "season"),
+        needs.Requirement("scoring", "Scores goals", "season"),
+    )
+    out = gate.qualify_and_rank(gate.standardise(profile, reqs), reqs, CFG)
+    eliminated = gate.failure_summary(out, reqs).set_index("requirement")["eliminated"]
+    assert eliminated["continental"] == 0, "a floor inside a tied mass cannot cut"
+
+
 def test_named_arguments_produce_different_answers() -> None:
     """If two arguments rank identically, one of them is not an argument."""
     scores = {
