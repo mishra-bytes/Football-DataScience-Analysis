@@ -191,10 +191,27 @@ downstream anyway, filled without anybody having decided what it meant, and an
 imputed value for "never played in Europe" is not a defensible estimate of what
 that player would have done there.
 
-Measured effect: at the 40th-percentile gate, `continental` eliminates 2,203 of
-5,508, the same share as every other season-level requirement, which is what a
-percentile floor does by construction. See CHANGELOG.md for the qualifier count
-and the reordered top ten.
+A percentile floor eliminates the same share on every column only when the
+column has no large tie mass sitting exactly at the floor value; `<` is false
+against a tie, so a floor landing inside one cuts nobody, which is what
+`test_a_requirement_with_a_mass_at_the_floor_eliminates_nobody` in
+`tests/test_gate.py` documents. Most Big-5 careers never play in Europe, so
+this was worth checking rather than assuming. Measured directly on the
+standardised profile the gate consumes (`vault/derive/ranking.parquet`'s
+`continental` column, the same one `gate.failure_summary` reads): the
+exact-zero mass is **0.00%** of the 5,508 careers, because the per-season
+z-score is computed within each `(league, season)` group before the career is
+pooled, and every group's zero-value players inherit that group's own mean and
+spread, not a shared one. A raw zero stops being one shared number well before
+the gate ever sees a `continental` column, so the 40th-percentile floor
+(-0.344) sits cleanly above the population rather than inside a tied mass, and
+`continental` eliminates 2,203 of 5,508 (39.996%, exactly the same share as
+every other season-level requirement) genuinely, not by an artefact of ties.
+`gate.failure_summary` counts each requirement's eliminations independently
+per column rather than weighted by overlap with the other ten, so nine
+identical counts at one gate percentile is the expected shape of that
+function's output, not a sign every requirement failed the same players. See
+CHANGELOG.md for the qualifier count and the reordered top ten.
 
 ### `reliability` is completed matches, adjusted for position
 
