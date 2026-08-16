@@ -167,8 +167,13 @@ def qualify_and_rank(
 def failure_summary(ranking: pd.DataFrame, reqs: tuple[Requirement, ...]) -> pd.DataFrame:
     """Count how many players each requirement eliminated.
 
-    A requirement that eliminates nobody is not doing any work; one that
-    eliminates almost everybody is miscalibrated. Both are worth seeing.
+    Under a percentile gate this table is flat **by construction**: every
+    requirement's floor is set at the same percentile, so each one eliminates
+    the same share of the population unless a tie mass sits exactly at a
+    floor. The table therefore verifies that the floors landed where they
+    were told to, and that is all it can do; it cannot detect a miscalibrated
+    requirement. The informative statistic about non-qualifiers is how many
+    requirements each one missed, which chapter 08 computes from ``failed``.
     """
     labels = {r.key: r.label for r in reqs}
     failed = ranking.loc[~ranking["qualified"], "failed"].dropna()
