@@ -12,6 +12,55 @@ changelog entry; "83.9% → 89.3%" is.
 
 ## [Unreleased]
 
+### The 2026-08-16 audit sweep, in one entry
+
+An external audit verified every published number against `vault/` and the
+fixes landed together. The measured effects, before → after:
+
+- Continental/tournament yardstick pooled within `(season)`, no domestic
+  offset: Mbappé's career continental z 14.19 → 11.22, Ronaldo's 9.61 →
+  12.07, Messi 10.69 → 12.86; podium Messi–Mbappé–Ronaldo → Messi (4.84,
+  +8.59σ) – Ronaldo (4.13) – Mbappé (3.94).
+- Mover availability denominator capped at the largest single-club implied
+  season: movers' ceiling 74.5% → 100.0%, mean +20.2pp over 2,605 transfer
+  seasons; Guilherme 2017-18 52.4% → 100%.
+- Qualifiers 357 → 265 of 5,508 (268 from the yardstick alone, 23 gate flips
+  from the availability fix netting −3).
+- Permutation caveat recomputed and aligned everywhere: 5 of 28 top-eight
+  pairs at p < 0.05 two-sided, exactly one (Messi vs Benzema, p = 0.0009)
+  surviving Bonferroni; every appearance now names the tested statistic
+  (unweighted means of per-season scores, not the ranking's minutes-weighted
+  composite).
+- Henry vs Suárez keyed by player_id: the published p = 0.0467 "significant"
+  was a name-collision chimera of two players called Luis Suárez; the real
+  test reads p = 0.22 one-sided. The dashboard's A-vs-B tab is keyed by
+  player_id too.
+- labs/12's selection gap re-controlled on seasons with a successor: +0.075 →
+  +0.027, bootstrap 95% interval [+0.003, +0.053].
+- Awards median reported exactly (37 truncated → 38.0 of 5,508); Cannavaro
+  2,263rd → 2,363rd, failing 5 of 12.
+- Defender picture recomputed: top 50 = 88% forwards / 12% midfielders / 0%
+  defenders, best defender 170th.
+- above_team~scoring re-measured once: 0.996 everywhere (labs/15's 0.9999
+  retired; smallest eigenvalue 0.003, not zero).
+- Effective requirement count re-estimated: participation ratio 4.52,
+  equivalent gates 5.94, 90%-variance 7.
+- Identity aligned on one figure: 93.9% of the 65,069 collapsed
+  player-seasons, 1,240 players unresolved.
+- League offsets (means over 25 seasons): Spain −0.170 → −0.156, Italy
+  −0.254 → −0.206, Germany −0.299 → −0.254, France −0.377 → −0.288; the
+  1,839 transfer moves and their endpoints unchanged; re-pinning spread
+  re-verified at 0.011.
+- Test count corrected 236 → 278; FBref cache reconciled (625 domestic
+  player pages; 634 was the domestic-era folder; 780 files, 1.49 GB now);
+  index.qmd gates on twelve requirements and its limitations tell the truth
+  about requirements 11 and 12.
+
+Closing sanity statement, current headline: top three Messi 4.84 / Ronaldo
+4.13 / Mbappé 3.94; 265 of 5,508 qualify; 5 of 28 top-eight pairs separable
+at p < 0.05 two-sided, one after Bonferroni; Messi sits 8.59σ above the
+ranked population's mean.
+
 Branch `big-five-and-identity`. Data coverage completed, identity resolution
 rebuilt, three long-pending analysis features shipped, and then four data-integrity
 defects found and fixed. The book gained a data section and became one narrative
@@ -223,8 +272,10 @@ arc.
   agree with the voters (09). Book is now eleven pages.
 - **The preface states the answer**, computed live from `data/sample` rather
   than transcribed: top ten, qualifier count, goalkeepers, league offsets, and
-  immediately after them, the fact that only 1 of 28 pairs in the top eight are
-  separable. Previously a reader had to open chapter 1 to find any result.
+  immediately after them, how few of the 28 top-eight pairs are separable
+  (recomputed at render time; 5 of 28, one after Bonferroni, under the
+  2026-08-16 pipeline). Previously a reader had to open chapter 1 to find any
+  result.
 
 ### Changed
 

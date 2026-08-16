@@ -288,6 +288,9 @@ wrong reason.
 
 Re-argued with an actual test: of the 28 pairs among the top eight, **3 reach
 p < 0.05 two-sided**, and none survives a Bonferroni correction for 28 tests.
+(Recorded as measured at the time; under the 2026-08-16 pipeline the same scan
+reads 5 of 28, with exactly one pair, Messi against Benzema, surviving the
+correction.)
 
 Two further corrections from the same audit:
 
@@ -299,8 +302,10 @@ Two further corrections from the same audit:
   still uses one.
 - **The percentile bootstrap under-covers badly on short careers.** At three
   seasons (which `min_seasons = 3` permits into the ranking) a nominal 95%
-  interval contains the truth 74% of the time. BCa would narrow the gap; more
-  seasons would close it.
+  interval contains the truth 74% of the time, measured by simulation with
+  normal draws at that career length. BCa has since shipped (`doubt.bca`, used
+  by the lens tables) and corrects the bias and skew from four observations
+  up; at exactly three, neither interval covers well.
 
 More data did not resolve the top of the table, and that is the correct outcome
 to report rather than a disappointment. Narrowing those bands needs more signal
