@@ -19,6 +19,36 @@ arc.
 
 ### Fixed
 
+- **One competition, one yardstick (2026-08-16).** `continental` and
+  `tournament` were z-scored within `(league, season)`, so a player's European
+  output was measured against his domestic league-mates and the yardstick
+  population depended on how many of them also played in Europe, a club and
+  league artifact; the league-strength offset was then added on top of both
+  columns, a second adjustment with no rationale. Both columns are now
+  z-scored within `(season)` pooled across the Big 5 and carry no offset.
+  Measured: Mbappé's career continental z **14.19 → 11.22**, Ronaldo's
+  **9.61 → 12.07** (Messi highest under both, 10.69 → 12.86), which is the
+  actual ordering of the two European careers. Ronaldo returns to 2nd
+  (**4.04 → 4.13**, Mbappé **4.04 → 3.94** drops to 3rd), Messi **4.61 →
+  4.84** with his lead over the ranked population widening **8.03σ → 8.59σ**.
+  The podium change is the artifact leaving, not football changing.
+  Qualifiers **357 → 268** from this change alone (265 shipped, with the
+  availability fix below). Endpoints and the 1,839 transfer moves are
+  unchanged; league offsets shift slightly (mean over 25 seasons): Spain
+  −0.170 → **−0.156**, Italy −0.254 → **−0.206**, Germany −0.299 →
+  **−0.254**, France −0.377 → **−0.288**. Zero-mass at the gate floor
+  re-measured under the pooled grain: 0.00% at both floors, every
+  season-level requirement still eliminates 2,203 of 5,508 (39.996%); see
+  DECISION.md.
+- **A mid-season mover's availability was structurally understated.**
+  `collapse_transfers` recomputed `min_pct` against the **sum** of each
+  club's implied full season, double-counting the overlapping calendar: no
+  mover could exceed 74.5%, and Guilherme's 2017-18 (3,583 minutes, more than
+  one club's entire season) read 52.4%. The denominator is now the largest
+  single-club implied season, capped at 100%. Measured: 2,605 transfer
+  seasons gain **+20.2pp** availability on average, movers' maximum **74.5% →
+  100.0%**; 23 players cross the gate, qualifiers **268 → 265** against the
+  pooled-normalisation baseline. See DECISION.md.
 - **Percentile bootstrap under-covered short careers.** 74% actual against a
   nominal 95% at three seasons, and `min_seasons = 3` put exactly those careers
   in the published table. `doubt.bca` replaces it with a bias-corrected and

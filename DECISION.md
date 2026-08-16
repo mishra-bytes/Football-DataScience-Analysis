@@ -196,24 +196,74 @@ column has no large tie mass sitting exactly at the floor value; `<` is false
 against a tie, so a floor landing inside one cuts nobody, which is what
 `test_a_requirement_with_a_mass_at_the_floor_eliminates_nobody` in
 `tests/test_gate.py` documents. Most Big-5 careers never play in Europe, so
-this was worth checking rather than assuming. Measured directly on the
-standardised profile the gate consumes (`vault/derive/ranking.parquet`'s
-`continental` column, the same one `gate.failure_summary` reads): the
-exact-zero mass is **0.00%** of the 5,508 careers, because the per-season
-z-score is computed within each `(league, season)` group before the career is
-pooled, and every group's zero-value players inherit that group's own mean and
-spread, not a shared one. A raw zero stops being one shared number well before
-the gate ever sees a `continental` column, so the 40th-percentile floor
-(-0.344) sits cleanly above the population rather than inside a tied mass, and
-`continental` eliminates 2,203 of 5,508 (39.996%, exactly the same share as
-every other season-level requirement) genuinely, not by an artefact of ties.
-`gate.failure_summary` counts each requirement's eliminations independently
-per column rather than weighted by overlap with the other ten, so nine
-identical counts at one gate percentile is the expected shape of that
-function's output, not a sign every requirement failed the same players. See
-CHANGELOG.md for the qualifier count and the reordered top ten.
+this was worth checking rather than assuming, and it was re-measured after
+the 2026-08-16 move to pooled `(season)` normalisation for this column.
+Under pooled grouping every zero-value player in one season does inherit one
+shared z-value, so the tie risk is more real than it was under the old
+per-league grain, not less. Measured directly on the standardised profile the
+gate consumes (`vault/derive/ranking.parquet`'s `continental` column, the
+same one `gate.failure_summary` reads): the exact mass at the floor is
+**0.00%** of the 5,508 careers, and the largest tie anywhere in the column
+holds 0.02%, because a career pools several seasons with different means,
+spreads and minutes weights, so the shared within-season value scatters
+before the gate ever sees a `continental` column. The 40th-percentile floor
+(-0.319) sits cleanly clear of any tied mass, and `continental` eliminates
+2,203 of 5,508 (39.996%, exactly the same share as every other season-level
+requirement) genuinely, not by an artefact of ties. `gate.failure_summary`
+counts each requirement's eliminations independently per column rather than
+weighted by overlap with the other eleven, so identical counts at one gate
+percentile is the expected shape of that function's output, not a sign every
+requirement failed the same players. See CHANGELOG.md for the qualifier
+count and the reordered top ten.
 
-### The tournament requirement measures nationality more than club selection does, and Copa America only shrinks that, it does not close it
+### One competition, one yardstick: global competitions are normalised against the whole Big-5 season and carry no domestic offset
+
+Decided 2026-08-16. `continental` and `tournament` are z-scored within
+`(season)` pooled across all five leagues, and `bridge.apply_offsets` never
+touches them; the eight domestic season-level requirements keep their
+`(league, season)` grain and their league-strength offset.
+
+Rejected: the previous within-`(league, season)` normalisation, one uniform
+rule for all ten season-level columns. A z-score's yardstick population must
+match the construct's population. "Delivers in Europe" is a claim about
+everyone in that European season, not "delivers in Europe relative to
+compatriots", so under the within-league grain a player's European score
+depended on how many of his league-mates were also in Europe, a club and
+league artifact: a dominant club in a one-club league towered over a thin
+domestic comparison set. Measured, that artifact put Mbappé's career
+continental z at 14.19 against Ronaldo's 9.61; under the pooled yardstick they
+are 11.22 and 12.07, which matches the actual ordering of the two European
+careers. The domestic offset came off for the same reason: a UCL goal is the
+same event whichever domestic league the scorer plays in, so adding a
+league-strength correction to it was a second adjustment with no rationale.
+
+Measured effect: Ronaldo returns to 2nd (4.13) and Mbappé drops to 3rd
+(3.94), Messi's score rises to 4.84 and his lead widens (8.03σ → 8.59σ over
+the ranked population); qualifiers 357 → 265 of 5,508 (268 from this change
+alone, the availability fix below accounts for the rest). The podium change
+is the artifact leaving, not football changing. Endpoints and the 1,839
+transfer moves are unchanged; league offsets shift slightly (see CHANGELOG).
+
+### A mid-season mover's availability denominator is one season, not the sum of two
+
+Decided 2026-08-16. `tally.collapse_transfers` recomputes a transfer season's
+`min_pct` against the **largest** single-club implied full season, capped at
+100%, instead of the sum of every club's implied season.
+
+Rejected: keeping the summed denominator and recording the bias in
+DEVIATIONS.md. The two clubs' seasons overlap in the calendar, so the sum
+double-counts the very window the player moved across, and the understatement
+was structural, not noise: no mover could exceed 74.5% availability, and
+Guilherme's 2017-18, at 3,583 minutes more football than one club's entire
+season, scored 52.4%. Availability is a gated requirement, so a structural
+ceiling on movers is a structural gate bias against them. Also rejected:
+prorating each stint against its own calendar window, which needs match dates
+the season-level data does not carry.
+
+Measured effect: 2,605 transfer seasons gain availability, +20.2 percentage
+points on average; movers' maximum goes 74.5% → 100.0% (Guilherme 2017-18 now
+100%). On the shipped ranking the fix moves 23 players across the gate,
+qualifiers 268 → 265 against the pooled-normalisation baseline.
 
 `needs.tournament_value` scores World Cup, Euro and Copa America output with the
 same rate-times-presence shape as `continental_value`, and it partly measures
@@ -245,16 +295,19 @@ the same single quadrennial opportunity every player outside Europe and South
 America gets. Adding a fourth and fifth confederation's tournament was not
 part of this ruling and was not built.
 
-Measured the same way `continental`'s zero mass was checked, because
+Measured the same way `continental`'s zero mass was checked, and re-measured
+after the 2026-08-16 move to pooled `(season)` normalisation, because
 `tournament` starts from an even higher raw-zero rate (a career only touches a
-World Cup, a Euro or a Copa America in a minority of its seasons): the
-standardised profile the gate consumes carries **0.00%** exact-zero mass on
-`tournament` too, for the identical reason, the per-season z-score is computed
-within each `(league, season)` group before the career is pooled, so a raw
-zero stops being one shared number before the gate ever sees the column. The
-40th-percentile floor eliminates 2,203 of 5,508 (39.996%), exactly the same
-share as every other season-level requirement, genuinely rather than by a tied
-mass at the floor. See CHANGELOG.md for the qualifier count and the top ten.
+World Cup, a Euro or a Copa America in a minority of its seasons) and pooled
+grouping hands every zero-value player in one season one shared z-value: the
+standardised profile the gate consumes carries **0.00%** mass at the
+40th-percentile floor (-0.233), with the largest tie anywhere in the column
+holding 0.40%, because a career pools several seasons with different means,
+spreads and minutes weights, so the shared within-season value scatters
+before the gate ever sees the column. The floor eliminates 2,203 of 5,508
+(39.996%), exactly the same share as every other season-level requirement,
+genuinely rather than by a tied mass at the floor. See CHANGELOG.md for the
+qualifier count and the top ten.
 
 ### A COVID-delayed tournament edition is mislabelled at the source, and this project's alignment inherits the mislabelling
 
