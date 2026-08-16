@@ -194,9 +194,10 @@ Assumptions, How it breaks.** The last section is the one most tutorials skip.
   cleaned table resolve to a Wikidata entity; the rows that do not belong to
   1,240 distinct players, who are listed, never dropped.
 - **Twelve requirements are not twelve independent tests.** Chapter 15's three
-  estimators put the effective count between about four and seven depending on
-  the question asked, and `reliability` still correlates 0.55 with
-  `availability`, down from 0.72.
+  estimators put the effective count between four and a half and seven
+  (participation ratio 4.52, equivalent independent gates 5.94, seven
+  components for 90% of the variance), and `reliability` still correlates 0.55
+  with `availability`, down from 0.72.
 - **The top ten is not an ordering.** Only five of the 28 pairs among the top
   eight are separable at p < 0.05 two-sided, one after correcting for the 28
   tests. The ranking prints an order because a table has to. The statistics

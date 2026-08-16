@@ -231,7 +231,7 @@ keepers, Bundesliga `misc`) and the whole pipeline re-run from the cache.
 | Definition-of-done item | Target | Measured | Result |
 |---|---|---|---|
 | 1. FBref cache complete | 5 × 5 × 25 | 625 of 625 pages, no partial table | **PASS** |
-| 2. Identity resolution | ≥ 95% | **93.8%** (1,240 players unresolved, all listed) | **FAIL** |
+| 2. Identity resolution | ≥ 95% | **93.9%** of the 65,069 collapsed player-seasons (1,240 players unresolved, all listed) | **FAIL** |
 | 3. Ranking | - | 5,508 ranked, 342 qualified, 39,877 player-seasons | **PASS** |
 | 4. Notebooks execute; book builds | - | 8 notebooks, 0 errors, 10 pages rendered | **PASS** |
 | 5. Streamlit runs against the sample | - | health `ok`, main page HTTP 200 | **PASS** |
@@ -247,9 +247,9 @@ stored one Parquet per birth year.
 adding harder names. That reading was wrong. The real cause was the crosswalk
 query anchoring on Wikidata's FBref-ID property, which the matcher never joined
 on and which excluded more than half the candidate pool. Fixing the anchor and
-adding tiered name matching took it to 93.8%.
+adding tiered name matching took it to 93.9%.
 
-The remaining 1.2 points are transliteration (`Serhiy`/`Serhii`), non-Latin
+The remaining 1.1 points are transliteration (`Serhiy`/`Serhii`), non-Latin
 labels, and players genuinely absent from Wikidata. Every further loosening
 trades a missing match for a risk of a wrong one, and a wrong QID is worse,
 because a missing one is reported and a wrong one is not.
