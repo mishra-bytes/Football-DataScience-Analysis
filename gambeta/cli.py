@@ -251,9 +251,32 @@ def clean(cfg: kit.Config) -> None:
         log.info("tournament: %d player-seasons", len(collapsed_tourney))
 
 
+GLOBAL_KEYS = ("continental", "tournament")
+"""Requirements scored in one competition the whole Big 5 shares.
+
+One competition, one yardstick: a UCL goal is the same event whichever domestic
+league the scorer plays in, so these columns are z-scored within ``(season)``
+pooled across leagues, and the league-strength bridge never touches them.
+Normalising them within ``(league, season)`` made a player's European score
+depend on how many of his league-mates were also in Europe, a club artifact
+that inflated dominant clubs in one-club leagues.
+"""
+
+
 def _normalise(df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
-    """Z-score each requirement within its (league, season), in place of the raw value."""
-    out = level.zscore(df, keys)
+    """Z-score each requirement in place of the raw value.
+
+    Domestic requirements are scored within ``(league, season)``: the population
+    a player competed against. Global-competition requirements
+    (:data:`GLOBAL_KEYS`) are scored within ``(season)`` pooled across leagues,
+    because their population is everyone in that competition, not the player's
+    league-mates.
+    """
+    domestic = [k for k in keys if k not in GLOBAL_KEYS]
+    pooled = [k for k in keys if k in GLOBAL_KEYS]
+    out = level.zscore(df, domestic)
+    if pooled:
+        out = level.zscore(out, pooled, by=("season",))
     for key in keys:
         out[key] = out[f"{key}_z"]
     return out.drop(columns=[f"{key}_z" for key in keys])
@@ -275,9 +298,13 @@ def _rank_group(
 
     # Solve for the leagues actually in the data, not the configured Big 5, so a
     # partial dataset works and a league added later needs no code change.
+    #
+    # Offsets shift the domestic columns only. The global-competition columns
+    # are already on one Big-5-wide scale, and a league-strength correction on
+    # top of them would adjust a UCL goal for the league it was *not* scored in.
     present = sorted(scored["league"].dropna().unique())
     offsets = bridge.solve_offsets(bridge.find_moves(scored), cfg, leagues=present)
-    scored = bridge.apply_offsets(scored, offsets, keys)
+    scored = bridge.apply_offsets(scored, offsets, [k for k in keys if k not in GLOBAL_KEYS])
 
     # Recomputed after the bridge. `find_moves` needs the pre-offset score to
     # see the gap a transfer opens; everything downstream needs the post-offset
@@ -295,9 +322,9 @@ def rank(cfg: kit.Config) -> None:
     elo = align_teams(locker.read(cfg.raw / RAW_ELO, laws.ELO), keeper["team"])
 
     # Attached before the minutes filter and before deriving, for the same reason
-    # the filter sits where it does: `continental` is z-scored within
-    # (league, season) and the population that normalisation runs against has to
-    # be the population that gets ranked.
+    # the filter sits where it does: `continental` is z-scored within (season)
+    # pooled across leagues, and the population that normalisation runs against
+    # has to be the population that gets ranked.
     if (cfg.clean / CLEAN_CONTINENTAL).exists():
         extra = locker.read(cfg.clean / CLEAN_CONTINENTAL, laws.EXTRA_COMP)
         outfield = tally.attach_extra_competition(
