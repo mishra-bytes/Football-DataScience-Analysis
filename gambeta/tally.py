@@ -58,7 +58,14 @@ def collapse_transfers(df: pd.DataFrame) -> pd.DataFrame:
     ``min_pct`` is recomputed rather than summed. It is a share of one club's
     minutes, so adding two of them is meaningless. It produced availability
     figures up to 296%. Each club's implied total is recovered from the share it
-    came with, and the real share is taken against the sum of those.
+    came with, and the real share is taken against the **largest** of those, not
+    their sum. The two clubs' seasons overlap in the calendar, so summing them
+    double-counts the very window the player moved across: it made 74.5% the
+    ceiling any mover could reach, and gave Guilherme's 2017-18 (3,583 minutes,
+    more than one club's entire season) a 52.4% availability. The largest
+    single-club implied season is the closest thing the data has to "one full
+    season", and the share is capped at 100 because playing across two leagues'
+    calendars can exceed it.
     """
     keys = ["player_id", "season"]
     if "min_pct" in df.columns:
@@ -70,12 +77,14 @@ def collapse_transfers(df: pd.DataFrame) -> pd.DataFrame:
     present = [c for c in _SUM if c in df.columns]
     aggs: dict[str, Any] = {c: _sum_or_missing for c in present}
     if "_team_min" in df.columns:
-        aggs["_team_min"] = _sum_or_missing
+        aggs["_team_min"] = "max"
     totals = grouped.agg({**aggs, **{c: "first" for c in _KEEP}})
 
     if "_team_min" in totals.columns:
         team_min = totals.pop("_team_min")
-        totals["min_pct"] = 100.0 * totals["minutes"] / team_min.where(team_min > 0)
+        totals["min_pct"] = (100.0 * totals["minutes"] / team_min.where(team_min > 0)).clip(
+            upper=100.0
+        )
     # Named aggregation on the frame (not a selected column) keeps this a
     # DataFrame and needs no rename.
     teams = (
