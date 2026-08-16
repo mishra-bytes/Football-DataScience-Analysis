@@ -98,11 +98,13 @@ def summary(placed: pd.DataFrame, ranking: pd.DataFrame) -> pd.DataFrame:
     total = len(ranking)
     top_slice = max(int(round(0.01 * total)), 1)
 
+    # The median of an even count of winners lands between two ranks. Truncating
+    # it to an int reported "37" for a median of 37.5, so it is kept exact.
     rows = [
         ("award winners in the window", len(placed)),
         ("of those, present in our data", len(found)),
         ("of those, clearing all requirements", len(qualified)),
-        ("median rank of a winner", int(found["rank"].median()) if len(found) else 0),
+        ("median rank of a winner", float(found["rank"].median()) if len(found) else 0.0),
         (f"winners inside our top {top_slice}", int((found["rank"] <= top_slice).sum())),
         ("winners our gate rejects", int(len(found) - len(qualified))),
     ]

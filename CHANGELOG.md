@@ -84,9 +84,12 @@ arc.
   | France | −0.300 | **−0.359** |
 
 - **Qualifiers 326 → 345** of 5,508 ranked. Player-seasons 39,883 → 39,877.
-- **The headline caveat got stronger, not weaker.** Of the 28 pairs among the top
-  eight, pairs separable at p < 0.05 two-sided fell **3 → 1**, and under a
-  Bonferroni correction **1 → 0**. Median award-winner rank 61st → 64th.
+- **The headline caveat moved with the data fixes.** Median award-winner rank
+  61st → 64th. The pair counts first recorded here (3 → 1 at p < 0.05
+  two-sided, 1 → 0 under Bonferroni) did not survive the 2026-08-16 audit's
+  re-measurement: under the shipped pipeline 5 of the 28 pairs among the top
+  eight are separable at p < 0.05 two-sided and exactly one, Messi against
+  Benzema, survives the Bonferroni correction.
 - Top eight reordered: Henry rises to 6th, Suárez ahead of Lewandowski, Haaland
   above Mbappé. Messi and Ronaldo unchanged at 1 and 2.
 - **Book chapters re-run against the twelve-requirement pipeline.** An audit
@@ -94,9 +97,13 @@ arc.
   `continental` and `tournament` shipped. Chapters 01-16 re-executed against
   the committed sample and 03, 05, 07-16 had their prose swept for numbers the
   new outputs contradicted (17 needed no changes). Headline effects: awards
-  median winner rank 60th → 37th of 5,508; Henry vs Suárez permutation test
-  flips from not significant to significant, p 0.0906 → 0.0467; Messi's lead
-  over the mean 5.81 → 8.03 sigma, with Mbappé rather than Ronaldo now second;
+  median winner rank 60th → 37.5th of 5,508 (the summary truncated it to 37
+  until 2026-08-16); the Henry vs Suárez p-value published from this re-run,
+  0.0906 → 0.0467 "flips to significant", was an artifact of the identity
+  bug below (a name-keyed selection merged two players called Luis Suárez);
+  against the real Suárez's player_id the test does not reach significance.
+  Messi's lead over the mean 5.81 → 8.03 sigma, with Mbappé rather than
+  Ronaldo second at the time;
   qualifiers under the shipped gate 445 → 357, multi-league qualifiers 173 →
   139; discipline no longer eliminates more players than any other
   requirement, every season-level requirement ties at 2,203 under the
@@ -107,7 +114,7 @@ arc.
   answer.
 - **All prose rewritten in the first person**, and every em dash removed from the
   notebooks, the book, the docs and the library docstrings.
-- Test count **175 → 236**.
+- Test count **175 → 278**.
 
 ### Removed
 
@@ -233,7 +240,8 @@ arc.
 
 - **Ranking population** 4,424 → 5,508; **qualifiers** 239 → 326 (345 after
   the data-integrity fixes above).
-- Identity resolution **83.9% → 93.8%** of 67,825 rows; unresolved players
+- Identity resolution **83.9% → 93.9%** of the 65,069 collapsed
+  player-seasons in `vault/clean/outfield.parquet`; unresolved players
   3,480 → 1,240. Crosswalk 114,084 → 253,241 people.
 - Mbappé enters at 3rd. Messi's career becomes 18 seasons across two countries
   rather than 16 in one; his lead narrows from +6.1σ to +5.9σ.
@@ -312,22 +320,23 @@ arc.
 
 ### Known issues
 
-- Identity resolution is **93.8%**, against a 95% target. What remains is
+- Identity resolution is **93.9%** of the 65,069 collapsed player-seasons,
+  against a 95% target. What remains is
   transliteration (`Serhiy`/`Serhii`, `Alexander`/`Aliaksandr`), non-Latin
   labels, Modrić's only non-English Wikidata label is Cyrillic and cannot be
   folded onto FBref's Latin spelling, and players genuinely absent from
   Wikidata. Every further loosening trades a missing match for the risk of a
   wrong one, which is the worse error.
-- **The top ten is not an ordering.** Only 1 of 28 pairwise comparisons among the
-  top eight are separable at p < 0.05 two-sided, and none survives a Bonferroni
-  correction. More data did not fix this and more seasons will not; it needs more
-  signal per season.
+- **The top ten is not an ordering.** Only 5 of 28 pairwise comparisons among
+  the top eight are separable at p < 0.05 two-sided, and exactly one survives
+  a Bonferroni correction. More data did not fix this and more seasons will
+  not; it needs more signal per season.
 - `failure_summary` is near information-free by construction: a percentile gate
   eliminates exactly that share of the population on every requirement.
-- Defenders remain unmeasurable. Top 50 qualifiers are 96% forwards, 4%
-  midfielders, 0% defenders; the best defender ranks 122nd. FBref records no
-  per-player defensive action before 2017-18. Cannavaro, the 2006 Ballon d'Or
-  winner, ranks 2,707th and fails 8 of 11 requirements.
+- Defenders remain unmeasurable. The top 50 of the ranking are 88% forwards,
+  12% midfielders, 0% defenders; the best defender ranks 170th. FBref records
+  no per-player defensive action before 2017-18. Cannavaro, the 2006 Ballon
+  d'Or winner, ranks 2,363rd and fails 5 of 12 requirements.
 
 ---
 

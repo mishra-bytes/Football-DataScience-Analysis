@@ -23,7 +23,6 @@ project:
     - labs/15-how-many-things-is-this-measuring.ipynb
     - labs/16-who-is-this-player-really.ipynb
     - labs/17-where-should-the-bar-be.ipynb
-    - tome/method-template.qmd
     - tome/reference/index.qmd
     - tome/reference/needs.qmd
     - tome/reference/gate.qmd
@@ -74,7 +73,6 @@ book:
         - labs/15-how-many-things-is-this-measuring.ipynb
         - labs/16-who-is-this-player-really.ipynb
         - labs/17-where-should-the-bar-be.ipynb
-        - tome/method-template.qmd
     - part: "Reference"
       chapters:
         - tome/reference/index.qmd

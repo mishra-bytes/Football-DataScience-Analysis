@@ -39,9 +39,12 @@ Two consequences worth stating, because both moved the answer:
   over almost completely.
 
   Those offsets moved again on 2026-08-11 when the data-integrity fixes
-  landed (`DEVIATIONS.md` #7 to #9). Spain is now −0.180, Italy −0.243,
-  Germany −0.261 and France −0.359. The figures above are kept as the
-  record of what Ligue 1 alone did.
+  landed (`DEVIATIONS.md` #7 to #9): Spain −0.180, Italy −0.243, Germany
+  −0.261, France −0.359. They moved once more on 2026-08-16 with the pooled
+  continental yardstick and the availability fix, to Spain −0.156, Italy
+  −0.206, Germany −0.254, France −0.288 (means over the 25 seasons; README
+  carries the current table). The figures above are kept as the record of
+  what Ligue 1 alone did.
 
   Part of that shift was not Ligue 1 at all. Fixing the age misalignment
   (`DEVIATIONS.md`, 2026-08-11) moved every offset again, because age is a
@@ -52,8 +55,10 @@ browser session per table. The pipeline itself then runs offline in ~5 minutes.
 
 ## 1.4 Identity resolution, 93.9%, against a 95% target
 
-**1,240 players unresolved**, listed in `vault/clean/unresolved.csv`. Up from
-83.9%; the remaining 1.1 points are the hard tail.
+**93.9% of the 65,069 player-seasons** in `vault/clean/outfield.parquet`
+resolve to a Wikidata entity; the rows that do not belong to **1,240 distinct
+players**, listed in `vault/clean/unresolved.csv`. Up from 83.9%; the
+remaining 1.1 points are the hard tail.
 
 The original diagnosis was wrong and worth recording. This looked like a name
 normalisation problem, and it was mostly a **query** problem: the crosswalk
@@ -145,14 +150,16 @@ and already dispatches to the GPU above a size threshold.
 
 `doubt.permutation_test`, with an "A vs B" dashboard tab and notebook 07.
 
-The finding is uncomfortable and belongs in the open: **only 1 of 28 pairwise
-comparisons among the top eight reach p < 0.05 two-sided**, and none survives a
-Bonferroni correction. The ranking's ordering is far weaker evidence than a
-sorted table implies.
+The finding is uncomfortable and belongs in the open: **only 5 of 28 pairwise
+comparisons among the top eight reach p < 0.05 two-sided**, and exactly one,
+Messi against Benzema, survives a Bonferroni correction. The ranking's
+ordering is far weaker evidence than a sorted table implies.
 
-Still open, and now the most defensible next step for uncertainty: **BCa
-intervals**. The percentile bootstrap covers 74% at three seasons against a
-nominal 95%, and `min_seasons = 3` lets those careers into the published table.
+The follow-up this section used to name as still open, **BCa intervals**, has
+since shipped: `doubt.bca` corrects the percentile bootstrap's 74% coverage at
+short careers with a bias and an acceleration term, and `lens.py` uses it. Its
+honest limit stands in its docstring: at exactly three seasons the jackknife
+has too little to work with and neither interval covers well.
 
 ## Phase 4, Presentation
 
@@ -202,16 +209,16 @@ endpoint with its labelling repaired.
 
 `gambeta.verdict`, against five award bodies. Of 18 men's winners in the window,
 16 are in our data, 10 clear all twelve requirements, and the median winner
-ranks 37th of 5,508.
+ranks 38th of 5,508.
 
 The disagreements are the output worth reading:
 
 | Winner | Our rank | Why |
 |---|---|---|
-| Zidane | 37 | qualified |
-| Nedvěd, Figo, Rodri | 450-792 | failed **discipline** alone |
-| Van Dijk | 881 | failed creation |
-| **Cannavaro** | **2263** | failed 5 of 12 |
+| Zidane | 50 | qualified |
+| Nedvěd, Figo, Rodri | 362-797 | failed **discipline** alone |
+| Van Dijk | 913 | failed creation, tournament |
+| **Cannavaro** | **2363** | failed 5 of 12 |
 
 Cannavaro is the honest headline: a centre-back won the 2006 Ballon d'Or and this
 definition ranks him below two thousand players. That is the
@@ -247,7 +254,7 @@ Not bugs. Decisions that need a person.
 
 | Question | Current answer | Why it is arguable |
 |---|---|---|
-| How high should the gate be? | 40th percentile on all twelve | 357 of 5,508 qualify. At 50 only 166 do; at 30, 801. There is no principled value, the dashboard slider now lets a reader pick their own and watch the field change. |
+| How high should the gate be? | 40th percentile on all twelve | 265 of 5,508 qualify. At 50 only 121 do; at 30, 588. There is no principled value, the dashboard slider now lets a reader pick their own and watch the field change. |
 | How much should fouls count? | Reds + second yellows + fouls per 90, equal weight with everything else | Totti, Zlatan and Neymar fail on discipline *alone*. Defensible, or an artefact of weighting aggression like unavailability. Now that `misc` is complete this requirement bites harder than it did. |
 | Is `starts / appearances` right for reliability? | Replaced 2026-08-12 | Now completed matches per appearance against the player's own position. Chosen on four measured faults; see DECISION.md. Overlap with `availability` is 0.55, down from 0.72, so the two still share more than a ten-item gate implies. |
 | Should keepers and outfielders ever be compared? | No, two leaderboards | The honest choice. But the project's headline question implies one answer, and this declines to give one for keepers. |
@@ -273,9 +280,9 @@ Not bugs. Decisions that need a person.
 per-player defensive action before 2017-18, no interceptions, no tackles, no
 clearances, so two thirds of the window has nothing to measure a centre-back
 with. Ligue 1 did not help. `misc` did not help. Both are now collected in full,
-and on the complete Big 5 the top 50 qualifiers are **96% forwards, 4%
+and on the complete Big 5 the top 50 of the ranking are **88% forwards, 12%
 midfielders, 0% defenders**, defenders are 41% of the ranked population and the
-best of them sits 122nd.
+best of them sits 170th.
 
 The rating is therefore named for what it measures: **attacking contribution**.
 

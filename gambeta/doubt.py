@@ -89,10 +89,11 @@ def bca(
     The percentile interval assumes the bootstrap distribution is centred on the
     truth and equally spread on both sides. A career of three seasons satisfies
     neither: the sample mean is a biased estimate of the level, and season scores
-    are right-skewed, so the interval sits too low and too narrow. Measured on
-    this project's own data it covers about 74% of the time against a nominal
-    95%, and ``min_seasons = 3`` puts exactly those careers into the published
-    table.
+    are right-skewed, so the interval sits too low and too narrow. Measured by
+    simulation at n = 3 (chapter 10 draws normal samples at exactly the career
+    length ``min_seasons`` admits, not this project's own season scores) it
+    covers about 74% of the time against a nominal 95%, and ``min_seasons = 3``
+    puts exactly those careers into the published table.
 
     Two corrections improve it from four observations up; at three the jackknife
     has too little to work with and neither interval covers well. **z0** measures
@@ -198,8 +199,14 @@ def permutation_test(
     every pair in a table sorted by score means ``a`` is always the higher
     scorer, so the direction was chosen after seeing the answer, and a
     one-sided test picked that way is anti-conservative by roughly a factor of
-    two. On the top eight of this ranking it reports 5 significant pairs where
-    the two-sided test reports 3.
+    two. On the top eight of this ranking it reports 8 significant pairs where
+    the two-sided test reports 5.
+
+    The statistic here is the **unweighted mean of per-season scores**, which
+    is deliberately not the statistic the published ranking orders by (a
+    minutes-weighted career composite of twelve standardised requirements).
+    The test asks whether two season-score series are distinguishable, not
+    whether the two career composites are.
 
     Parameters
     ----------

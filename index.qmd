@@ -7,7 +7,7 @@ twenty-five years were**, and **how you would actually find out**.
 
 No suspense. Everything on this page is computed live from the same committed
 data every chapter uses, so it cannot drift out of step with the book. A player
-must clear a floor on **all ten requirements** to appear at all.
+must clear a floor on **all twelve requirements** to appear at all.
 
 ```{python}
 #| echo: false
@@ -42,7 +42,7 @@ from IPython.display import Markdown
 
 qualified = int(ranking["qualified"].sum())
 Markdown(
-    f"**{qualified} of {len(ranking):,} players** clear every one of the ten "
+    f"**{qualified} of {len(ranking):,} players** clear every one of the twelve "
     f"requirements, which is {100 * qualified / len(ranking):.1f}% of the ranked "
     f"population. The other {len(ranking) - qualified:,} are still listed, with "
     f"the requirement they missed published beside them, so the definition can be "
@@ -105,6 +105,10 @@ strength.style.format({"Strength": "{:+.3f}", "Endpoints": "{:,}"}).hide(axis="i
 That first table is an ordering, and the statistics behind it do not support
 one. Every pair among the top eight gets a two-sided permutation test below, run
 against this data at render time rather than transcribed from a previous run.
+One caveat travels with it: the test compares unweighted means of the two
+players' per-season composite scores, which is not the statistic the ranking
+orders by, a minutes-weighted career composite of twelve standardised
+requirements.
 
 ```{python}
 #| echo: false
@@ -132,11 +136,12 @@ Markdown(
 The chapters on the bootstrap and on permutation testing make that case against
 the table above, which is the honest way round.
 
-Those two questions are harder to separate than they look. Most arguments about
-the greatest player are not really disagreements about facts. They are
-disagreements about what "greatest" means, conducted as though they were
-disagreements about facts. One person means peak. Another means longevity.
-A third means trophies. They talk past each other for hours and nobody moves.
+The book's two questions, who was best and how you would find out, are harder
+to separate than they look. Most arguments about the greatest player are not
+really disagreements about facts. They are disagreements about what "greatest"
+means, conducted as though they were disagreements about facts. One person
+means peak. Another means longevity. A third means trophies. They talk past
+each other for hours and nobody moves.
 
 So this book does the unglamorous thing first. It says out loud what it is
 measuring, shows you the arithmetic, and tells you where the arithmetic runs
@@ -144,30 +149,12 @@ out.
 
 ## How this is laid out
 
-Four parts, read in order, going from a raw HTML page through to the answer and
-then back at it.
-
-**Getting the data, and making it honest.** Where twenty-five seasons actually
-come from, how a player is identified when the source gives you no ID, what to
-do with a column the source never recorded, and the class of bug that passes
-every test you own.
-
-**Turning data into a measure.** What greatness requires, how to compare a 2003
-season against a 2023 one, and how to compare a Ligue 1 season against a Premier
-League one.
-
-**The answer.** The ranking, and how far ahead the top of it really is.
-
-**Attacking the answer.** How much of it is luck, whether any two players can be
-told apart, who is missing from the data entirely, and whether any of it agrees
-with the people who were there.
-
-Every method chapter follows the same six-part structure:
-
-> **Question, Intuition, Math, Code, Assumptions, How it breaks**
-
-That last section is the one most tutorials skip, and it is the one that matters
-most. Any method looks good on the data it was demonstrated with.
+Seventeen chapters in four parts, read in order: getting the data honest,
+turning data into a measure, the answer, and attacking the answer. The README's
+book table lists every chapter with what it covers, and every method chapter
+follows the same six-part structure, **Question, Intuition, Math, Code,
+Assumptions, How it breaks**. That last section is the one most tutorials skip,
+and it is the one that matters most.
 
 ## What this project honestly cannot do
 
@@ -181,10 +168,15 @@ trustworthy.
   strength of the opposition. Richer 2017-onward data appears only as context,
   never as part of the ranking, because a metric that exists for one era and not
   another cannot fairly compare them.
-- **This covers the Big 5 domestic leagues**, 2000-01 to 2024-25: England,
-  Spain, Italy, Germany and France. No Champions League, no internationals, no
-  league outside those five. A player who did their best work in Portugal or
-  Brazil does not appear, and that is a limitation of scope, not a judgement.
+- **The ranked population is the Big 5 domestic leagues**, 2000-01 to 2024-25:
+  England, Spain, Italy, Germany and France, with the Champions League and the
+  World Cup, Euro and Copa América counted as requirements 11 and 12 on top of
+  a domestic career. A player who did their best work in Portugal or Brazil
+  still does not appear, `continental` partly measures club selection because
+  a great player at a mid-table side never gets the chance, and `tournament`
+  partly measures nationality because a player from a confederation with no
+  tournament in scope, Africa's or Asia's, cannot close that gap however good
+  he is. Limitations of scope, not judgements.
 - **Attacking output is not all of football.** The current rating rewards goals
   and assists. It therefore systematically undervalues defenders and holding
   midfielders. This is stated plainly rather than buried, because a reader who
@@ -193,14 +185,7 @@ trustworthy.
 
 ## Reproducing everything
 
-Every figure in this book is generated by code that runs against a small
-committed dataset, so you can re-run the whole thing without scraping anything:
-
-```bash
-uv sync --all-groups
-uv run pytest
-quarto render
-```
-
-To rebuild the underlying data from source instead, see `DATA_SOURCES.md` for
-the terms each provider imposes, and run `uv run gambeta all`.
+Every figure in this book is generated by code that runs against the derived
+sample the pipeline writes. The README's Quickstart has the three commands, and
+`DATA_SOURCES.md` has the terms each provider imposes if you want to rebuild
+the data from source.

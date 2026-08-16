@@ -447,13 +447,18 @@ Where the honest answer is "these two are not separable", that is printed.
 The percentile interval assumes the bootstrap distribution is centred on the
 truth and equally spread either side. A three-season career satisfies neither:
 the sample mean is a biased estimate of the level, and season scores are
-right-skewed, so the interval sits too low and too narrow. Measured on this
-project's own data it covers about 74% of the time against a nominal 95%, and
-`min_seasons = 3` is exactly the floor that puts those careers into the
-published table. `doubt.bca` corrects both faults with a bias term and an
-acceleration term read off the same jackknife and bootstrap resamples, no
-extra sampling needed, and no scipy dependency: `statistics.NormalDist`
-already supplies the normal CDF and its inverse.
+right-skewed, so the interval sits too low and too narrow. Measured by
+simulation at n = 3 (chapter 10's coverage study draws normal samples at
+exactly the career length `min_seasons` admits, not this project's own season
+scores; an independent replication of the same design lands at about 75%) it
+covers about 74% of the time against a nominal 95%, and `min_seasons = 3` is
+exactly the floor that puts those careers into the published table.
+`doubt.bca` adds a bias term and an acceleration term read off the same
+jackknife and bootstrap resamples, no extra sampling needed, and no scipy
+dependency: `statistics.NormalDist` already supplies the normal CDF and its
+inverse. The correction is real from four observations up; at exactly three,
+the docstring's own limit stands, the jackknife has too little to work with
+and neither interval covers well.
 
 Rejected: raising `min_seasons` from 3 to 5. It would have fixed coverage by
 deleting Haaland, Mbappé and every short career from the table, answering a

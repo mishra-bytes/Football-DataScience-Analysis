@@ -9,20 +9,23 @@ and a worked textbook on the statistics behind it.
 ## The answer
 
 A player must clear a floor on **all twelve requirements** to qualify at all.
-357 of 5,508 players do. Ranked among them:
+265 of 5,508 players do. Ranked among them:
 
 | # | Player | Score | σ above mean | Seasons | Leagues |
 |---|---|---|---|---|---|
-| 1 | **Lionel Messi** | 4.61 | **+8.0** | 18 | Spain, France |
-| 2 | **Kylian Mbappé** | 4.04 | +7.0 | 9 | Spain, France |
-| 3 | Cristiano Ronaldo | 3.82 | +6.7 | 19 | England, Spain, Italy |
-| 4 | Thierry Henry | 3.49 | +6.1 | 10 | England, Spain |
-| 5 | Robert Lewandowski | 3.11 | +5.4 | 15 | Spain, Germany |
+| 1 | **Lionel Messi** | 4.84 | **+8.6** | 18 | Spain, France |
+| 2 | **Cristiano Ronaldo** | 4.13 | +7.3 | 19 | England, Spain, Italy |
+| 3 | Kylian Mbappé | 3.94 | +7.0 | 9 | Spain, France |
+| 4 | Thierry Henry | 3.69 | +6.5 | 10 | England, Spain |
+| 5 | Robert Lewandowski | 3.28 | +5.8 | 15 | Spain, Germany |
 
-**Almost none of that ordering is statistically supported.** Of the 28 pairs
-among the top eight, **one survives a two-sided permutation test** at p < 0.05,
-and none survives a correction for running 28 of them. Chapters 10 and 11 make
-that argument rather than burying it.
+**Little of that ordering is statistically supported.** Of the 28 pairs among
+the top eight, **five are separable by a two-sided permutation test** at
+p < 0.05, and exactly one, Messi against Benzema, survives a correction for
+running 28 of them. The test compares unweighted means of the two players'
+per-season composite scores, which is not the statistic the ranking orders by
+(a minutes-weighted career composite of twelve standardised requirements).
+Chapters 10 and 11 make that argument rather than burying it.
 
 (Their confidence intervals overlap almost everywhere too, but that is a
 description and not a test. Overlapping intervals do not imply a
@@ -76,10 +79,10 @@ the gap between those leagues. Solved across thousands of moves:
 | League | Strength (England = 0) | Move endpoints |
 |---|---|---|
 | England | 0.000 | 967 |
-| Spain | −0.170 | 788 |
-| Italy | −0.254 | 684 |
-| Germany | −0.299 | 496 |
-| France | −0.377 | 743 |
+| Spain | −0.156 | 788 |
+| Italy | −0.206 | 684 |
+| Germany | −0.254 | 496 |
+| France | −0.288 | 743 |
 
 1,839 distinct transfers, each counted once at each end. **England is pinned at
 zero, not measured as best**, because the offsets are identified only up to a
@@ -94,7 +97,7 @@ the model.
 
 ```bash
 uv sync --all-groups          # add --extra gpu if you have an NVIDIA card
-uv run pytest                 # 236 tests, no network required
+uv run pytest                 # 278 tests, no network required
 uv run streamlit run dugout/app.py
 quarto render                 # builds the book into tome/_book
 ```
@@ -164,6 +167,8 @@ One arc, running from a raw HTML page through to the answer and then back at it.
 | `13-does-it-agree-with-the-voters` | The one outside opinion, and where it disagrees |
 | `14-does-the-answer-depend-on-my-choices` | Sensitivity to the four constants, and the one that turned out to do nothing |
 | `15-how-many-things-is-this-measuring` | Correlation between the requirements, and how many the gate really tests |
+| `16-who-is-this-player-really` | The identity crosswalk: a query bug wearing a normalisation costume |
+| `17-where-should-the-bar-be` | Gate calibration, a judgement call examined rather than defended |
 
 Method chapters follow one structure: **Question, Intuition, Math, Code,
 Assumptions, How it breaks.** The last section is the one most tutorials skip.
@@ -182,15 +187,20 @@ Assumptions, How it breaks.** The last section is the one most tutorials skip.
   it. `tournament` partly measures **nationality**: a player from a confederation
   with no tournament in scope, Africa's or Asia's, cannot close that gap however
   good he is, and Copa America only mitigates the objection for South Americans.
-- **Identity is probabilistic.** 93.9% of player-seasons resolve to a Wikidata
-  entity. The other 1,240 players are listed, never dropped.
-- **Twelve requirements are not twelve independent tests.** They behave like
-  about five and a half, and `reliability` still correlates 0.55 with
-  `availability`, down from 0.72. Chapter 15 measures it.
-- **The top ten is not an ordering.** Not one of the 28 pairs among the top
-  eight is separable at p < 0.05. The
-  ranking prints an order because a table has to. The statistics support "this
-  group, clear of the rest" and not much more.
+  The cost is visible at the top of the table: Salah sits 11th, and scoring the
+  same qualifiers without the tournament requirement puts him 9th, so his
+  absence from the top ten is this scope ruling and nothing else.
+- **Identity is probabilistic.** 93.9% of the 65,069 player-seasons in the
+  cleaned table resolve to a Wikidata entity; the rows that do not belong to
+  1,240 distinct players, who are listed, never dropped.
+- **Twelve requirements are not twelve independent tests.** Chapter 15's three
+  estimators put the effective count between about four and seven depending on
+  the question asked, and `reliability` still correlates 0.55 with
+  `availability`, down from 0.72.
+- **The top ten is not an ordering.** Only five of the 28 pairs among the top
+  eight are separable at p < 0.05 two-sided, one after correcting for the 28
+  tests. The ranking prints an order because a table has to. The statistics
+  support "this group, clear of the rest" and not much more.
 - **Intervals on short careers are optimistic.** A three-season career is allowed
   into the ranking, and a percentile bootstrap at n = 3 covers the truth about
   74% of the time, not 95%.

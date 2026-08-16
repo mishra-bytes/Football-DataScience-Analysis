@@ -36,6 +36,13 @@ def head_to_head(
 ) -> tuple[float, float] | None:
     """Do these two careers differ by more than chance would produce?
 
+    ``a`` and ``b`` are **player ids, not names**. A name does not identify a
+    player: two men called Luis Suárez both have Big-5 careers in this data,
+    and selecting seasons by name silently merged them into one sixteen-season
+    chimera whose test against Henry read significant when the real one does
+    not. The identity chapter warns about exactly this collision class, and
+    this function used to commit it.
+
     **Two-sided**, and that is not a detail. Both dropdowns are populated in rank
     order, so whichever pair a reader picks, the direction of the difference was
     decided by the ranking rather than by them. A one-sided test in a direction
@@ -48,8 +55,8 @@ def head_to_head(
     if "season_score" not in seasons.columns:
         return None
     scores = seasons.dropna(subset=["season_score"])
-    left = scores.loc[scores["player"] == a, "season_score"].to_numpy()
-    right = scores.loc[scores["player"] == b, "season_score"].to_numpy()
+    left = scores.loc[scores["player_id"] == a, "season_score"].to_numpy()
+    right = scores.loc[scores["player_id"] == b, "season_score"].to_numpy()
     return doubt.permutation_test(left, right, n=n, two_sided=True)
 
 
@@ -197,16 +204,28 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
             "large as the real one. No distribution is assumed, because a career is a dozen "
             "numbers, which is far too few to take a bell curve on trust. The test is "
             "two-sided, because these lists are in rank order and so the direction of "
-            "any difference was chosen by the ranking rather than by you."
+            "any difference was chosen by the ranking rather than by you. It compares "
+            "unweighted means of the two players' per-season composite scores, which is "
+            "not the statistic the ranking orders by, a minutes-weighted career "
+            "composite of twelve standardised requirements."
         )
-        names = list(everyone.loc[everyone["qualified"], "player"])
+        # Keyed by player_id, displayed by name: two qualifiers can share a
+        # name (there are two Luis Suárezes in this data), and a name-keyed
+        # comparison would silently pool both careers.
+        qualifiers = everyone.loc[everyone["qualified"], ["player_id", "player"]]
+        dupes = qualifiers["player"].duplicated(keep=False)
+        labels = qualifiers["player"].where(
+            ~dupes, qualifiers["player"] + " (" + qualifiers["player_id"].str[:6] + ")"
+        )
+        by_label = dict(zip(labels, qualifiers["player_id"], strict=True))
+        names = list(by_label)
         if len(names) < 2:
             st.warning("Not enough qualifiers to compare.")
         else:
             pick_a, pick_b = st.columns(2)
             a = pick_a.selectbox("Compare this player", names, index=0)
             b = pick_b.selectbox("against", names, index=1)
-            result = head_to_head(load_seasons(), a, b)
+            result = head_to_head(load_seasons(), by_label[a], by_label[b])
             if result is None:
                 st.warning("Rebuild the sample (`uv run gambeta all`) to enable this test.")
             elif any(pd.isna(v) for v in result):
@@ -235,7 +254,7 @@ def main() -> None:  # pragma: no cover - Streamlit entry point
         st.caption(
             "The right tail is fatter than a normal distribution allows. Sigma here is a ruler "
             "for comparison, not a probability. Under a normal curve the best player would be "
-            "a one-in-six-hundred-million event in a population of five and a half thousand."
+            "roughly a one-in-220-quadrillion event in a population of five and a half thousand."
         )
 
     with keeper_tab:
